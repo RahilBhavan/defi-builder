@@ -1,6 +1,6 @@
+import type { LegoBlock } from '../../types';
 import { runDeFiBacktest } from '../defiBacktestEngine';
-import { BacktestWorkerRequest, BacktestWorkerResponse } from './types';
-import { LegoBlock } from '../../types';
+import type { BacktestWorkerRequest, BacktestWorkerResponse } from './types';
 
 function applyParametersToBlocks(
   blocks: LegoBlock[],

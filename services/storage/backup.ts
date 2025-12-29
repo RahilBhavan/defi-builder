@@ -3,9 +3,9 @@
  * Provides data backup, export, import, and recovery functionality
  */
 
-import { VersionedData, wrapWithVersion, CURRENT_VERSION } from './versioning';
-import { Strategy } from '../../types';
-import { LegoBlock } from '../../types';
+import type { Strategy } from '../../types';
+import type { LegoBlock } from '../../types';
+import { CURRENT_VERSION, VersionedData, wrapWithVersion } from './versioning';
 
 /**
  * Backup data structure
@@ -140,14 +140,19 @@ export function importBackup(json: string): BackupData {
 
     return backup;
   } catch (error) {
-    throw new Error(`Failed to import backup: ${error instanceof Error ? error.message : 'Invalid JSON'}`);
+    throw new Error(
+      `Failed to import backup: ${error instanceof Error ? error.message : 'Invalid JSON'}`
+    );
   }
 }
 
 /**
  * Restore backup to localStorage
  */
-export function restoreBackup(backup: BackupData, overwrite: boolean = false): {
+export function restoreBackup(
+  backup: BackupData,
+  overwrite = false
+): {
   success: boolean;
   restored: string[];
   errors: string[];
@@ -170,7 +175,9 @@ export function restoreBackup(backup: BackupData, overwrite: boolean = false): {
         localStorage.setItem('defi-builder-strategies', JSON.stringify(backup.strategies));
         restored.push('defi-builder-strategies');
       } catch (error) {
-        errors.push(`Failed to restore strategies: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        errors.push(
+          `Failed to restore strategies: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
       }
     }
 
@@ -180,7 +187,9 @@ export function restoreBackup(backup: BackupData, overwrite: boolean = false): {
         localStorage.setItem('defi-builder-blocks', JSON.stringify(backup.blocks));
         restored.push('defi-builder-blocks');
       } catch (error) {
-        errors.push(`Failed to restore blocks: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        errors.push(
+          `Failed to restore blocks: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
       }
     }
 
@@ -221,7 +230,9 @@ export function downloadBackup(backup: BackupData, filename?: string): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = filename || `defi-builder-backup-${new Date(backup.timestamp).toISOString().split('T')[0]}.json`;
+  a.download =
+    filename ||
+    `defi-builder-backup-${new Date(backup.timestamp).toISOString().split('T')[0]}.json`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -258,7 +269,7 @@ export function autoBackup(): BackupData {
 /**
  * Clear all localStorage data (with backup)
  */
-export function clearAllData(createBackupFirst: boolean = true): {
+export function clearAllData(createBackupFirst = true): {
   success: boolean;
   backup?: BackupData;
   error?: string;
@@ -279,7 +290,7 @@ export function clearAllData(createBackupFirst: boolean = true): {
       }
     }
 
-    keys.forEach(key => localStorage.removeItem(key));
+    keys.forEach((key) => localStorage.removeItem(key));
 
     return {
       success: true,
@@ -292,4 +303,3 @@ export function clearAllData(createBackupFirst: boolean = true): {
     };
   }
 }
-

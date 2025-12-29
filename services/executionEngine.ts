@@ -1,6 +1,6 @@
-import { LegoBlock } from '../types';
-import { runDeFiBacktest, DeFiBacktestResult } from './defiBacktestEngine';
-import { retryWithBackoff, isRetryableError } from '../utils/retry';
+import type { LegoBlock } from '../types';
+import { isRetryableError, retryWithBackoff } from '../utils/retry';
+import { type DeFiBacktestResult, runDeFiBacktest } from './defiBacktestEngine';
 
 export class BacktestExecutionError extends Error {
   constructor(
@@ -19,9 +19,7 @@ export class BacktestExecutionError extends Error {
  * @returns Promise resolving to backtest results
  * @throws BacktestExecutionError if execution fails
  */
-export const executeStrategy = async (
-  blocks: LegoBlock[]
-): Promise<DeFiBacktestResult> => {
+export const executeStrategy = async (blocks: LegoBlock[]): Promise<DeFiBacktestResult> => {
   // Validate blocks array
   if (!blocks || blocks.length === 0) {
     throw new BacktestExecutionError(
@@ -95,8 +93,7 @@ export const executeStrategy = async (
     }
 
     // Handle unknown errors
-    const errorMessage =
-      error instanceof Error ? error.message : 'Unknown error occurred';
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     throw new BacktestExecutionError(
       `Backtest execution failed: ${errorMessage}`,
       error,

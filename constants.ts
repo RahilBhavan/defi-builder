@@ -1,6 +1,65 @@
-import { LegoBlock, BlockCategory, Protocol } from './types';
+import { BlockCategory, type LegoBlock, Protocol } from './types';
 
 export const AVAILABLE_BLOCKS: LegoBlock[] = [
+  // ENTRY Blocks
+  {
+    id: 'template_price_trigger',
+    type: 'price_trigger',
+    label: 'PRICE TRIGGER',
+    description: 'Execute when price hits target',
+    category: BlockCategory.ENTRY,
+    protocol: Protocol.GENERIC,
+    icon: 'trigger',
+    params: {
+      asset: 'ETH',
+      targetPrice: 3000,
+      condition: '>=',
+    },
+  },
+  {
+    id: 'template_time_trigger',
+    type: 'time_trigger',
+    label: 'TIME TRIGGER',
+    description: 'Execute at specific time or schedule',
+    category: BlockCategory.ENTRY,
+    protocol: Protocol.GENERIC,
+    icon: 'clock',
+    params: {
+      schedule: '0 9 * * *', // 9 AM daily (cron format)
+      timezone: 'UTC',
+    },
+  },
+  {
+    id: 'template_volume_trigger',
+    type: 'volume_trigger',
+    label: 'VOLUME TRIGGER',
+    description: 'Execute based on trading volume',
+    category: BlockCategory.ENTRY,
+    protocol: Protocol.GENERIC,
+    icon: 'bar-chart',
+    params: {
+      asset: 'ETH',
+      minVolume: 1000000,
+      timeframe: '24h',
+    },
+  },
+  {
+    id: 'template_technical_indicator_trigger',
+    type: 'technical_indicator_trigger',
+    label: 'TECHNICAL INDICATOR',
+    description: 'Execute based on technical indicators (RSI, MACD, etc.)',
+    category: BlockCategory.ENTRY,
+    protocol: Protocol.GENERIC,
+    icon: 'trending-up',
+    params: {
+      asset: 'ETH',
+      indicator: 'RSI',
+      condition: '<=',
+      value: 30,
+      period: 14,
+    },
+  },
+  // PROTOCOL Blocks - Uniswap
   {
     id: 'template_uni_swap',
     type: 'uniswap_swap',
@@ -17,6 +76,23 @@ export const AVAILABLE_BLOCKS: LegoBlock[] = [
     },
   },
   {
+    id: 'template_uniswap_v3_liquidity',
+    type: 'uniswap_v3_liquidity',
+    label: 'UNISWAP V3 LIQUIDITY',
+    description: 'Add or remove liquidity on Uniswap V3',
+    category: BlockCategory.PROTOCOL,
+    protocol: Protocol.UNISWAP,
+    icon: 'droplet',
+    params: {
+      token0: 'ETH',
+      token1: 'USDC',
+      amount0: 1.0,
+      amount1: 3000,
+      feeTier: 3000,
+    },
+  },
+  // PROTOCOL Blocks - Aave
+  {
     id: 'template_aave_supply',
     type: 'aave_supply',
     label: 'AAVE SUPPLY',
@@ -31,19 +107,151 @@ export const AVAILABLE_BLOCKS: LegoBlock[] = [
     },
   },
   {
-    id: 'template_price_trigger',
-    type: 'price_trigger',
-    label: 'PRICE TRIGGER',
-    description: 'Execute when price hits target',
-    category: BlockCategory.ENTRY,
-    protocol: Protocol.GENERIC,
-    icon: 'trigger',
+    id: 'template_aave_borrow',
+    type: 'aave_borrow',
+    label: 'AAVE BORROW',
+    description: 'Borrow assets from Aave',
+    category: BlockCategory.PROTOCOL,
+    protocol: Protocol.AAVE,
+    icon: 'arrow-down',
     params: {
-      asset: 'ETH',
-      targetPrice: 3000,
-      condition: '>=',
+      asset: 'USDC',
+      amount: 500,
+      interestRateMode: 'variable',
     },
   },
+  {
+    id: 'template_aave_repay',
+    type: 'aave_repay',
+    label: 'AAVE REPAY',
+    description: 'Repay borrowed assets to Aave',
+    category: BlockCategory.PROTOCOL,
+    protocol: Protocol.AAVE,
+    icon: 'arrow-up',
+    params: {
+      asset: 'USDC',
+      amount: 500,
+      interestRateMode: 'variable',
+    },
+  },
+  {
+    id: 'template_aave_withdraw',
+    type: 'aave_withdraw',
+    label: 'AAVE WITHDRAW',
+    description: 'Withdraw supplied assets from Aave',
+    category: BlockCategory.PROTOCOL,
+    protocol: Protocol.AAVE,
+    icon: 'arrow-up-circle',
+    params: {
+      asset: 'USDC',
+      amount: 1000,
+    },
+  },
+  {
+    id: 'template_flash_loan',
+    type: 'flash_loan',
+    label: 'FLASH LOAN',
+    description: 'Borrow assets without collateral (must repay in same transaction)',
+    category: BlockCategory.PROTOCOL,
+    protocol: Protocol.AAVE,
+    icon: 'zap',
+    params: {
+      asset: 'USDC',
+      amount: 10000,
+      protocol: 'aave',
+    },
+  },
+  // PROTOCOL Blocks - Compound
+  {
+    id: 'template_compound_supply',
+    type: 'compound_supply',
+    label: 'COMPOUND SUPPLY',
+    description: 'Supply assets to Compound lending pool',
+    category: BlockCategory.PROTOCOL,
+    protocol: Protocol.COMPOUND,
+    icon: 'supply',
+    params: {
+      asset: 'USDC',
+      amount: 1000,
+    },
+  },
+  {
+    id: 'template_compound_borrow',
+    type: 'compound_borrow',
+    label: 'COMPOUND BORROW',
+    description: 'Borrow assets from Compound',
+    category: BlockCategory.PROTOCOL,
+    protocol: Protocol.COMPOUND,
+    icon: 'arrow-down',
+    params: {
+      asset: 'USDC',
+      amount: 500,
+    },
+  },
+  // PROTOCOL Blocks - Curve
+  {
+    id: 'template_curve_swap',
+    type: 'curve_swap',
+    label: 'CURVE SWAP',
+    description: 'Swap stablecoins on Curve',
+    category: BlockCategory.PROTOCOL,
+    protocol: Protocol.CURVE,
+    icon: 'swap',
+    params: {
+      inputToken: 'USDC',
+      outputToken: 'DAI',
+      amount: 1000,
+      slippage: 0.1,
+    },
+  },
+  // PROTOCOL Blocks - Balancer
+  {
+    id: 'template_balancer_swap',
+    type: 'balancer_swap',
+    label: 'BALANCER SWAP',
+    description: 'Swap tokens on Balancer',
+    category: BlockCategory.PROTOCOL,
+    protocol: Protocol.BALANCER,
+    icon: 'swap',
+    params: {
+      inputToken: 'ETH',
+      outputToken: 'WBTC',
+      amount: 1.0,
+      slippage: 0.5,
+    },
+  },
+  // PROTOCOL Blocks - 1inch
+  {
+    id: 'template_oneinch_swap',
+    type: 'oneinch_swap',
+    label: '1INCH SWAP',
+    description: 'Swap tokens using 1inch aggregator for best rates',
+    category: BlockCategory.PROTOCOL,
+    protocol: Protocol.ONEINCH,
+    icon: 'swap',
+    params: {
+      inputToken: 'ETH',
+      outputToken: 'USDC',
+      amount: 1.0,
+      slippage: 0.5,
+    },
+  },
+  // PROTOCOL Blocks - Staking
+  {
+    id: 'template_staking',
+    type: 'staking',
+    label: 'STAKING',
+    description: 'Stake tokens for rewards',
+    category: BlockCategory.PROTOCOL,
+    protocol: Protocol.GENERIC,
+    icon: 'lock',
+    params: {
+      asset: 'ETH',
+      amount: 1.0,
+      stakingType: 'eth2',
+    },
+  },
+  // EXIT Blocks
   {
     id: 'template_stop_loss',
     type: 'stop_loss',
@@ -56,11 +264,99 @@ export const AVAILABLE_BLOCKS: LegoBlock[] = [
       percentage: 10,
     },
   },
+  {
+    id: 'template_take_profit',
+    type: 'take_profit',
+    label: 'TAKE PROFIT',
+    description: 'Exit position when profit target is reached',
+    category: BlockCategory.EXIT,
+    protocol: Protocol.GENERIC,
+    icon: 'trending-up',
+    params: {
+      percentage: 20,
+    },
+  },
+  {
+    id: 'template_time_exit',
+    type: 'time_exit',
+    label: 'TIME EXIT',
+    description: 'Exit position after specified duration',
+    category: BlockCategory.EXIT,
+    protocol: Protocol.GENERIC,
+    icon: 'clock',
+    params: {
+      duration: 86400000, // 24 hours in milliseconds
+      from: 'position',
+    },
+  },
+  {
+    id: 'template_conditional_exit',
+    type: 'conditional_exit',
+    label: 'CONDITIONAL EXIT',
+    description: 'Exit position based on custom condition',
+    category: BlockCategory.EXIT,
+    protocol: Protocol.GENERIC,
+    icon: 'code',
+    params: {
+      condition: 'profit > 1000',
+    },
+  },
+  // RISK Blocks
+  {
+    id: 'template_position_sizing',
+    type: 'position_sizing',
+    label: 'POSITION SIZING',
+    description: 'Dynamic position sizing based on risk',
+    category: BlockCategory.RISK,
+    protocol: Protocol.GENERIC,
+    icon: 'sliders',
+    params: {
+      method: 'percentage',
+      value: 10, // 10% of portfolio
+      maxPosition: 20,
+    },
+  },
+  {
+    id: 'template_risk_limits',
+    type: 'risk_limits',
+    label: 'RISK LIMITS',
+    description: 'Set risk management limits',
+    category: BlockCategory.RISK,
+    protocol: Protocol.GENERIC,
+    icon: 'alert-triangle',
+    params: {
+      maxDrawdown: 20,
+      maxPositionSize: 25,
+      maxLeverage: 3,
+      maxDailyLoss: 5,
+    },
+  },
+  {
+    id: 'template_rebalancing',
+    type: 'rebalancing',
+    label: 'REBALANCING',
+    description: 'Automatically rebalance portfolio allocation',
+    category: BlockCategory.RISK,
+    protocol: Protocol.GENERIC,
+    icon: 'refresh-cw',
+    params: {
+      targetAllocation: {
+        ETH: 40,
+        USDC: 30,
+        WBTC: 30,
+      },
+      threshold: 5,
+      method: 'proportional',
+    },
+  },
 ];
 
 export const PROTOCOL_COLORS = {
   [Protocol.UNISWAP]: '#FF007A',
   [Protocol.AAVE]: '#B6509E',
   [Protocol.COMPOUND]: '#00D395',
+  [Protocol.CURVE]: '#3465A4',
+  [Protocol.BALANCER]: '#1E1E1E',
+  [Protocol.ONEINCH]: '#000000',
   [Protocol.GENERIC]: '#FF5500',
 };

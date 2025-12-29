@@ -1,17 +1,25 @@
-import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import { type ReactNode, createContext, useCallback, useContext, useState } from 'react';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
 export interface Toast {
   id: string;
   type: ToastType;
+  title?: string;
   message: string;
+  description?: string;
   duration?: number;
 }
 
 interface ToastContextValue {
   toasts: Toast[];
-  showToast: (type: ToastType, message: string, duration?: number) => void;
+  showToast: (toast: {
+    type: ToastType;
+    title?: string;
+    message: string;
+    description?: string;
+    duration?: number;
+  }) => void;
   dismissToast: (id: string) => void;
   success: (message: string, duration?: number) => void;
   error: (message: string, duration?: number) => void;
@@ -29,45 +37,53 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const showToast = useCallback(
-    (type: ToastType, message: string, duration?: number) => {
+    (toast: {
+      type: ToastType;
+      title?: string;
+      message: string;
+      description?: string;
+      duration?: number;
+    }) => {
       const id = `toast-${Date.now()}-${Math.random()}`;
-      const defaultDuration = type === 'error' ? 5000 : 3000;
-      const toast: Toast = {
+      const defaultDuration = toast.type === 'error' ? 5000 : 3000;
+      const newToast: Toast = {
         id,
-        type,
-        message,
-        duration: duration ?? defaultDuration,
+        type: toast.type,
+        title: toast.title,
+        message: toast.message,
+        description: toast.description,
+        duration: toast.duration ?? defaultDuration,
       };
 
-      setToasts((prev) => [...prev, toast]);
+      setToasts((prev) => [...prev, newToast]);
 
       // Auto-dismiss
-      if (toast.duration > 0) {
+      if (newToast.duration > 0) {
         setTimeout(() => {
           dismissToast(id);
-        }, toast.duration);
+        }, newToast.duration);
       }
     },
     [dismissToast]
   );
 
   const success = useCallback(
-    (message: string, duration?: number) => showToast('success', message, duration),
+    (message: string, duration?: number) => showToast({ type: 'success', message, duration }),
     [showToast]
   );
 
   const error = useCallback(
-    (message: string, duration?: number) => showToast('error', message, duration),
+    (message: string, duration?: number) => showToast({ type: 'error', message, duration }),
     [showToast]
   );
 
   const warning = useCallback(
-    (message: string, duration?: number) => showToast('warning', message, duration),
+    (message: string, duration?: number) => showToast({ type: 'warning', message, duration }),
     [showToast]
   );
 
   const info = useCallback(
-    (message: string, duration?: number) => showToast('info', message, duration),
+    (message: string, duration?: number) => showToast({ type: 'info', message, duration }),
     [showToast]
   );
 
@@ -95,4 +111,3 @@ export function useToast(): ToastContextValue {
   }
   return context;
 }
-

@@ -11,7 +11,7 @@ interface ShortcutHandlers {
 
 export const useKeyboardShortcuts = (handlers: ShortcutHandlers) => {
   const handlersRef = useRef(handlers);
-  
+
   // Update ref when handlers change
   useEffect(() => {
     handlersRef.current = handlers;

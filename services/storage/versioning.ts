@@ -6,7 +6,7 @@
 export const CURRENT_VERSION = '2.0.0';
 export const VERSION_HISTORY = ['1.0.0', '2.0.0'] as const;
 
-export type DataVersion = typeof VERSION_HISTORY[number];
+export type DataVersion = (typeof VERSION_HISTORY)[number];
 
 /**
  * Versioned data structure
@@ -102,7 +102,7 @@ export function unwrapVersionedData<T>(versioned: VersionedData<T>): T {
 /**
  * Create version metadata
  */
-export function createVersionMetadata(version: string, migrationCount: number = 0): VersionMetadata {
+export function createVersionMetadata(version: string, migrationCount = 0): VersionMetadata {
   return {
     version,
     timestamp: Date.now(),
@@ -144,10 +144,6 @@ export function saveVersionMetadata(metadata: VersionMetadata): void {
  */
 export function updateVersionMetadata(version: string): void {
   const existing = getVersionMetadata();
-  const metadata = createVersionMetadata(
-    version,
-    existing ? existing.migrationCount + 1 : 1
-  );
+  const metadata = createVersionMetadata(version, existing ? existing.migrationCount + 1 : 1);
   saveVersionMetadata(metadata);
 }
-

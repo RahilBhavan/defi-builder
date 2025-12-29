@@ -2,9 +2,9 @@
  * Tests for DeFi backtest engine
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { BlockCategory, type LegoBlock, Protocol } from '../../../types';
 import { runDeFiBacktest } from '../../defiBacktestEngine';
-import { LegoBlock, BlockCategory, Protocol } from '../../../types';
 import * as dataFetcher from '../dataFetcher';
 
 // Mock the data fetcher
@@ -106,4 +106,3 @@ describe('DeFi Backtest Engine', () => {
     ).rejects.toThrow('No price data fetched');
   });
 });
-

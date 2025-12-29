@@ -1,7 +1,7 @@
-import React from 'react';
 import { motion } from 'framer-motion';
-import { X, CheckCircle, AlertCircle, AlertTriangle, Info } from 'lucide-react';
-import { Toast } from '../../hooks/useToast';
+import { AlertCircle, AlertTriangle, CheckCircle, Info, X } from 'lucide-react';
+import type React from 'react';
+import type { Toast } from '../../hooks/useToast';
 
 interface ToastProps {
   toast: Toast;
@@ -47,4 +47,3 @@ export const ToastComponent: React.FC<ToastProps> = ({ toast, onDismiss }) => {
     </motion.div>
   );
 };
-

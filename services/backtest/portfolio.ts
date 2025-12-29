@@ -170,4 +170,3 @@ export class PortfolioManager {
     return this.trades.reduce((sum, trade) => sum + trade.fees, 0);
   }
 }
-

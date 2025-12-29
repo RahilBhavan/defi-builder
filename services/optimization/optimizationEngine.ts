@@ -1,19 +1,19 @@
-import { LegoBlock } from '../../types';
-import {
-  OptimizationConfig,
-  OptimizationResult,
-  OptimizationProgress,
-  OptimizationSolution,
-  ParameterSet,
-  ObjectiveScores,
-  OptimizationObjective,
-} from './types';
-import { DeFiBacktestResult } from '../defiBacktestEngine';
-import { BacktestWorkerPool } from './backtestWorker';
-import { WalkForwardValidator } from './walkForwardValidator';
+import type { LegoBlock } from '../../types';
+import type { DeFiBacktestResult } from '../defiBacktestEngine';
 import { BayesianOptimizer } from './algorithms/bayesianOptimizer';
 import { GeneticOptimizer } from './algorithms/geneticOptimizer';
 import { ParetoFrontier } from './algorithms/paretoFrontier';
+import { BacktestWorkerPool } from './backtestWorker';
+import type {
+  ObjectiveScores,
+  OptimizationConfig,
+  OptimizationObjective,
+  OptimizationProgress,
+  OptimizationResult,
+  OptimizationSolution,
+  ParameterSet,
+} from './types';
+import { WalkForwardValidator } from './walkForwardValidator';
 
 export class OptimizationEngine {
   private workerPool: BacktestWorkerPool;
@@ -34,7 +34,7 @@ export class OptimizationEngine {
         : errorInfo.message;
       this.errors.push(errorMessage);
       this.lastError = errorMessage;
-      
+
       // Keep only last 10 errors to avoid memory issues
       if (this.errors.length > 10) {
         this.errors.shift();
@@ -155,13 +155,11 @@ export class OptimizationEngine {
         } catch (error) {
           failedWindows++;
           const errorMessage =
-            error instanceof Error
-              ? error.message
-              : 'Unknown error in backtest window';
-          
+            error instanceof Error ? error.message : 'Unknown error in backtest window';
+
           // Log error but continue with other windows
           console.warn(`Backtest window failed: ${errorMessage}`);
-          
+
           // Only track unique errors
           if (!this.errors.includes(errorMessage)) {
             this.errors.push(errorMessage);
@@ -184,10 +182,7 @@ export class OptimizationEngine {
         outOfSampleScores = this.averageScores(outOfSampleScores, successfulWindows);
       }
 
-      const degradation = this.walkForward.calculateDegradation(
-        inSampleScores,
-        outOfSampleScores
-      );
+      const degradation = this.walkForward.calculateDegradation(inSampleScores, outOfSampleScores);
 
       const solution: OptimizationSolution = {
         id: `solution-${this.solutions.length}`,
@@ -204,7 +199,7 @@ export class OptimizationEngine {
       // Create a failed solution with zero scores
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error evaluating solution';
-      
+
       this.errors.push(errorMessage);
       this.lastError = errorMessage;
 
@@ -223,12 +218,15 @@ export class OptimizationEngine {
     }
   }
 
-  private aggregateScores(current: ObjectiveScores, metrics: DeFiBacktestResult['metrics']): ObjectiveScores {
+  private aggregateScores(
+    current: ObjectiveScores,
+    metrics: DeFiBacktestResult['metrics']
+  ): ObjectiveScores {
     return {
       sharpeRatio: (current.sharpeRatio || 0) + (metrics.sharpeRatio || 0),
       totalReturn: (current.totalReturn || 0) + (metrics.totalReturn || 0),
       maxDrawdown: (current.maxDrawdown || 0) + (metrics.maxDrawdown || 0),
-      winRate: (current.winRate || 0) + ((metrics.winTrades / metrics.totalTrades) || 0),
+      winRate: (current.winRate || 0) + (metrics.winTrades / metrics.totalTrades || 0),
       gasCosts: (current.gasCosts || 0) + (metrics.totalGasSpent || 0),
       protocolFees: (current.protocolFees || 0) + (metrics.totalFeesSpent || 0),
     };
@@ -271,10 +269,7 @@ export class OptimizationEngine {
   }
 
   private buildResult(config: OptimizationConfig): OptimizationResult {
-    const paretoFrontier = this.paretoHelper.extractFrontier(
-      this.solutions,
-      config.objectives
-    );
+    const paretoFrontier = this.paretoHelper.extractFrontier(this.solutions, config.objectives);
 
     return {
       config,
@@ -287,7 +282,7 @@ export class OptimizationEngine {
   }
 
   private getCurrentObjectives(): OptimizationObjective[] {
-     // Default to sharpe/drawdown if we can't infer yet
+    // Default to sharpe/drawdown if we can't infer yet
     return this.solutions.length > 0
       ? (Object.keys(this.solutions[0].inSampleScores) as OptimizationObjective[])
       : ['sharpeRatio', 'maxDrawdown'];

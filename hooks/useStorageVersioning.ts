@@ -4,16 +4,16 @@
  */
 
 import { useEffect, useState } from 'react';
-import {
-  VersionedData,
-  wrapWithVersion,
-  unwrapVersionedData,
-  needsMigration,
-  getDataVersion,
-  CURRENT_VERSION,
-  updateVersionMetadata,
-} from '../services/storage/versioning';
 import { migrateData } from '../services/storage/migrations';
+import {
+  CURRENT_VERSION,
+  type VersionedData,
+  getDataVersion,
+  needsMigration,
+  unwrapVersionedData,
+  updateVersionMetadata,
+  wrapWithVersion,
+} from '../services/storage/versioning';
 
 /**
  * Options for versioned storage
@@ -119,4 +119,3 @@ export function useVersionedStorage<T>(
 
   return [value, setVersionedValue, removeValue, { version, migrated }];
 }
-

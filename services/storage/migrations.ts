@@ -3,9 +3,14 @@
  * Handles migration from old schema versions to new ones
  */
 
-import { VersionedData, compareVersions, CURRENT_VERSION, needsMigration as checkNeedsMigration } from './versioning';
-import { LegoBlock } from '../../types';
+import type { LegoBlock } from '../../types';
 import { parseBlocks } from '../../types/blockSchemas';
+import {
+  CURRENT_VERSION,
+  type VersionedData,
+  needsMigration as checkNeedsMigration,
+  compareVersions,
+} from './versioning';
 
 export type MigrationFunction = (oldData: unknown) => unknown;
 
@@ -104,9 +109,9 @@ registerMigration('1.0.0', '2.0.0', (oldData: unknown) => {
   if (Array.isArray(oldData)) {
     // It's a blocks array
     const blocks = oldData as LegoBlock[];
-    
+
     // Validate and fix blocks
-    const validatedBlocks = blocks.map(block => {
+    const validatedBlocks = blocks.map((block) => {
       // Ensure all required fields exist
       const validated: LegoBlock = {
         id: block.id || crypto.randomUUID(),
@@ -138,7 +143,7 @@ registerMigration('1.0.0', '2.0.0', (oldData: unknown) => {
   if (oldData && typeof oldData === 'object' && 'blocks' in oldData) {
     // It's a strategy object
     const strategy = oldData as { blocks: LegoBlock[]; [key: string]: unknown };
-    const validatedBlocks = (strategy.blocks || []).map(block => {
+    const validatedBlocks = (strategy.blocks || []).map((block) => {
       const validated: LegoBlock = {
         id: block.id || crypto.randomUUID(),
         type: block.type || 'unknown',
@@ -203,4 +208,3 @@ export function needsMigration(data: unknown): boolean {
 
 // Re-export compareVersions
 export { compareVersions } from './versioning';
-

@@ -2,7 +2,7 @@
  * Metrics calculation for backtest results
  */
 
-import { PortfolioManager, Trade } from './portfolio';
+import type { PortfolioManager, Trade } from './portfolio';
 
 export interface CalculatedMetrics {
   sharpeRatio: number;
@@ -21,10 +21,7 @@ export interface CalculatedMetrics {
  * Calculate Sharpe ratio from returns
  * Sharpe = (Mean Return - Risk Free Rate) / Standard Deviation of Returns
  */
-function calculateSharpeRatio(
-  returns: number[],
-  riskFreeRate: number = 0
-): number {
+function calculateSharpeRatio(returns: number[], riskFreeRate = 0): number {
   if (returns.length === 0) return 0;
 
   // Calculate mean return
@@ -32,8 +29,7 @@ function calculateSharpeRatio(
 
   // Calculate standard deviation
   const variance =
-    returns.reduce((sum, r) => sum + Math.pow(r - meanReturn, 2), 0) /
-    returns.length;
+    returns.reduce((sum, r) => sum + Math.pow(r - meanReturn, 2), 0) / returns.length;
   const stdDev = Math.sqrt(variance);
 
   if (stdDev === 0) return 0;
@@ -56,7 +52,7 @@ function calculateMaxDrawdown(equityCurve: number[]): number {
 
   for (let i = 1; i < equityCurve.length; i++) {
     const current = equityCurve[i];
-    
+
     if (current > peak) {
       peak = current;
     } else {
@@ -75,8 +71,10 @@ function calculateMaxDrawdown(equityCurve: number[]): number {
  */
 function calculateWinRate(trades: Trade[]): { winTrades: number; totalTrades: number } {
   // Only count swap trades for win/loss
-  const swapTrades = trades.filter(t => t.type === 'swap' || t.type === 'entry' || t.type === 'exit');
-  
+  const swapTrades = trades.filter(
+    (t) => t.type === 'swap' || t.type === 'entry' || t.type === 'exit'
+  );
+
   if (swapTrades.length < 2) {
     return { winTrades: 0, totalTrades: swapTrades.length };
   }
@@ -92,11 +90,13 @@ function calculateWinRate(trades: Trade[]): { winTrades: number; totalTrades: nu
     if (entry.type === 'entry' || entry.type === 'swap') {
       if (exit.type === 'exit' || exit.type === 'swap') {
         tradePairs++;
-        
+
         // Calculate P&L
         const entryValue = entry.inputAmount * entry.price;
-        const exitValue = exit.outputAmount ? exit.outputAmount * exit.price : entry.inputAmount * exit.price;
-        
+        const exitValue = exit.outputAmount
+          ? exit.outputAmount * exit.price
+          : entry.inputAmount * exit.price;
+
         if (exitValue > entryValue) {
           winCount++;
         }
@@ -142,13 +142,13 @@ export function calculateMetrics(
   const winRate = totalTrades > 0 ? (winTrades / totalTrades) * 100 : 0;
 
   // Average return and volatility
-  const averageReturn = returns.length > 0
-    ? returns.reduce((sum, r) => sum + r, 0) / returns.length
-    : 0;
-  
-  const variance = returns.length > 0
-    ? returns.reduce((sum, r) => sum + Math.pow(r - averageReturn, 2), 0) / returns.length
-    : 0;
+  const averageReturn =
+    returns.length > 0 ? returns.reduce((sum, r) => sum + r, 0) / returns.length : 0;
+
+  const variance =
+    returns.length > 0
+      ? returns.reduce((sum, r) => sum + Math.pow(r - averageReturn, 2), 0) / returns.length
+      : 0;
   const volatility = Math.sqrt(variance) * Math.sqrt(365) * 100; // Annualized volatility in %
 
   return {
@@ -164,4 +164,3 @@ export function calculateMetrics(
     winRate,
   };
 }
-

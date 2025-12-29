@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+import { BlockCategory, type LegoBlock, Protocol } from '../../types';
 import { validateStrategy } from '../strategyValidator';
-import { LegoBlock, BlockCategory, Protocol } from '../../types';
 
 describe('validateStrategy', () => {
   it('should return invalid for empty blocks', () => {
@@ -13,6 +13,20 @@ describe('validateStrategy', () => {
     const blocks: LegoBlock[] = [
       {
         id: '1',
+        type: 'price_trigger',
+        label: 'PRICE TRIGGER',
+        description: 'Trigger on price',
+        category: BlockCategory.ENTRY,
+        protocol: Protocol.GENERIC,
+        icon: 'trigger',
+        params: {
+          asset: 'ETH',
+          targetPrice: 3000,
+          condition: '>=',
+        },
+      },
+      {
+        id: '2',
         type: 'uniswap_swap',
         label: 'UNISWAP SWAP',
         description: 'Swap tokens',
@@ -74,6 +88,21 @@ describe('validateStrategy', () => {
           condition: '>=',
         },
       },
+      {
+        id: '2',
+        type: 'uniswap_swap',
+        label: 'UNISWAP SWAP',
+        description: 'Swap tokens',
+        category: BlockCategory.PROTOCOL,
+        protocol: Protocol.UNISWAP,
+        icon: 'swap',
+        params: {
+          inputToken: 'ETH',
+          outputToken: 'USDC',
+          amount: 1.0,
+          slippage: 0.5,
+        },
+      },
     ];
 
     const result = validateStrategy(blocks);
@@ -103,4 +132,3 @@ describe('validateStrategy', () => {
     expect(result.errors[0]?.message).toContain('Target Price');
   });
 });
-

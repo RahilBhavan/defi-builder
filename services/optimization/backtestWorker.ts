@@ -1,7 +1,7 @@
-import { BacktestWorkerRequest, BacktestWorkerResponse, ParameterSet } from './types';
-import { LegoBlock } from '../../types';
-import { DeFiBacktestResult } from '../defiBacktestEngine';
-import { retryWithBackoff, isRetryableError } from '../../utils/retry';
+import type { LegoBlock } from '../../types';
+import { isRetryableError, retryWithBackoff } from '../../utils/retry';
+import type { DeFiBacktestResult } from '../defiBacktestEngine';
+import type { BacktestWorkerRequest, BacktestWorkerResponse, ParameterSet } from './types';
 
 interface BacktestTask {
   id: string;
@@ -42,10 +42,9 @@ export class BacktestWorkerPool {
 
   private initializeWorkers(): void {
     for (let i = 0; i < this.workerCount; i++) {
-      const worker = new Worker(
-        new URL('./optimization.worker.ts', import.meta.url),
-        { type: 'module' }
-      );
+      const worker = new Worker(new URL('./optimization.worker.ts', import.meta.url), {
+        type: 'module',
+      });
 
       worker.onmessage = this.handleWorkerMessage.bind(this);
       this.workers.push(worker);
@@ -230,7 +229,7 @@ export class BacktestWorkerPool {
       task.reject(enhancedError);
       // Remove task from queue
       this.taskQueue.splice(taskIndex, 1);
-      
+
       // Process next task even after error
       if (this.taskQueue.length > 0) {
         const nextTask = this.taskQueue[0];

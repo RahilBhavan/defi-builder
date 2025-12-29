@@ -1,15 +1,13 @@
-import React, { useState } from 'react';
-import { Plus, Minus } from 'lucide-react';
+import { Minus, Plus } from 'lucide-react';
+import type React from 'react';
+import { useState } from 'react';
 
 interface ZoomControlsProps {
   zoomLevel: number;
   onZoomChange: (level: number) => void;
 }
 
-export const ZoomControls: React.FC<ZoomControlsProps> = ({
-  zoomLevel,
-  onZoomChange,
-}) => {
+export const ZoomControls: React.FC<ZoomControlsProps> = ({ zoomLevel, onZoomChange }) => {
   const [isVisible, setIsVisible] = useState(false);
 
   const handleZoomIn = () => {
@@ -22,28 +20,28 @@ export const ZoomControls: React.FC<ZoomControlsProps> = ({
 
   return (
     <div
-      className="fixed bottom-12 right-12 z-40"
+      className="fixed bottom-6 right-6 z-40"
       onMouseEnter={() => setIsVisible(true)}
       onMouseLeave={() => setIsVisible(false)}
     >
       <div
-        className={`flex items-center gap-0 transition-opacity duration-300 shadow-sm ${
-          isVisible ? 'opacity-100' : 'opacity-40'
+        className={`flex items-center gap-0 transition-all duration-300 shadow-lg rounded-lg overflow-hidden bg-white/95 backdrop-blur-sm ${
+          isVisible ? 'opacity-100' : 'opacity-60'
         }`}
       >
         <button
           onClick={handleZoomOut}
-          className="w-8 h-8 bg-white border border-gray-300 hover:border-ink transition-colors flex items-center justify-center"
+          className="w-9 h-9 bg-white border-r border-gray-300 hover:border-ink hover:bg-gray-50 transition-colors flex items-center justify-center"
           aria-label="Zoom out"
         >
           <Minus size={14} />
         </button>
-        <div className="w-16 h-8 bg-white border-y border-gray-300 flex items-center justify-center text-xs font-mono font-bold">
+        <div className="w-16 h-9 bg-white border-y border-gray-300 flex items-center justify-center text-xs font-mono font-bold text-ink">
           {Math.round(zoomLevel)}%
         </div>
         <button
           onClick={handleZoomIn}
-          className="w-8 h-8 bg-white border border-gray-300 hover:border-ink transition-colors flex items-center justify-center"
+          className="w-9 h-9 bg-white border-l border-gray-300 hover:border-ink hover:bg-gray-50 transition-colors flex items-center justify-center"
           aria-label="Zoom in"
         >
           <Plus size={14} />

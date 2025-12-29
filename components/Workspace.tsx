@@ -1,25 +1,42 @@
-import React, { useState, lazy, Suspense, useCallback } from 'react';
+import type React from 'react';
+import { Suspense, lazy, useCallback, useState } from 'react';
 import { Spine } from './Spine';
 import { AIBlockSuggester } from './workspace/AIBlockSuggester';
 import { BlockConfigPanel } from './workspace/BlockConfigPanel';
 import { ExecuteButton } from './workspace/ExecuteButton';
-import { ValidationStatus } from './workspace/ValidationStatus';
 import { NetworkBadge } from './workspace/NetworkBadge';
 import { SecondaryMenu } from './workspace/SecondaryMenu';
+import { ValidationStatus } from './workspace/ValidationStatus';
 import { ZoomControls } from './workspace/ZoomControls';
 
 // Lazy load modals and heavy components
-const BacktestModal = lazy(() => import('./modals/BacktestModal').then(m => ({ default: m.BacktestModal })));
-const PortfolioModal = lazy(() => import('./modals/PortfolioModal').then(m => ({ default: m.PortfolioModal })));
-const StrategyLibraryModal = lazy(() => import('./modals/StrategyLibraryModal').then(m => ({ default: m.StrategyLibraryModal })));
-const SettingsModal = lazy(() => import('./modals/SettingsModal').then(m => ({ default: m.SettingsModal })));
-const OptimizationPanel = lazy(() => import('./OptimizationPanel').then(m => ({ default: m.OptimizationPanel })));
-import { executeStrategy, BacktestExecutionError } from '../services/executionEngine';
+const BacktestModal = lazy(() =>
+  import('./modals/BacktestModal').then((m) => ({ default: m.BacktestModal }))
+);
+const PortfolioModal = lazy(() =>
+  import('./modals/PortfolioModal').then((m) => ({ default: m.PortfolioModal }))
+);
+const StrategyLibraryModal = lazy(() =>
+  import('./modals/StrategyLibraryModal').then((m) => ({ default: m.StrategyLibraryModal }))
+);
+const SettingsModal = lazy(() =>
+  import('./modals/SettingsModal').then((m) => ({ default: m.SettingsModal }))
+);
+const OptimizationPanel = lazy(() =>
+  import('./OptimizationPanel').then((m) => ({ default: m.OptimizationPanel }))
+);
+const SimulationModal = lazy(() =>
+  import('./modals/SimulationModal').then((m) => ({ default: m.SimulationModal }))
+);
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
-import { exportBlocks, importBlocks } from '../services/strategyStorage';
-import { DeFiBacktestResult } from '../services/defiBacktestEngine';
-import { useWorkspaceState } from '../hooks/useWorkspaceState';
+import { useModalState } from '../hooks/useModalState';
 import { useToast } from '../hooks/useToast';
+import { useWallet } from '../hooks/useWallet';
+import { useWorkspaceState } from '../hooks/useWorkspaceState';
+import type { DeFiBacktestResult } from '../services/defiBacktestEngine';
+import { BacktestExecutionError, executeStrategy } from '../services/executionEngine';
+import { exportBlocks, importBlocks } from '../services/strategyStorage';
+import { simulateStrategyExecution } from '../services/web3/transactionSimulator';
 
 const Workspace: React.FC = () => {
   const { error: showError, success: showSuccess } = useToast();
@@ -29,8 +46,10 @@ const Workspace: React.FC = () => {
     blocks,
     setBlocks,
     selectedBlockId,
+    setSelectedBlockId,
     selectedBlock,
     validationResult,
+    isValidating,
     showLeftPanel,
     setShowLeftPanel,
     showRightPanel,
@@ -39,6 +58,7 @@ const Workspace: React.FC = () => {
     handleSelectBlock,
     handleDeleteBlock,
     handleUpdateBlock,
+    handleReorderBlocks,
     undoBlocks,
     redoBlocks,
     canUndo,
@@ -49,13 +69,24 @@ const Workspace: React.FC = () => {
   const [isExecuting, setIsExecuting] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(100);
   const [backtestResult, setBacktestResult] = useState<DeFiBacktestResult | null>(null);
+  const [showSimulation, setShowSimulation] = useState(false);
+  const [simulationResult, setSimulationResult] = useState<
+    import('../services/web3/transactionSimulator').SimulationResult | null
+  >(null);
 
-  // Modal states
-  const [showBacktestPanel, setShowBacktestPanel] = useState(false);
-  const [showOptimizationPanel, setShowOptimizationPanel] = useState(false);
-  const [showPortfolioPanel, setShowPortfolioPanel] = useState(false);
-  const [showLibraryPanel, setShowLibraryPanel] = useState(false);
-  const [showSettingsPanel, setShowSettingsPanel] = useState(false);
+  // Wallet connection
+  const { address, isConnected } = useWallet();
+
+  // Consolidated modal state
+  const {
+    isBacktestOpen,
+    isPortfolioOpen,
+    isSettingsOpen,
+    isLibraryOpen,
+    isOptimizationOpen,
+    openModal,
+    closeModal,
+  } = useModalState();
 
   const handleExport = useCallback(() => {
     try {
@@ -72,9 +103,7 @@ const Workspace: React.FC = () => {
       showSuccess('Strategy exported successfully');
     } catch (error) {
       console.error('Export failed:', error);
-      showError(
-        'Failed to export strategy. Please ensure your strategy is valid and try again.'
-      );
+      showError('Failed to export strategy. Please ensure your strategy is valid and try again.');
     }
   }, [blocks, showError, showSuccess]);
 
@@ -85,7 +114,7 @@ const Workspace: React.FC = () => {
     input.onchange = (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file) return;
-      
+
       const reader = new FileReader();
       reader.onload = (event) => {
         try {
@@ -95,10 +124,7 @@ const Workspace: React.FC = () => {
           showSuccess('Strategy imported successfully');
         } catch (error) {
           console.error('Import failed:', error);
-          const errorMessage =
-            error instanceof Error
-              ? error.message
-              : 'Failed to import strategy';
+          const errorMessage = error instanceof Error ? error.message : 'Failed to import strategy';
           showError(
             `Import failed: ${errorMessage}. Please ensure the file is a valid strategy JSON.`
           );
@@ -110,25 +136,42 @@ const Workspace: React.FC = () => {
   }, [setBlocks, showError, showSuccess]);
 
   const handleExecute = async () => {
+    // Check wallet connection first
+    if (!isConnected) {
+      showError('Please connect your wallet before executing a strategy');
+      return;
+    }
+
+    // Run simulation first
+    try {
+      const simulation = await simulateStrategyExecution(
+        blocks,
+        address as `0x${string}` | undefined
+      );
+      setSimulationResult(simulation);
+      setShowSimulation(true);
+    } catch (error) {
+      console.error('Simulation failed:', error);
+      showError('Failed to simulate transaction. Please try again.');
+    }
+  };
+
+  const handleProceedWithExecution = async () => {
+    setShowSimulation(false);
     setIsExecuting(true);
     try {
       const result = await executeStrategy(blocks);
       setBacktestResult(result);
-      setShowBacktestPanel(true); // Show results after execution
+      openModal('backtest'); // Show results after execution
       showSuccess('Strategy executed successfully');
     } catch (error) {
       console.error('Strategy execution failed:', error);
-      
+
       if (error instanceof BacktestExecutionError) {
-        const message = error.actionable
-          ? `${error.message}. ${error.actionable}`
-          : error.message;
+        const message = error.actionable ? `${error.message}. ${error.actionable}` : error.message;
         showError(message);
       } else {
-        const errorMessage =
-          error instanceof Error
-            ? error.message
-            : 'Unknown error occurred';
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
         showError(
           `Strategy execution failed: ${errorMessage}. Please check your strategy configuration and try again.`
         );
@@ -142,17 +185,13 @@ const Workspace: React.FC = () => {
   useKeyboardShortcuts({
     onOpenPalette: () => setShowLeftPanel(true),
     onExecute: () => {
-        if (validationResult?.valid && !isExecuting) handleExecute();
+      if (validationResult?.valid && !isExecuting) handleExecute();
     },
     onEscape: () => {
       setShowLeftPanel(false);
       setShowRightPanel(false);
       setSelectedBlockId(null);
-      setShowBacktestPanel(false);
-      setShowOptimizationPanel(false);
-      setShowPortfolioPanel(false);
-      setShowLibraryPanel(false);
-      setShowSettingsPanel(false);
+      closeModal();
     },
     onDeleteBlock: () => {
       if (selectedBlockId) {
@@ -165,57 +204,74 @@ const Workspace: React.FC = () => {
 
   return (
     <div className="relative w-full h-screen bg-canvas overflow-hidden flex flex-col">
-      
-      {/* 1. Canvas Layer - Center area for Spine */}
+      {/* 1. Canvas Layer - Spine View */}
       <main className="relative w-full h-full overflow-hidden bg-dot-pattern">
-         <div 
-            className="w-full h-full overflow-y-auto"
-            style={{
-                transform: `scale(${zoomLevel / 100})`,
-                transformOrigin: 'top center',
-                transition: 'transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+        <div
+          className="w-full h-full overflow-y-auto overflow-x-hidden flex items-start justify-center scroll-smooth"
+          style={{
+            transform: `scale(${zoomLevel / 100})`,
+            transformOrigin: 'center top',
+            transition: 'transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+          }}
+        >
+          <Spine
+            blocks={blocks}
+            selectedBlockId={selectedBlockId}
+            onSelectBlock={handleSelectBlock}
+            onDeleteBlock={handleDeleteBlock}
+            onOpenSuggester={() => setShowLeftPanel(true)}
+            onReorderBlocks={handleReorderBlocks}
+            onAddBlock={(block, targetIndex) => {
+              const newBlock = { ...block, id: `${block.id}-${Date.now()}` };
+              if (targetIndex !== undefined) {
+                setBlocks((prev) => {
+                  const newBlocks = [...prev];
+                  newBlocks.splice(targetIndex, 0, newBlock);
+                  return newBlocks;
+                });
+              } else {
+                handleAddBlock(newBlock);
+              }
             }}
-         >
-            <Spine
-                blocks={blocks}
-                selectedBlockId={selectedBlockId}
-                onSelectBlock={handleSelectBlock}
-                onDeleteBlock={handleDeleteBlock}
-                onOpenSuggester={() => setShowLeftPanel(true)}
-            />
-         </div>
+          />
+        </div>
       </main>
 
       {/* 2. Persistent UI Layer */}
       <NetworkBadge />
-      
-      <SecondaryMenu 
-        onOpenBacktest={() => setShowBacktestPanel(true)}
-        onOpenPortfolio={() => setShowPortfolioPanel(true)} 
-        onOpenLibrary={() => setShowLibraryPanel(true)}
-        onOpenSettings={() => setShowSettingsPanel(true)}
+
+      <SecondaryMenu
+        onOpenBacktest={() => openModal('backtest')}
+        onOpenPortfolio={() => openModal('portfolio')}
+        onOpenLibrary={() => openModal('library')}
+        onOpenSettings={() => openModal('settings')}
         onExport={handleExport}
         onImport={handleImport}
       />
 
       <ExecuteButton
-        isValid={validationResult?.valid ?? false}
+        isValid={(validationResult?.valid ?? false) && isConnected}
         isExecuting={isExecuting}
         onClick={handleExecute}
       />
 
-      <div className="fixed bottom-12 left-12 flex gap-4 z-40 items-center">
+      {/* Bottom Toolbar - Centered */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex gap-3 z-40 items-center bg-white/95 backdrop-blur-sm px-6 py-3 rounded-lg border border-gray-200 shadow-lg">
         <button
-            onClick={() => setShowOptimizationPanel(true)}
-            className="px-4 py-3 bg-white border border-gray-300 hover:border-orange hover:text-orange text-ink font-mono text-xs font-bold uppercase transition-colors shadow-sm"
+          onClick={() => openModal('optimization')}
+          className="px-4 py-2 bg-white border border-gray-300 hover:border-orange hover:text-orange hover:bg-orange/5 text-ink font-mono text-xs font-bold uppercase transition-all shadow-sm rounded"
+          title="Optimize strategy parameters"
         >
-            [05] OPTIMIZE
+          <span className="flex items-center gap-2">
+            <span>⚡</span> OPTIMIZE
+          </span>
         </button>
+        <div className="h-6 w-px bg-gray-300" />
         <div className="flex gap-1">
           <button
             onClick={undoBlocks}
             disabled={!canUndo}
-            className="px-3 py-2 bg-white border border-gray-300 hover:border-ink disabled:opacity-50 disabled:cursor-not-allowed text-ink font-mono text-xs font-bold uppercase transition-colors shadow-sm"
+            className="px-3 py-2 bg-white border border-gray-300 hover:border-ink hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-ink font-mono text-xs font-bold uppercase transition-all shadow-sm rounded"
             aria-label="Undo"
             title="Undo (Cmd/Ctrl+Z)"
           >
@@ -224,14 +280,15 @@ const Workspace: React.FC = () => {
           <button
             onClick={redoBlocks}
             disabled={!canRedo}
-            className="px-3 py-2 bg-white border border-gray-300 hover:border-ink disabled:opacity-50 disabled:cursor-not-allowed text-ink font-mono text-xs font-bold uppercase transition-colors shadow-sm"
+            className="px-3 py-2 bg-white border border-gray-300 hover:border-ink hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-ink font-mono text-xs font-bold uppercase transition-all shadow-sm rounded"
             aria-label="Redo"
             title="Redo (Cmd/Ctrl+Shift+Z)"
           >
             ↷
           </button>
         </div>
-        <ValidationStatus validationResult={validationResult} />
+        <div className="h-6 w-px bg-gray-300" />
+        <ValidationStatus validationResult={validationResult} isValidating={isValidating} />
       </div>
 
       <ZoomControls zoomLevel={zoomLevel} onZoomChange={setZoomLevel} />
@@ -265,40 +322,42 @@ const Workspace: React.FC = () => {
 
       {/* Modals - Lazy loaded */}
       <Suspense fallback={null}>
-        {showBacktestPanel && (
-          <BacktestModal 
-            isOpen={showBacktestPanel}
-            onClose={() => setShowBacktestPanel(false)}
-            result={backtestResult}
+        {showSimulation && (
+          <SimulationModal
+            isOpen={showSimulation}
+            onClose={() => setShowSimulation(false)}
+            onProceed={handleProceedWithExecution}
+            result={simulationResult}
           />
         )}
-        {showPortfolioPanel && (
-          <PortfolioModal
-            isOpen={showPortfolioPanel}
-            onClose={() => setShowPortfolioPanel(false)}
-          />
+        {isBacktestOpen && (
+          <BacktestModal isOpen={isBacktestOpen} onClose={closeModal} result={backtestResult} />
         )}
-        {showLibraryPanel && (
+        {isPortfolioOpen && <PortfolioModal isOpen={isPortfolioOpen} onClose={closeModal} />}
+        {isLibraryOpen && (
           <StrategyLibraryModal
-            isOpen={showLibraryPanel}
-            onClose={() => setShowLibraryPanel(false)}
+            isOpen={isLibraryOpen}
+            onClose={closeModal}
+            currentBlocks={blocks}
+            onLoadStrategy={(loadedBlocks) => {
+              setBlocks(loadedBlocks);
+              showSuccess('Strategy loaded successfully');
+            }}
           />
         )}
-        {showSettingsPanel && (
-          <SettingsModal
-            isOpen={showSettingsPanel}
-            onClose={() => setShowSettingsPanel(false)}
-          />
-        )}
-        {showOptimizationPanel && (
+        {isSettingsOpen && <SettingsModal isOpen={isSettingsOpen} onClose={closeModal} />}
+        {isOptimizationOpen && (
           <OptimizationPanel
-            isOpen={showOptimizationPanel}
-            onClose={() => setShowOptimizationPanel(false)}
+            isOpen={isOptimizationOpen}
+            onClose={closeModal}
             blocks={blocks}
+            onApplySolution={(updatedBlocks) => {
+              setBlocks(updatedBlocks);
+              showSuccess('Optimized parameters applied to strategy');
+            }}
           />
         )}
       </Suspense>
-
     </div>
   );
 };

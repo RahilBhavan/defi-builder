@@ -1,8 +1,8 @@
-import {
+import type {
+  ObjectiveScores,
+  OptimizationObjective,
   ParameterDefinition,
   ParameterSet,
-  OptimizationObjective,
-  ObjectiveScores,
 } from '../types';
 
 interface Observation {
@@ -59,7 +59,7 @@ export class BayesianOptimizer {
     // Simplified Expected Improvement
     const candidates = this.generateInitialSamples(20);
     let bestCandidate = candidates[0];
-    let bestScore = -Infinity;
+    let bestScore = Number.NEGATIVE_INFINITY;
 
     for (const candidate of candidates) {
       const score = this.evaluateCandidate(candidate);
@@ -77,7 +77,7 @@ export class BayesianOptimizer {
     if (!bestObservation) return Math.random();
 
     const distance = this.calculateDistance(candidate, bestObservation.parameters);
-    const optimalDistance = 0.2; 
+    const optimalDistance = 0.2;
     const distanceScore = 1 / (1 + Math.abs(distance - optimalDistance));
 
     return distanceScore;
@@ -88,8 +88,8 @@ export class BayesianOptimizer {
     const primaryObjective = this.objectives[0];
 
     return this.observations.reduce((best, current) => {
-      const bestValue = best.scores[primaryObjective] || -Infinity;
-      const currentValue = current.scores[primaryObjective] || -Infinity;
+      const bestValue = best.scores[primaryObjective] || Number.NEGATIVE_INFINITY;
+      const currentValue = current.scores[primaryObjective] || Number.NEGATIVE_INFINITY;
       return currentValue > bestValue ? current : best;
     });
   }

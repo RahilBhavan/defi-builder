@@ -3,7 +3,6 @@
 
 /* Dot pattern background */
 .bg-dot-pattern {
-  background-image: radial-gradient(circle, #D0D0D0 1px, transparent 1px);
+  background-image: radial-gradient(circle, #d0d0d0 1px, transparent 1px);
   background-size: 16px 16px;
 }
-

@@ -1,11 +1,7 @@
-import { OptimizationSolution, OptimizationObjective } from '../types';
+import type { OptimizationObjective, OptimizationSolution } from '../types';
 
 export class ParetoFrontier {
-  private readonly MAXIMIZE: OptimizationObjective[] = [
-    'sharpeRatio',
-    'totalReturn',
-    'winRate',
-  ];
+  private readonly MAXIMIZE: OptimizationObjective[] = ['sharpeRatio', 'totalReturn', 'winRate'];
 
   dominates(
     a: OptimizationSolution,
@@ -67,9 +63,10 @@ export class ParetoFrontier {
     solution: OptimizationSolution,
     objective: OptimizationObjective
   ): number | undefined {
-    const scores = solution.outOfSampleScores.sharpeRatio !== undefined
-      ? solution.outOfSampleScores
-      : solution.inSampleScores;
+    const scores =
+      solution.outOfSampleScores.sharpeRatio !== undefined
+        ? solution.outOfSampleScores
+        : solution.inSampleScores;
 
     return scores[objective];
   }

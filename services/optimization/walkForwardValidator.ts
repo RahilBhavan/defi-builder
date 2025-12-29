@@ -1,4 +1,4 @@
-import { WalkForwardWindow, ObjectiveScores } from './types';
+import type { ObjectiveScores, WalkForwardWindow } from './types';
 
 export class WalkForwardValidator {
   private readonly TRAIN_WINDOW_DAYS = 90;
@@ -11,14 +11,18 @@ export class WalkForwardValidator {
     const totalDays = Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
 
     if (totalDays < this.TRAIN_WINDOW_DAYS + this.TEST_WINDOW_DAYS) {
-        // Fallback for short ranges: just one window
-        const midPoint = new Date(startDate.getTime() + (endDate.getTime() - startDate.getTime()) * 0.7);
-        return [{
-            trainStart: startDate,
-            trainEnd: midPoint,
-            testStart: midPoint,
-            testEnd: endDate
-        }];
+      // Fallback for short ranges: just one window
+      const midPoint = new Date(
+        startDate.getTime() + (endDate.getTime() - startDate.getTime()) * 0.7
+      );
+      return [
+        {
+          trainStart: startDate,
+          trainEnd: midPoint,
+          testStart: midPoint,
+          testEnd: endDate,
+        },
+      ];
     }
 
     let currentStart = new Date(startDate);

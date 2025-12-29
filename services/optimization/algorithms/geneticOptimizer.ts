@@ -1,8 +1,4 @@
-import {
-  ParameterDefinition,
-  ParameterSet,
-  OptimizationObjective,
-} from '../types';
+import type { OptimizationObjective, ParameterDefinition, ParameterSet } from '../types';
 
 interface Individual {
   parameters: ParameterSet;
@@ -16,7 +12,7 @@ export class GeneticOptimizer {
   constructor(
     private parameters: ParameterDefinition[],
     private objectives: OptimizationObjective[],
-    private populationSize: number = 30
+    private populationSize = 30
   ) {
     this.initializePopulation();
   }
@@ -77,7 +73,7 @@ export class GeneticOptimizer {
     return child;
   }
 
-  mutate(individual: ParameterSet, mutationRate: number = 0.2): ParameterSet {
+  mutate(individual: ParameterSet, mutationRate = 0.2): ParameterSet {
     const mutated: ParameterSet = JSON.parse(JSON.stringify(individual));
 
     for (const param of this.parameters) {
@@ -105,12 +101,12 @@ export class GeneticOptimizer {
 
   select(count: number): ParameterSet[] {
     const sorted = [...this.population].sort((a, b) => b.fitness - a.fitness);
-    return sorted.slice(0, count).map(ind => ind.parameters);
+    return sorted.slice(0, count).map((ind) => ind.parameters);
   }
 
   setFitness(parameters: ParameterSet, fitness: number): void {
-    const individual = this.population.find(ind =>
-      JSON.stringify(ind.parameters) === JSON.stringify(parameters)
+    const individual = this.population.find(
+      (ind) => JSON.stringify(ind.parameters) === JSON.stringify(parameters)
     );
 
     if (individual) {
@@ -119,7 +115,7 @@ export class GeneticOptimizer {
   }
 
   getPopulation(): ParameterSet[] {
-    return this.population.map(ind => ind.parameters);
+    return this.population.map((ind) => ind.parameters);
   }
 
   evolve(): void {

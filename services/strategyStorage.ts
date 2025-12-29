@@ -1,6 +1,6 @@
-import { Strategy, LegoBlock } from '../types';
-import { wrapWithVersion, CURRENT_VERSION, VersionedData } from './storage/versioning';
+import type { LegoBlock, Strategy } from '../types';
 import { autoBackup } from './storage/backup';
+import { CURRENT_VERSION, type VersionedData, wrapWithVersion } from './storage/versioning';
 
 const STRATEGY_STORAGE_KEY = 'defi-builder-strategies';
 const CURRENT_STRATEGY_KEY = 'defi-builder-current-strategy';
@@ -8,7 +8,7 @@ const CURRENT_STRATEGY_KEY = 'defi-builder-current-strategy';
 /**
  * Save a strategy to localStorage with versioning and auto-backup
  */
-export function saveStrategy(strategy: Strategy, createBackup: boolean = true): void {
+export function saveStrategy(strategy: Strategy, createBackup = true): void {
   try {
     // Auto-backup before save
     if (createBackup) {
@@ -16,14 +16,14 @@ export function saveStrategy(strategy: Strategy, createBackup: boolean = true): 
     }
 
     const strategies = getStrategies();
-    const existingIndex = strategies.findIndex(s => s.id === strategy.id);
-    
+    const existingIndex = strategies.findIndex((s) => s.id === strategy.id);
+
     if (existingIndex >= 0) {
       strategies[existingIndex] = strategy;
     } else {
       strategies.push(strategy);
     }
-    
+
     // Save with versioning
     const versioned = wrapWithVersion(strategies, CURRENT_VERSION);
     localStorage.setItem(STRATEGY_STORAGE_KEY, JSON.stringify(versioned));
@@ -42,7 +42,7 @@ export function getStrategies(): Strategy[] {
     if (!data) return [];
 
     const parsed = JSON.parse(data) as unknown;
-    
+
     // Check if versioned
     if (parsed && typeof parsed === 'object' && 'version' in parsed) {
       const versioned = parsed as VersionedData<Strategy[]>;
@@ -62,20 +62,20 @@ export function getStrategies(): Strategy[] {
  */
 export function getStrategy(id: string): Strategy | null {
   const strategies = getStrategies();
-  return strategies.find(s => s.id === id) || null;
+  return strategies.find((s) => s.id === id) || null;
 }
 
 /**
  * Delete a strategy with auto-backup
  */
-export function deleteStrategy(id: string, createBackup: boolean = true): void {
+export function deleteStrategy(id: string, createBackup = true): void {
   try {
     // Auto-backup before delete
     if (createBackup) {
       autoBackup();
     }
 
-    const strategies = getStrategies().filter(s => s.id !== id);
+    const strategies = getStrategies().filter((s) => s.id !== id);
     const versioned = wrapWithVersion(strategies, CURRENT_VERSION);
     localStorage.setItem(STRATEGY_STORAGE_KEY, JSON.stringify(versioned));
   } catch (error) {
@@ -97,16 +97,16 @@ export function exportStrategy(strategy: Strategy): string {
 export function importStrategy(json: string): Strategy {
   try {
     const strategy = JSON.parse(json) as Strategy;
-    
+
     // Validate structure
     if (!strategy.id || !strategy.name || !Array.isArray(strategy.blocks)) {
       throw new Error('Invalid strategy format');
     }
-    
+
     // Generate new ID and timestamp
     strategy.id = crypto.randomUUID();
     strategy.createdAt = Date.now();
-    
+
     return strategy;
   } catch (error) {
     console.error('Error importing strategy:', error);
@@ -139,13 +139,13 @@ export function exportBlocks(blocks: LegoBlock[]): string {
 export function importBlocks(json: string): LegoBlock[] {
   try {
     const blocks = JSON.parse(json) as LegoBlock[];
-    
+
     if (!Array.isArray(blocks)) {
       throw new Error('Invalid blocks format');
     }
-    
+
     // Validate and regenerate IDs
-    return blocks.map(block => ({
+    return blocks.map((block) => ({
       ...block,
       id: crypto.randomUUID(),
     }));
@@ -154,4 +154,3 @@ export function importBlocks(json: string): LegoBlock[] {
     throw new Error('Failed to import blocks. Invalid JSON format.');
   }
 }
-

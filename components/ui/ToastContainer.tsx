@@ -1,7 +1,7 @@
-import React from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { ToastComponent } from './Toast';
+import type React from 'react';
 import { useToast } from '../../hooks/useToast';
+import { ToastComponent } from './Toast';
 
 export const ToastContainer: React.FC = () => {
   const { toasts, dismissToast } = useToast();
@@ -20,4 +20,3 @@ export const ToastContainer: React.FC = () => {
     </div>
   );
 };
-

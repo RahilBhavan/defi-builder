@@ -3,11 +3,16 @@
  * Fetches historical data, executes blocks, and calculates metrics
  */
 
-import { LegoBlock } from '../types';
-import { fetchHistoricalPrices, fetchMultipleTokenPrices, getPriceAtTimestamp, PriceDataPoint } from './backtest/dataFetcher';
-import { PortfolioManager } from './backtest/portfolio';
-import { executeBlockSequence, ExecutionContext } from './backtest/blockExecutor';
+import type { LegoBlock } from '../types';
+import { type ExecutionContext, executeBlockSequence } from './backtest/blockExecutor';
+import {
+  type PriceDataPoint,
+  fetchHistoricalPrices,
+  fetchMultipleTokenPrices,
+  getPriceAtTimestamp,
+} from './backtest/dataFetcher';
 import { calculateMetrics } from './backtest/metricsCalculator';
+import { PortfolioManager, type Trade } from './backtest/portfolio';
 
 export interface DeFiBacktestResult {
   metrics: {
@@ -20,6 +25,10 @@ export interface DeFiBacktestResult {
     totalFeesSpent: number;
   };
   equityCurve: Array<{ date: string; equity: number }>;
+  trades: Trade[];
+  startDate: Date;
+  endDate: Date;
+  initialCapital: number;
 }
 
 export interface BacktestConfig {
@@ -35,7 +44,7 @@ export interface BacktestConfig {
  */
 function extractTokens(blocks: LegoBlock[]): string[] {
   const tokens = new Set<string>();
-  
+
   for (const block of blocks) {
     if (block.params.inputToken) {
       tokens.add(String(block.params.inputToken));
@@ -47,7 +56,7 @@ function extractTokens(blocks: LegoBlock[]): string[] {
       tokens.add(String(block.params.asset));
     }
   }
-  
+
   return Array.from(tokens);
 }
 
@@ -61,13 +70,13 @@ function applyAaveInterest(
 ): void {
   const positions = portfolio.getPositions();
   const aaveAPY = 0.05; // 5% APY (simplified, real Aave has variable rates)
-  
+
   for (const position of positions) {
     if (position.protocol === 'Aave' && position.type === 'supply') {
       // Calculate interest earned
       const dailyRate = aaveAPY / 365;
       const interest = position.amount * dailyRate * daysElapsed;
-      
+
       // Add interest to position
       position.amount += interest;
     }
@@ -98,12 +107,12 @@ export async function runDeFiBacktest(config: BacktestConfig): Promise<DeFiBackt
   try {
     const priceMap = await fetchMultipleTokenPrices(tokens, startDate, endDate, interval);
     tokenPrices = priceMap;
-    
+
     // Validate we have data for at least one token
     if (tokenPrices.size === 0) {
       throw new Error('No price data fetched for any token');
     }
-    
+
     // Check if we have sufficient data points
     for (const [token, prices] of tokenPrices.entries()) {
       if (prices.length === 0) {
@@ -113,7 +122,9 @@ export async function runDeFiBacktest(config: BacktestConfig): Promise<DeFiBackt
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error('Price data fetch error:', errorMessage);
-    throw new Error(`Failed to fetch price data: ${errorMessage}. Please check your internet connection and try again.`);
+    throw new Error(
+      `Failed to fetch price data: ${errorMessage}. Please check your internet connection and try again.`
+    );
   }
 
   // Initialize portfolio
@@ -165,17 +176,21 @@ export async function runDeFiBacktest(config: BacktestConfig): Promise<DeFiBackt
           if (lastPrice && lastPrice.price > 0) {
             currentPrices.set(token, lastPrice.price);
           } else {
-            console.warn(`Warning: No valid price data for ${token} at ${currentDate.toISOString()}`);
+            console.warn(
+              `Warning: No valid price data for ${token} at ${currentDate.toISOString()}`
+            );
           }
         }
       } else {
         console.warn(`Warning: No price data available for ${token}`);
       }
     }
-    
+
     // Skip this iteration if we don't have prices for required tokens
     if (currentPrices.size === 0) {
-      console.warn(`Skipping backtest iteration at ${currentDate.toISOString()}: No price data available`);
+      console.warn(
+        `Skipping backtest iteration at ${currentDate.toISOString()}: No price data available`
+      );
       continue;
     }
 
@@ -214,6 +229,7 @@ export async function runDeFiBacktest(config: BacktestConfig): Promise<DeFiBackt
 
   // Calculate final metrics
   const metrics = calculateMetrics(portfolio, initialCapital, equityCurve);
+  const trades = portfolio.getTrades();
 
   return {
     metrics: {
@@ -226,5 +242,9 @@ export async function runDeFiBacktest(config: BacktestConfig): Promise<DeFiBackt
       totalFeesSpent: metrics.totalFeesSpent,
     },
     equityCurve: equityCurveData,
+    trades,
+    startDate,
+    endDate,
+    initialCapital,
   };
 }

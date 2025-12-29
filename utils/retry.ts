@@ -66,15 +66,12 @@ export async function retryWithBackoff<T>(
       }
 
       // Calculate delay with exponential backoff
-      const delay = Math.min(
-        initialDelay * Math.pow(2, attempts - 1),
-        maxDelay
-      );
+      const delay = Math.min(initialDelay * Math.pow(2, attempts - 1), maxDelay);
 
       // Wait before retrying
       await new Promise((resolve) => {
         const timeoutId = setTimeout(resolve, delay);
-        
+
         // Cancel timeout if signal is aborted
         if (signal) {
           signal.addEventListener('abort', () => {
@@ -92,11 +89,8 @@ export async function retryWithBackoff<T>(
   }
 
   // All retries exhausted
-  const errorMessage =
-    lastError instanceof Error
-      ? lastError.message
-      : 'Unknown error occurred';
-  
+  const errorMessage = lastError instanceof Error ? lastError.message : 'Unknown error occurred';
+
   throw new RetryError(
     `Operation failed after ${attempts} attempts: ${errorMessage}`,
     attempts,
@@ -128,4 +122,3 @@ export function isRetryableError(error: unknown): boolean {
 
   return retryablePatterns.some((pattern) => message.includes(pattern));
 }
-

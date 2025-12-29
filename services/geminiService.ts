@@ -1,6 +1,6 @@
-import { GoogleGenAI, Type } from "@google/genai";
-import { LegoBlock } from "../types";
-import { AVAILABLE_BLOCKS } from "../constants";
+import { GoogleGenAI, Type } from '@google/genai';
+import { AVAILABLE_BLOCKS } from '../constants';
+import type { LegoBlock } from '../types';
 
 // API key from environment variables
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
@@ -16,7 +16,7 @@ const RETRY_DELAY = 1000; // 1 second
 /**
  * Sleep utility for retry delays
  */
-const sleep = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
  * Custom error class for API errors
@@ -45,17 +45,19 @@ export const suggestNextBlocks = async (
   signal?: AbortSignal
 ): Promise<LegoBlock[]> => {
   if (!ai) {
-    console.warn("Gemini API Key missing. Returning fallback suggestions.");
+    console.warn('Gemini API Key missing. Returning fallback suggestions.');
     return fallbackSuggestions(currentBlocks, query);
   }
 
-  const currentStructure = currentBlocks.map(b => `${b.label} (${b.category})`).join(' -> ');
-  const availableBlocksInfo = AVAILABLE_BLOCKS.map(b => `${b.id}: ${b.label} - ${b.description}`).join('\n');
-  
+  const currentStructure = currentBlocks.map((b) => `${b.label} (${b.category})`).join(' -> ');
+  const availableBlocksInfo = AVAILABLE_BLOCKS.map(
+    (b) => `${b.id}: ${b.label} - ${b.description}`
+  ).join('\n');
+
   const prompt = `
     You are a DeFi strategy assistant.
-    Current Strategy Spine: ${currentStructure || "Empty Strategy"}
-    User Query: ${query || "Suggest the next logical step."}
+    Current Strategy Spine: ${currentStructure || 'Empty Strategy'}
+    User Query: ${query || 'Suggest the next logical step.'}
     
     Available Blocks:
     ${availableBlocksInfo}
@@ -65,7 +67,7 @@ export const suggestNextBlocks = async (
   `;
 
   let lastError: unknown;
-  
+
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     // Check if cancelled
     if (signal?.aborted) {
@@ -74,25 +76,24 @@ export const suggestNextBlocks = async (
 
     try {
       const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
+        model: 'gemini-3-flash-preview',
         contents: prompt,
         config: {
-          responseMimeType: "application/json",
+          responseMimeType: 'application/json',
           responseSchema: {
             type: Type.ARRAY,
             items: {
-               type: Type.STRING
-            }
-          }
-        }
+              type: Type.STRING,
+            },
+          },
+        },
       });
 
-      const suggestedIds = JSON.parse(response.text || "[]");
-      return AVAILABLE_BLOCKS.filter(b => suggestedIds.includes(b.id));
-
+      const suggestedIds = JSON.parse(response.text || '[]');
+      return AVAILABLE_BLOCKS.filter((b) => suggestedIds.includes(b.id));
     } catch (error) {
       lastError = error;
-      
+
       // Don't retry on cancellation
       if (signal?.aborted) {
         throw new Error('Request cancelled');
@@ -104,10 +105,11 @@ export const suggestNextBlocks = async (
       }
 
       // Check if error is retryable
-      const isRetryable = error instanceof Error && 
-        (error.message.includes('network') || 
-         error.message.includes('timeout') ||
-         error.message.includes('rate limit'));
+      const isRetryable =
+        error instanceof Error &&
+        (error.message.includes('network') ||
+          error.message.includes('timeout') ||
+          error.message.includes('rate limit'));
 
       if (!isRetryable) {
         break;
@@ -121,7 +123,7 @@ export const suggestNextBlocks = async (
 
   // All retries failed, return fallback
   const errorMessage = lastError instanceof Error ? lastError.message : 'Unknown error';
-  console.error("Gemini AI Error after retries:", errorMessage, lastError);
+  console.error('Gemini AI Error after retries:', errorMessage, lastError);
   return fallbackSuggestions(currentBlocks, query);
 };
 
@@ -129,19 +131,20 @@ const fallbackSuggestions = (currentBlocks: LegoBlock[], query?: string): LegoBl
   // Simple heuristic fallback
   if (query) {
     const lowerQ = query.toLowerCase();
-    return AVAILABLE_BLOCKS.filter(b => 
-      b.label.toLowerCase().includes(lowerQ) || 
-      b.description.toLowerCase().includes(lowerQ)
+    return AVAILABLE_BLOCKS.filter(
+      (b) => b.label.toLowerCase().includes(lowerQ) || b.description.toLowerCase().includes(lowerQ)
     );
   }
 
   if (currentBlocks.length === 0) {
-    return AVAILABLE_BLOCKS.filter(b => b.category === 'ENTRY');
+    return AVAILABLE_BLOCKS.filter((b) => b.category === 'ENTRY');
   }
-  
+
   const lastBlock = currentBlocks[currentBlocks.length - 1];
-  if (lastBlock.category === 'ENTRY') return AVAILABLE_BLOCKS.filter(b => b.category === 'PROTOCOL');
-  if (lastBlock.category === 'PROTOCOL') return AVAILABLE_BLOCKS.filter(b => b.category === 'EXIT' || b.category === 'PROTOCOL');
-  
+  if (lastBlock.category === 'ENTRY')
+    return AVAILABLE_BLOCKS.filter((b) => b.category === 'PROTOCOL');
+  if (lastBlock.category === 'PROTOCOL')
+    return AVAILABLE_BLOCKS.filter((b) => b.category === 'EXIT' || b.category === 'PROTOCOL');
+
   return AVAILABLE_BLOCKS.slice(0, 3);
 };

@@ -1,0 +1,46 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  walletAddress String    @unique
+  email         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  strategies    Strategy[]
+
+  @@index([walletAddress])
+}
+
+model Strategy {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  description String?
+  nodeGraph   String   @default("{}") // Store ReactFlow node graph as JSON string
+  isPublic    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isPublic])
+}
+
+model BacktestResult {
+  id          String   @id @default(cuid())
+  strategyId  String
+  parameters  String   @default("{}") // Backtest configuration as JSON string
+  results     String   @default("{}") // Performance metrics as JSON string
+  createdAt   DateTime @default(now())
+
+  @@index([strategyId])
+}
+

@@ -1,5 +1,5 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { AlertTriangle, RefreshCw, FileText } from 'lucide-react';
+import { AlertTriangle, FileText, RefreshCw } from 'lucide-react';
+import React, { Component, type ErrorInfo, type ReactNode } from 'react';
 import { Button } from './ui/Button';
 
 interface Props {
@@ -93,12 +93,11 @@ export class ErrorBoundary extends Component<Props, State> {
     };
 
     console.log('Error report data (would be sent to error reporting service):', errorData);
-    
+
     // In a real implementation, this would send to an error reporting service
-    // For now, we'll just log it and show a message
-    alert(
-      'Error report logged. In production, this would be sent to an error reporting service.'
-    );
+    // For now, we'll just log it
+    // Note: In production, integrate with a proper error reporting service
+    // and use toast notifications instead of alert()
   };
 
   getRecoverySuggestions(error: Error | null): string[] {
@@ -211,10 +210,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 <RefreshCw size={16} className="mr-2" />
                 Try Again
               </Button>
-              <Button
-                onClick={() => window.location.reload()}
-                variant="primary"
-              >
+              <Button onClick={() => window.location.reload()} variant="primary">
                 Reload Page
               </Button>
               <Button
@@ -234,4 +230,3 @@ export class ErrorBoundary extends Component<Props, State> {
     return this.props.children;
   }
 }
-

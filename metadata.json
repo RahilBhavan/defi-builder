@@ -1,7 +1,5 @@
 {
   "name": "DeFi Builder",
   "description": "A brutalist, AI-powered DeFi strategy builder and workspace.",
-  "requestFramePermissions": [
-    "microphone"
-  ]
+  "requestFramePermissions": ["microphone"]
 }

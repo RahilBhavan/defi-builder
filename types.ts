@@ -9,6 +9,9 @@ export enum Protocol {
   UNISWAP = 'Uniswap',
   AAVE = 'Aave',
   COMPOUND = 'Compound',
+  CURVE = 'Curve',
+  BALANCER = 'Balancer',
+  ONEINCH = '1inch',
   GENERIC = 'Generic',
 }
 

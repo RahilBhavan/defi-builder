@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useCallback, useRef, useState } from 'react';
 
 interface HistoryState<T> {
   past: T[];
@@ -14,15 +14,8 @@ interface HistoryState<T> {
  */
 export function useUndoRedo<T>(
   initialState: T,
-  maxHistorySize: number = 50
-): [
-  T,
-  (newState: T | ((prev: T) => T)) => void,
-  () => void,
-  () => void,
-  boolean,
-  boolean
-] {
+  maxHistorySize = 50
+): [T, (newState: T | ((prev: T) => T)) => void, () => void, () => void, boolean, boolean] {
   const [history, setHistory] = useState<HistoryState<T>>({
     past: [],
     present: initialState,
@@ -41,9 +34,7 @@ export function useUndoRedo<T>(
 
       setHistory((prev) => {
         const nextPresent =
-          typeof newState === 'function'
-            ? (newState as (prev: T) => T)(prev.present)
-            : newState;
+          typeof newState === 'function' ? (newState as (prev: T) => T)(prev.present) : newState;
 
         // Don't add to history if state hasn't changed
         if (nextPresent === prev.present) {
@@ -51,12 +42,10 @@ export function useUndoRedo<T>(
         }
 
         const newPast = [...prev.past, prev.present];
-        
+
         // Limit history size
-        const trimmedPast = 
-          newPast.length > maxHistorySize
-            ? newPast.slice(-maxHistorySize)
-            : newPast;
+        const trimmedPast =
+          newPast.length > maxHistorySize ? newPast.slice(-maxHistorySize) : newPast;
 
         return {
           past: trimmedPast,
@@ -76,6 +65,9 @@ export function useUndoRedo<T>(
 
       isUndoingRef.current = true;
       const previous = prev.past[prev.past.length - 1];
+      if (previous === undefined) {
+        return prev;
+      }
       const newPast = prev.past.slice(0, -1);
 
       setTimeout(() => {
@@ -98,6 +90,9 @@ export function useUndoRedo<T>(
 
       isRedoingRef.current = true;
       const next = prev.future[0];
+      if (next === undefined) {
+        return prev;
+      }
       const newFuture = prev.future.slice(1);
 
       setTimeout(() => {
@@ -117,4 +112,3 @@ export function useUndoRedo<T>(
 
   return [history.present, setState, undo, redo, canUndo, canRedo];
 }
-

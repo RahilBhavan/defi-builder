@@ -14,9 +14,12 @@ A visual, AI-powered DeFi strategy builder and workspace. Build, test, and optim
 
 ## Prerequisites
 
-- Node.js 18+ 
+- Node.js 20+ 
 - npm or yarn
+- PostgreSQL 14+ (for backend)
+- Redis 6+ (for caching)
 - Gemini API key (optional, for AI suggestions)
+- OpenAI API key (optional, for backend AI service)
 
 ## Installation
 
@@ -31,18 +34,29 @@ A visual, AI-powered DeFi strategy builder and workspace. Build, test, and optim
    npm install
    ```
 
-3. Set up environment variables:
+3. Set up backend:
+   ```bash
+   cd backend
+   npm install
+   cp .env.example .env
+   # Edit .env with your database and Redis URLs
+   npx prisma migrate dev
+   npm run dev
+   ```
+
+4. Set up frontend environment variables:
    Create a `.env.local` file in the root directory:
    ```
    VITE_GEMINI_API_KEY=your_gemini_api_key_here
+   VITE_API_URL=http://localhost:3001
    ```
 
-4. Run the development server:
+5. Run the frontend development server:
    ```bash
    npm run dev
    ```
 
-5. Open your browser and navigate to `http://localhost:3000`
+6. Open your browser and navigate to `http://localhost:5173`
 
 ## Building for Production
 
@@ -56,15 +70,26 @@ The built files will be in the `dist` directory.
 
 ```
 defi-builder/
-├── components/          # React components
-│   ├── modals/         # Modal components
-│   ├── workspace/       # Workspace-specific components
-│   └── ui/             # Reusable UI components
-├── hooks/              # Custom React hooks
-├── services/           # Business logic and services
-│   └── optimization/   # Optimization algorithms
-├── types.ts           # TypeScript type definitions
-└── constants.ts       # Application constants
+├── backend/            # Backend server (Node.js + Express + tRPC)
+│   ├── src/
+│   │   ├── auth/       # Authentication (JWT)
+│   │   ├── cache/      # Redis caching
+│   │   ├── db/         # Database client (Prisma)
+│   │   ├── services/   # Business logic services
+│   │   └── trpc/       # tRPC API routes
+│   └── prisma/         # Database schema
+├── components/         # React components
+│   ├── modals/        # Modal components
+│   ├── studio/        # ReactFlow components
+│   ├── workspace/     # Workspace-specific components
+│   └── ui/            # Reusable UI components
+├── contracts/         # Smart contracts (Solidity)
+├── hooks/             # Custom React hooks
+├── services/          # Business logic and services
+│   ├── protocols/     # Protocol integrations
+│   └── optimization/  # Optimization algorithms
+├── types.ts          # TypeScript type definitions
+└── constants.ts      # Application constants
 ```
 
 ## Keyboard Shortcuts

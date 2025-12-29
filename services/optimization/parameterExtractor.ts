@@ -1,5 +1,5 @@
-import { LegoBlock } from '../../types';
-import { ParameterDefinition } from './types';
+import type { LegoBlock } from '../../types';
+import type { ParameterDefinition } from './types';
 
 export class ParameterExtractor {
   /**
@@ -82,15 +82,15 @@ export class ParameterExtractor {
   private extractTriggerParams(block: LegoBlock): ParameterDefinition[] {
     if (block.params?.targetPrice === undefined) return [];
     return [
-        {
-          blockId: block.id,
-          blockType: block.type,
-          paramName: 'targetPrice',
-          type: 'continuous',
-          min: Number(block.params.targetPrice) * 0.8,
-          max: Number(block.params.targetPrice) * 1.2,
-          defaultValue: Number(block.params.targetPrice),
-        },
+      {
+        blockId: block.id,
+        blockType: block.type,
+        paramName: 'targetPrice',
+        type: 'continuous',
+        min: Number(block.params.targetPrice) * 0.8,
+        max: Number(block.params.targetPrice) * 1.2,
+        defaultValue: Number(block.params.targetPrice),
+      },
     ];
   }
 
