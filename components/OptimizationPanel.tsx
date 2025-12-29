@@ -13,6 +13,7 @@ import {
 import { parameterExtractor } from '../services/optimization/parameterExtractor';
 import { LegoBlock } from '../types';
 import { Button } from './ui/Button';
+import { useToast } from '../hooks/useToast';
 
 interface OptimizationPanelProps {
   onClose: () => void;
@@ -21,6 +22,7 @@ interface OptimizationPanelProps {
 }
 
 export const OptimizationPanel: React.FC<OptimizationPanelProps> = ({ onClose, isOpen, blocks }) => {
+  const { error: showError, warning: showWarning, success: showSuccess } = useToast();
   const [algorithm, setAlgorithm] = useState<OptimizationAlgorithm>('bayesian');
   const [objectives, setObjectives] = useState<OptimizationObjective[]>(['sharpeRatio', 'maxDrawdown']);
   const [isOptimizing, setIsOptimizing] = useState(false);
@@ -40,7 +42,7 @@ export const OptimizationPanel: React.FC<OptimizationPanelProps> = ({ onClose, i
 
   const handleStartOptimization = useCallback(async () => {
     if (blocks.length === 0) {
-      alert('Please add blocks to your strategy before optimizing');
+      showWarning('Please add blocks to your strategy before optimizing');
       return;
     }
 
@@ -54,7 +56,9 @@ export const OptimizationPanel: React.FC<OptimizationPanelProps> = ({ onClose, i
       const parameters = parameterExtractor.extract(blocks);
       
       if (parameters.length === 0) {
-        alert('No optimizable parameters found in current blocks');
+        showWarning(
+          'No optimizable parameters found in current blocks. Add blocks with configurable parameters (e.g., slippage, thresholds) to enable optimization.'
+        );
         setIsOptimizing(false);
         return;
       }
@@ -84,18 +88,32 @@ export const OptimizationPanel: React.FC<OptimizationPanelProps> = ({ onClose, i
         (progressUpdate) => {
           setProgress(progressUpdate);
           setParetoFrontier(progressUpdate.paretoFrontier);
+          
+          // Show errors from progress if any
+          if (progressUpdate.lastError) {
+            showError(progressUpdate.lastError);
+          }
         }
       );
 
       setResult(optimizationResult);
       setParetoFrontier(optimizationResult.paretoFrontier);
+      showSuccess(
+        `Optimization complete! Found ${optimizationResult.paretoFrontier.length} Pareto-optimal solutions.`
+      );
     } catch (error) {
       console.error('Optimization failed:', error);
-      alert('Optimization failed. Please check the console for details.');
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Unknown error occurred';
+      showError(
+        `Optimization failed: ${errorMessage}. Please check your strategy configuration and try again.`
+      );
     } finally {
       setIsOptimizing(false);
     }
-  }, [blocks, algorithm, objectives]);
+  }, [blocks, algorithm, objectives, showError, showWarning, showSuccess]);
 
   // Cleanup on unmount
   useEffect(() => {

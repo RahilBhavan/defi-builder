@@ -1,4 +1,4 @@
-import React, { useState, lazy, Suspense } from 'react';
+import React, { useState, lazy, Suspense, useCallback } from 'react';
 import { Spine } from './Spine';
 import { AIBlockSuggester } from './workspace/AIBlockSuggester';
 import { BlockConfigPanel } from './workspace/BlockConfigPanel';
@@ -14,13 +14,16 @@ const PortfolioModal = lazy(() => import('./modals/PortfolioModal').then(m => ({
 const StrategyLibraryModal = lazy(() => import('./modals/StrategyLibraryModal').then(m => ({ default: m.StrategyLibraryModal })));
 const SettingsModal = lazy(() => import('./modals/SettingsModal').then(m => ({ default: m.SettingsModal })));
 const OptimizationPanel = lazy(() => import('./OptimizationPanel').then(m => ({ default: m.OptimizationPanel })));
-import { executeStrategy } from '../services/executionEngine';
+import { executeStrategy, BacktestExecutionError } from '../services/executionEngine';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { exportBlocks, importBlocks } from '../services/strategyStorage';
 import { DeFiBacktestResult } from '../services/defiBacktestEngine';
 import { useWorkspaceState } from '../hooks/useWorkspaceState';
+import { useToast } from '../hooks/useToast';
 
 const Workspace: React.FC = () => {
+  const { error: showError, success: showSuccess } = useToast();
+
   // Extract workspace state management
   const {
     blocks,
@@ -66,11 +69,14 @@ const Workspace: React.FC = () => {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+      showSuccess('Strategy exported successfully');
     } catch (error) {
       console.error('Export failed:', error);
-      alert('Failed to export strategy');
+      showError(
+        'Failed to export strategy. Please ensure your strategy is valid and try again.'
+      );
     }
-  }, [blocks]);
+  }, [blocks, showError, showSuccess]);
 
   const handleImport = useCallback(() => {
     const input = document.createElement('input');
@@ -86,15 +92,22 @@ const Workspace: React.FC = () => {
           const json = event.target?.result as string;
           const importedBlocks = importBlocks(json);
           setBlocks(importedBlocks);
+          showSuccess('Strategy imported successfully');
         } catch (error) {
           console.error('Import failed:', error);
-          alert(error instanceof Error ? error.message : 'Failed to import strategy');
+          const errorMessage =
+            error instanceof Error
+              ? error.message
+              : 'Failed to import strategy';
+          showError(
+            `Import failed: ${errorMessage}. Please ensure the file is a valid strategy JSON.`
+          );
         }
       };
       reader.readAsText(file);
     };
     input.click();
-  }, [setBlocks]);
+  }, [setBlocks, showError, showSuccess]);
 
   const handleExecute = async () => {
     setIsExecuting(true);
@@ -102,9 +115,24 @@ const Workspace: React.FC = () => {
       const result = await executeStrategy(blocks);
       setBacktestResult(result);
       setShowBacktestPanel(true); // Show results after execution
+      showSuccess('Strategy executed successfully');
     } catch (error) {
       console.error('Strategy execution failed:', error);
-      alert('Strategy execution failed. Please check the console for details.');
+      
+      if (error instanceof BacktestExecutionError) {
+        const message = error.actionable
+          ? `${error.message}. ${error.actionable}`
+          : error.message;
+        showError(message);
+      } else {
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : 'Unknown error occurred';
+        showError(
+          `Strategy execution failed: ${errorMessage}. Please check your strategy configuration and try again.`
+        );
+      }
     } finally {
       setIsExecuting(false);
     }

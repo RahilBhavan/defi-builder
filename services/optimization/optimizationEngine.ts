@@ -23,9 +23,23 @@ export class OptimizationEngine {
   private currentIteration = 0;
   private startTime = 0;
   private isRunning = false;
+  private errors: string[] = [];
+  private lastError: string | undefined;
 
   constructor() {
-    this.workerPool = new BacktestWorkerPool();
+    // Set up error callback for worker pool
+    this.workerPool = new BacktestWorkerPool(undefined, (errorInfo) => {
+      const errorMessage = errorInfo.actionable
+        ? `${errorInfo.message}. ${errorInfo.actionable}`
+        : errorInfo.message;
+      this.errors.push(errorMessage);
+      this.lastError = errorMessage;
+      
+      // Keep only last 10 errors to avoid memory issues
+      if (this.errors.length > 10) {
+        this.errors.shift();
+      }
+    });
     this.walkForward = new WalkForwardValidator();
     this.paretoHelper = new ParetoFrontier();
   }
@@ -38,6 +52,8 @@ export class OptimizationEngine {
     this.isRunning = true;
     this.currentIteration = 0;
     this.solutions = [];
+    this.errors = [];
+    this.lastError = undefined;
     this.startTime = Date.now();
 
     try {
@@ -108,49 +124,103 @@ export class OptimizationEngine {
     parameters: ParameterSet,
     config: OptimizationConfig
   ): Promise<OptimizationSolution> {
-    const windows = this.walkForward.generateWindows(
-      config.backtestConfig.startDate,
-      config.backtestConfig.endDate
-    );
+    try {
+      const windows = this.walkForward.generateWindows(
+        config.backtestConfig.startDate,
+        config.backtestConfig.endDate
+      );
 
-    let inSampleScores: ObjectiveScores = {};
-    let outOfSampleScores: ObjectiveScores = {};
+      let inSampleScores: ObjectiveScores = {};
+      let outOfSampleScores: ObjectiveScores = {};
+      let failedWindows = 0;
 
-    for (const window of windows) {
-      const trainResult = await this.workerPool.runBacktest(blocks, parameters, {
-        startDate: window.trainStart,
-        endDate: window.trainEnd,
-        initialCapital: config.backtestConfig.initialCapital,
-        rebalanceInterval: config.backtestConfig.rebalanceInterval,
-      });
+      for (const window of windows) {
+        try {
+          const trainResult = await this.workerPool.runBacktest(blocks, parameters, {
+            startDate: window.trainStart,
+            endDate: window.trainEnd,
+            initialCapital: config.backtestConfig.initialCapital,
+            rebalanceInterval: config.backtestConfig.rebalanceInterval,
+          });
 
-      const testResult = await this.workerPool.runBacktest(blocks, parameters, {
-        startDate: window.testStart,
-        endDate: window.testEnd,
-        initialCapital: config.backtestConfig.initialCapital,
-        rebalanceInterval: config.backtestConfig.rebalanceInterval,
-      });
+          const testResult = await this.workerPool.runBacktest(blocks, parameters, {
+            startDate: window.testStart,
+            endDate: window.testEnd,
+            initialCapital: config.backtestConfig.initialCapital,
+            rebalanceInterval: config.backtestConfig.rebalanceInterval,
+          });
 
-      inSampleScores = this.aggregateScores(inSampleScores, trainResult.metrics);
-      outOfSampleScores = this.aggregateScores(outOfSampleScores, testResult.metrics);
+          inSampleScores = this.aggregateScores(inSampleScores, trainResult.metrics);
+          outOfSampleScores = this.aggregateScores(outOfSampleScores, testResult.metrics);
+        } catch (error) {
+          failedWindows++;
+          const errorMessage =
+            error instanceof Error
+              ? error.message
+              : 'Unknown error in backtest window';
+          
+          // Log error but continue with other windows
+          console.warn(`Backtest window failed: ${errorMessage}`);
+          
+          // Only track unique errors
+          if (!this.errors.includes(errorMessage)) {
+            this.errors.push(errorMessage);
+            this.lastError = errorMessage;
+          }
+        }
+      }
+
+      // If all windows failed, throw an error
+      if (failedWindows === windows.length) {
+        throw new Error(
+          `All backtest windows failed. Last error: ${this.lastError || 'Unknown error'}`
+        );
+      }
+
+      // If some windows failed, use available data
+      const successfulWindows = windows.length - failedWindows;
+      if (successfulWindows > 0) {
+        inSampleScores = this.averageScores(inSampleScores, successfulWindows);
+        outOfSampleScores = this.averageScores(outOfSampleScores, successfulWindows);
+      }
+
+      const degradation = this.walkForward.calculateDegradation(
+        inSampleScores,
+        outOfSampleScores
+      );
+
+      const solution: OptimizationSolution = {
+        id: `solution-${this.solutions.length}`,
+        parameters,
+        inSampleScores,
+        outOfSampleScores,
+        degradation,
+        isParetoOptimal: false,
+      };
+
+      this.solutions.push(solution);
+      return solution;
+    } catch (error) {
+      // Create a failed solution with zero scores
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error evaluating solution';
+      
+      this.errors.push(errorMessage);
+      this.lastError = errorMessage;
+
+      // Return a solution with zero scores so optimization can continue
+      const failedSolution: OptimizationSolution = {
+        id: `solution-${this.solutions.length}-failed`,
+        parameters,
+        inSampleScores: {},
+        outOfSampleScores: {},
+        degradation: 100, // High degradation indicates failure
+        isParetoOptimal: false,
+      };
+
+      this.solutions.push(failedSolution);
+      return failedSolution;
     }
-
-    const windowCount = windows.length;
-    inSampleScores = this.averageScores(inSampleScores, windowCount);
-    outOfSampleScores = this.averageScores(outOfSampleScores, windowCount);
-    const degradation = this.walkForward.calculateDegradation(inSampleScores, outOfSampleScores);
-
-    const solution: OptimizationSolution = {
-      id: `solution-${this.solutions.length}`,
-      parameters,
-      inSampleScores,
-      outOfSampleScores,
-      degradation,
-      isParetoOptimal: false,
-    };
-
-    this.solutions.push(solution);
-    return solution;
   }
 
   private aggregateScores(current: ObjectiveScores, metrics: DeFiBacktestResult['metrics']): ObjectiveScores {
@@ -195,6 +265,8 @@ export class OptimizationEngine {
       paretoFrontier,
       estimatedTimeRemaining,
       workersActive: this.workerPool.getActiveWorkerCount(),
+      errors: this.errors.length > 0 ? [...this.errors] : undefined,
+      lastError: this.lastError,
     };
   }
 

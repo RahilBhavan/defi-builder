@@ -1,13 +1,20 @@
 import { Strategy, LegoBlock } from '../types';
+import { wrapWithVersion, CURRENT_VERSION, VersionedData } from './storage/versioning';
+import { autoBackup } from './storage/backup';
 
 const STRATEGY_STORAGE_KEY = 'defi-builder-strategies';
 const CURRENT_STRATEGY_KEY = 'defi-builder-current-strategy';
 
 /**
- * Save a strategy to localStorage
+ * Save a strategy to localStorage with versioning and auto-backup
  */
-export function saveStrategy(strategy: Strategy): void {
+export function saveStrategy(strategy: Strategy, createBackup: boolean = true): void {
   try {
+    // Auto-backup before save
+    if (createBackup) {
+      autoBackup();
+    }
+
     const strategies = getStrategies();
     const existingIndex = strategies.findIndex(s => s.id === strategy.id);
     
@@ -17,7 +24,9 @@ export function saveStrategy(strategy: Strategy): void {
       strategies.push(strategy);
     }
     
-    localStorage.setItem(STRATEGY_STORAGE_KEY, JSON.stringify(strategies));
+    // Save with versioning
+    const versioned = wrapWithVersion(strategies, CURRENT_VERSION);
+    localStorage.setItem(STRATEGY_STORAGE_KEY, JSON.stringify(versioned));
   } catch (error) {
     console.error('Error saving strategy:', error);
     throw new Error('Failed to save strategy');
@@ -25,12 +34,23 @@ export function saveStrategy(strategy: Strategy): void {
 }
 
 /**
- * Get all saved strategies
+ * Get all saved strategies with versioning support
  */
 export function getStrategies(): Strategy[] {
   try {
     const data = localStorage.getItem(STRATEGY_STORAGE_KEY);
-    return data ? JSON.parse(data) : [];
+    if (!data) return [];
+
+    const parsed = JSON.parse(data) as unknown;
+    
+    // Check if versioned
+    if (parsed && typeof parsed === 'object' && 'version' in parsed) {
+      const versioned = parsed as VersionedData<Strategy[]>;
+      return versioned.data;
+    }
+
+    // Old unversioned data
+    return Array.isArray(parsed) ? parsed : [];
   } catch (error) {
     console.error('Error loading strategies:', error);
     return [];
@@ -46,12 +66,18 @@ export function getStrategy(id: string): Strategy | null {
 }
 
 /**
- * Delete a strategy
+ * Delete a strategy with auto-backup
  */
-export function deleteStrategy(id: string): void {
+export function deleteStrategy(id: string, createBackup: boolean = true): void {
   try {
+    // Auto-backup before delete
+    if (createBackup) {
+      autoBackup();
+    }
+
     const strategies = getStrategies().filter(s => s.id !== id);
-    localStorage.setItem(STRATEGY_STORAGE_KEY, JSON.stringify(strategies));
+    const versioned = wrapWithVersion(strategies, CURRENT_VERSION);
+    localStorage.setItem(STRATEGY_STORAGE_KEY, JSON.stringify(versioned));
   } catch (error) {
     console.error('Error deleting strategy:', error);
     throw new Error('Failed to delete strategy');
