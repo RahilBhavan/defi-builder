@@ -78,6 +78,8 @@ export interface OptimizationProgress {
   paretoFrontier: OptimizationSolution[];
   estimatedTimeRemaining: number; // seconds
   workersActive: number;
+  errors?: string[];
+  lastError?: string;
 }
 
 export interface OptimizationResult {
