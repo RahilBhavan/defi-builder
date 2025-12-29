@@ -1,0 +1,9 @@
+/* Additional styles for DeFi Builder */
+/* Most styles are defined in index.html via Tailwind config */
+
+/* Dot pattern background */
+.bg-dot-pattern {
+  background-image: radial-gradient(circle, #D0D0D0 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
