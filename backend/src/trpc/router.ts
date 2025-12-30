@@ -5,6 +5,7 @@ import { getAISuggestions, getProtocolDocumentation } from '../services/ai';
 import { getTokenPrices } from '../services/priceFeed';
 import { publicProcedure, router } from './index';
 import { protectedProcedure } from './procedures';
+import { webhooksRouter } from './routes/webhooks';
 
 export const appRouter = router({
   health: publicProcedure.query(async () => {
@@ -73,11 +74,31 @@ export const appRouter = router({
           path: '/',
         });
 
+        // Audit log login
+        auditAuth(AuditEventType.USER_LOGIN, {
+          userId: user.id,
+          walletAddress: user.walletAddress,
+          ipAddress: ctx.req.ip,
+          userAgent: ctx.req.headers['user-agent'],
+          success: true,
+        });
+
         // Return user (tokens are in cookies, not in response)
         return { user };
       }),
 
     logout: publicProcedure.mutation(async ({ ctx }) => {
+      // Try to get user for audit logging
+      let userId: string | undefined;
+      let walletAddress: string | undefined;
+      try {
+        const user = await getUserFromToken(ctx);
+        userId = user.id;
+        walletAddress = user.walletAddress;
+      } catch {
+        // User not authenticated - that's okay for logout
+      }
+
       // Clear the auth cookies
       ctx.res.clearCookie('auth_token', {
         httpOnly: true,
@@ -91,6 +112,18 @@ export const appRouter = router({
         sameSite: 'strict',
         path: '/',
       });
+
+      // Audit log logout
+      if (userId) {
+        auditAuth(AuditEventType.USER_LOGOUT, {
+          userId,
+          walletAddress,
+          ipAddress: ctx.req.ip,
+          userAgent: ctx.req.headers['user-agent'],
+          success: true,
+        });
+      }
+
       return { success: true };
     }),
 
@@ -155,7 +188,7 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ input, ctx }) => {
-        return ctx.prisma.strategy.create({
+        const strategy = await ctx.prisma.strategy.create({
           data: {
             userId: ctx.user.id,
             name: input.name,
@@ -163,6 +196,18 @@ export const appRouter = router({
             nodeGraph: JSON.stringify(input.nodeGraph || {}),
           },
         });
+
+        // Audit log strategy creation
+        auditStrategy(AuditEventType.STRATEGY_CREATED, {
+          userId: ctx.user.id,
+          walletAddress: ctx.user.walletAddress,
+          strategyId: strategy.id,
+          strategyName: strategy.name,
+          ipAddress: ctx.req.ip,
+          success: true,
+        });
+
+        return strategy;
       }),
 
     update: protectedProcedure
@@ -192,9 +237,28 @@ export const appRouter = router({
     delete: protectedProcedure
       .input(z.object({ id: z.string() }))
       .mutation(async ({ input, ctx }) => {
-        return ctx.prisma.strategy.delete({
+        // Get strategy before deletion for audit log
+        const strategy = await ctx.prisma.strategy.findUnique({
           where: { id: input.id },
         });
+
+        const deleted = await ctx.prisma.strategy.delete({
+          where: { id: input.id },
+        });
+
+        // Audit log strategy deletion
+        if (strategy) {
+          auditStrategy(AuditEventType.STRATEGY_DELETED, {
+            userId: ctx.user.id,
+            walletAddress: ctx.user.walletAddress,
+            strategyId: strategy.id,
+            strategyName: strategy.name,
+            ipAddress: ctx.req.ip,
+            success: true,
+          });
+        }
+
+        return deleted;
       }),
   }),
 
@@ -230,6 +294,9 @@ export const appRouter = router({
         return getTokenPrices(input.tokens);
       }),
   }),
+
+  // Webhook endpoints
+  webhooks: webhooksRouter,
 
   // Strategy sharing endpoints
   sharing: router({

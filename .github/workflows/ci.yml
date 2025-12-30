@@ -134,7 +134,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
       
-      - name: Run security audit
+      - name: Run npm audit (frontend)
         run: npm audit --audit-level=moderate
         continue-on-error: true
       
@@ -142,7 +142,54 @@ jobs:
         working-directory: ./backend
         run: npm ci
       
-      - name: Run backend security audit
+      - name: Run npm audit (backend)
         working-directory: ./backend
         run: npm audit --audit-level=moderate
         continue-on-error: true
+      
+      # Dependency scanning with Snyk (optional - requires SNYK_TOKEN secret)
+      - name: Run Snyk security scan (frontend)
+        uses: snyk/actions/node@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high
+      
+      - name: Run Snyk security scan (backend)
+        uses: snyk/actions/node@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high
+          working-directory: ./backend
+
+  dependency-scan:
+    name: Dependency Scanning
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Check for outdated packages (frontend)
+        run: npm outdated || true
+      
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: npm ci
+      
+      - name: Check for outdated packages (backend)
+        working-directory: ./backend
+        run: npm outdated || true
+      
+      # GitHub Dependabot handles automated PRs for dependency updates
+      # This job just reports outdated packages

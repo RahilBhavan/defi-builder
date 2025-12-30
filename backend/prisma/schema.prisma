@@ -44,3 +44,21 @@ model BacktestResult {
   @@index([strategyId])
 }
 
+model AuditLog {
+  id          String   @id @default(cuid())
+  eventType   String   // AuditEventType enum value
+  userId      String?
+  walletAddress String?
+  ipAddress   String?
+  userAgent   String?
+  metadata    String   @default("{}") // JSON string
+  success     Boolean
+  errorMessage String?
+  timestamp   DateTime @default(now())
+
+  @@index([eventType])
+  @@index([userId])
+  @@index([walletAddress])
+  @@index([timestamp])
+}
+

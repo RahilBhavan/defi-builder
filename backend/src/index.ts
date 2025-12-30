@@ -147,4 +147,9 @@ app.use(
 app.listen(PORT, () => {
   logger.info(`Backend server running on http://localhost:${PORT}`, 'Server');
   logger.info(`tRPC endpoint: http://localhost:${PORT}/trpc`, 'Server');
+  
+  // Start secret rotation job (if Doppler is configured)
+  if (process.env.DOPPLER_TOKEN) {
+    startSecretRotationJob();
+  }
 });

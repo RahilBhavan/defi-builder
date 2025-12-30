@@ -1,0 +1,102 @@
+name: Security Testing
+
+on:
+  schedule:
+    # Run weekly on Sundays at 2 AM UTC
+    - cron: '0 2 * * 0'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'package.json'
+      - 'package-lock.json'
+      - 'backend/package.json'
+      - 'backend/package-lock.json'
+
+jobs:
+  security-scan:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      # OWASP Dependency Check (optional - requires setup)
+      - name: Run OWASP Dependency Check
+        uses: dependency-check/Dependency-Check_Action@main
+        continue-on-error: true
+        with:
+          project: 'defi-builder'
+          path: '.'
+          format: 'HTML'
+          args: >
+            --scan ./node_modules
+            --scan ./backend/node_modules
+            --out ./reports
+      
+      # npm audit with JSON output
+      - name: Run npm audit (frontend)
+        run: npm audit --json > frontend-audit.json || true
+        continue-on-error: true
+      
+      - name: Upload frontend audit results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontend-security-audit
+          path: frontend-audit.json
+          retention-days: 30
+      
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: npm ci
+      
+      - name: Run npm audit (backend)
+        working-directory: ./backend
+        run: npm audit --json > backend-audit.json || true
+        continue-on-error: true
+      
+      - name: Upload backend audit results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-security-audit
+          path: backend/backend-audit.json
+          retention-days: 30
+      
+      # Snyk security scanning (optional - requires SNYK_TOKEN)
+      - name: Run Snyk test (frontend)
+        uses: snyk/actions/node@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high --json-file-output=snyk-frontend.json
+      
+      - name: Run Snyk test (backend)
+        uses: snyk/actions/node@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high --json-file-output=snyk-backend.json
+          working-directory: ./backend
+      
+      - name: Upload Snyk results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: snyk-security-reports
+          path: |
+            snyk-frontend.json
+            backend/snyk-backend.json
+          retention-days: 30
+
