@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "tsc && vite build",
+    "build:analyze": "vite build && echo 'Bundle analysis available at dist/stats.html'",
     "preview": "vite preview",
     "type-check": "tsc --noEmit",
     "audit": "npm audit",
