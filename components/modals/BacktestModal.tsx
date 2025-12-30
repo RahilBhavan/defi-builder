@@ -967,6 +967,28 @@ export const BacktestModal: React.FC<BacktestModalProps> = ({ isOpen, onClose, r
                       </div>
                       <div className="text-[10px] text-gray-400 mt-1">Market sensitivity</div>
                     </div>
+                    <div className="border border-gray-300 p-4 bg-white">
+                      <div className="text-xs text-gray-500 uppercase font-bold mb-1">
+                        Value at Risk (95%)
+                      </div>
+                      <div className="text-2xl font-mono font-bold text-alert-red">
+                        {advancedMetrics.valueAtRisk95.toFixed(2)}%
+                      </div>
+                      <div className="text-[10px] text-gray-400 mt-1">
+                        Expected max loss on 95% of days
+                      </div>
+                    </div>
+                    <div className="border border-gray-300 p-4 bg-white">
+                      <div className="text-xs text-gray-500 uppercase font-bold mb-1">
+                        Conditional VaR (95%)
+                      </div>
+                      <div className="text-2xl font-mono font-bold text-alert-red">
+                        {advancedMetrics.conditionalVaR95.toFixed(2)}%
+                      </div>
+                      <div className="text-[10px] text-gray-400 mt-1">
+                        Expected loss in worst 5% scenarios
+                      </div>
+                    </div>
                   </div>
                 ) : (
                   <div className="text-center py-12 text-gray-400">

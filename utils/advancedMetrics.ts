@@ -12,6 +12,8 @@ export interface AdvancedMetrics {
   alpha: number;
   volatility: number;
   downsideVolatility: number;
+  valueAtRisk95: number; // VaR at 95% confidence
+  conditionalVaR95: number; // CVaR (Expected Shortfall) at 95% confidence
 }
 
 /**
@@ -142,6 +144,56 @@ export function calculateAlpha(
 }
 
 /**
+ * Calculate Value at Risk (VaR)
+ * VaR at 95% confidence: Expected maximum loss on 95% of days
+ * Historical method: Sort returns and take the 5th percentile
+ */
+export function calculateValueAtRisk(returns: number[], confidenceLevel = 0.95): number {
+  if (returns.length === 0) return 0;
+
+  // Sort returns in ascending order
+  const sortedReturns = [...returns].sort((a, b) => a - b);
+
+  // Calculate percentile index
+  const percentileIndex = Math.floor((1 - confidenceLevel) * sortedReturns.length);
+  const varValue = sortedReturns[percentileIndex] ?? 0;
+
+  // Return as positive percentage (loss)
+  return Math.abs(varValue) * 100;
+}
+
+/**
+ * Calculate Conditional Value at Risk (CVaR) / Expected Shortfall
+ * CVaR: Expected loss in the worst (1 - confidenceLevel) scenarios
+ * Average of returns below VaR threshold
+ */
+export function calculateConditionalVaR(
+  returns: number[],
+  confidenceLevel = 0.95
+): number {
+  if (returns.length === 0) return 0;
+
+  // Sort returns in ascending order
+  const sortedReturns = [...returns].sort((a, b) => a - b);
+
+  // Calculate VaR threshold
+  const percentileIndex = Math.floor((1 - confidenceLevel) * sortedReturns.length);
+  const varThreshold = sortedReturns[percentileIndex] ?? 0;
+
+  // Get all returns below VaR threshold (worst scenarios)
+  const tailReturns = sortedReturns.filter((r) => r <= varThreshold);
+
+  if (tailReturns.length === 0) return 0;
+
+  // Calculate average of tail returns
+  const averageTailReturn =
+    tailReturns.reduce((sum, r) => sum + r, 0) / tailReturns.length;
+
+  // Return as positive percentage (expected loss)
+  return Math.abs(averageTailReturn) * 100;
+}
+
+/**
  * Calculate all advanced metrics
  */
 export function calculateAdvancedMetrics(
@@ -215,6 +267,10 @@ export function calculateAdvancedMetrics(
     informationRatio = calculateInformationRatio(returns, benchmarkReturns);
   }
 
+  // Calculate VaR and CVaR
+  const valueAtRisk95 = calculateValueAtRisk(returns, 0.95);
+  const conditionalVaR95 = calculateConditionalVaR(returns, 0.95);
+
   return {
     sortinoRatio,
     calmarRatio,
@@ -223,5 +279,7 @@ export function calculateAdvancedMetrics(
     alpha,
     volatility,
     downsideVolatility,
+    valueAtRisk95,
+    conditionalVaR95,
   };
 }

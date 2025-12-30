@@ -97,6 +97,12 @@ export function exportMetricsToCSV(
     sortinoRatio: number;
     calmarRatio: number;
     informationRatio: number;
+    beta?: number;
+    alpha?: number;
+    volatility?: number;
+    downsideVolatility?: number;
+    valueAtRisk95?: number;
+    conditionalVaR95?: number;
   }
 ): string {
   const headers = ['Metric', 'Value'];
@@ -129,6 +135,25 @@ export function exportMetricsToCSV(
       ['Calmar Ratio', advancedMetrics.calmarRatio.toFixed(4)],
       ['Information Ratio', advancedMetrics.informationRatio.toFixed(4)]
     );
+    
+    if (advancedMetrics.beta !== undefined) {
+      rows.push(['Beta', advancedMetrics.beta.toFixed(4)]);
+    }
+    if (advancedMetrics.alpha !== undefined) {
+      rows.push(['Alpha', advancedMetrics.alpha.toFixed(4)]);
+    }
+    if (advancedMetrics.volatility !== undefined) {
+      rows.push(['Volatility (%)', `${advancedMetrics.volatility.toFixed(2)}%`]);
+    }
+    if (advancedMetrics.downsideVolatility !== undefined) {
+      rows.push(['Downside Volatility (%)', `${advancedMetrics.downsideVolatility.toFixed(2)}%`]);
+    }
+    if (advancedMetrics.valueAtRisk95 !== undefined) {
+      rows.push(['Value at Risk 95% (%)', `${advancedMetrics.valueAtRisk95.toFixed(2)}%`]);
+    }
+    if (advancedMetrics.conditionalVaR95 !== undefined) {
+      rows.push(['Conditional VaR 95% (%)', `${advancedMetrics.conditionalVaR95.toFixed(2)}%`]);
+    }
   }
 
   const csvContent = [
