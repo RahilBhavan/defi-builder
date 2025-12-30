@@ -119,18 +119,20 @@ export const AIBlockSuggester: React.FC<AIBlockSuggesterProps> = ({
 
   // Fetch AI suggestions from backend (preferred method - API keys are server-side)
   // Type assertion needed due to tRPC version mismatch (backend v10 vs frontend v11)
-  // TODO: Remove type assertion when backend @trpc/server is upgraded to v11
+  // TODO: Upgrade backend to @trpc/server v11 to match frontend and remove type assertion
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const aiRouter = trpc.ai as any;
-  const backendQuery = aiRouter?.getSuggestions?.useQuery?.(
+  
+  // @ts-expect-error - tRPC version mismatch: backend v10 vs frontend v11
+  const backendQuery = aiRouter.getSuggestions.useQuery(
     { currentBlocks, query: searchQuery || undefined },
     {
-      enabled: isOpen && false, // Disabled until backend properly returns block IDs
+      enabled: isOpen, // Enable when panel is open
       refetchOnWindowFocus: false,
-      retry: 1,
-      onError: (error: unknown) => {
-        // Silently fall back to client-side suggestions
+      retry: 2,
+      onError: () => {
+        // Silently fall back to client-side suggestions if backend fails
         // Error handled gracefully - fallback to rule-based suggestions
-        // logger.debug('Backend AI suggestions not available', 'AIBlockSuggester', { error: String(error) });
       },
     }
   );

@@ -7,6 +7,13 @@ import type { Strategy } from '../types';
 import { trpc } from '../utils/trpc';
 
 /**
+ * Type-safe access to strategies router
+ * Uses type assertion due to tRPC v10/v11 version mismatch
+ * TODO: Remove when backend is upgraded to @trpc/server v11
+ */
+type StrategiesRouter = typeof trpc.strategies;
+
+/**
  * Convert blocks to nodeGraph format for backend storage
  */
 export function blocksToNodeGraph(blocks: Strategy['blocks']): Record<string, unknown> {
@@ -65,13 +72,18 @@ export function nodeGraphToBlocks(nodeGraph: unknown): Strategy['blocks'] {
 export function useCloudSync() {
   const utils = trpc.useUtils();
   
-  // Type assertion workaround for nested router type inference
-  // TODO: Fix when backend @trpc/server is upgraded to v11 to match frontend
+  // Type assertion needed due to tRPC version mismatch (backend v10 vs frontend v11)
+  // TODO: Upgrade backend to @trpc/server v11 to match frontend and remove type assertion
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const strategiesRouter = trpc.strategies as any;
   
+  // @ts-expect-error - tRPC version mismatch: backend v10 vs frontend v11
   const createMutation = strategiesRouter.create.useMutation();
+  // @ts-expect-error - tRPC version mismatch: backend v10 vs frontend v11
   const updateMutation = strategiesRouter.update.useMutation();
+  // @ts-expect-error - tRPC version mismatch: backend v10 vs frontend v11
   const deleteMutation = strategiesRouter.delete.useMutation();
+  // @ts-expect-error - tRPC version mismatch: backend v10 vs frontend v11
   const { data: strategies, isLoading } = strategiesRouter.list.useQuery();
 
   const syncStrategy = async (strategy: Strategy) => {
@@ -81,7 +93,8 @@ export function useCloudSync() {
       description: `Strategy with ${strategy.blocks.length} blocks`,
       nodeGraph,
     });
-    await (utils.strategies as any).list.invalidate();
+    // @ts-expect-error - tRPC version mismatch: backend v10 vs frontend v11
+    await utils.strategies.list.invalidate();
   };
 
   const updateStrategy = async (strategyId: string, strategy: Strategy) => {
@@ -92,12 +105,14 @@ export function useCloudSync() {
       description: `Strategy with ${strategy.blocks.length} blocks`,
       nodeGraph,
     });
-    await (utils.strategies as any).list.invalidate();
+    // @ts-expect-error - tRPC version mismatch: backend v10 vs frontend v11
+    await utils.strategies.list.invalidate();
   };
 
   const deleteStrategy = async (strategyId: string) => {
     await deleteMutation.mutateAsync({ id: strategyId });
-    await (utils.strategies as any).list.invalidate();
+    // @ts-expect-error - tRPC version mismatch: backend v10 vs frontend v11
+    await utils.strategies.list.invalidate();
   };
 
   const cloudStrategies: Strategy[] = strategies
