@@ -4,6 +4,8 @@
  * Implements rate limiting and caching
  */
 
+import { logger } from '../utils/logger';
+
 interface PriceResponse {
   [tokenId: string]: {
     usd: number;

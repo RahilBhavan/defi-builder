@@ -18,7 +18,8 @@ export function useAuth() {
       }
     },
     onError: (error: unknown) => {
-      console.error('Login error:', error);
+      // Error logged by tRPC client
+      // logger.error('Login error', error instanceof Error ? error : new Error(String(error)), 'Auth');
       setIsAuthenticated(false);
     },
   }) || { mutate: () => {}, isPending: false };

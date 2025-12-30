@@ -172,7 +172,8 @@ const Workspace: React.FC = () => {
       openModal('backtest'); // Show results after execution
       showSuccess('Strategy executed successfully');
     } catch (error) {
-      console.error('Strategy execution failed:', error);
+      // Error shown to user via toast notification
+      // logger.error('Strategy execution failed', error instanceof Error ? error : new Error(String(error)), 'Workspace');
 
       if (error instanceof BacktestExecutionError) {
         const message = error.actionable ? `${error.message}. ${error.actionable}` : error.message;

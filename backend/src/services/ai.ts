@@ -28,7 +28,7 @@ if (apiKey) {
   try {
     ai = new GoogleGenAI({ apiKey });
   } catch (error) {
-    console.error('Failed to initialize Gemini AI:', error);
+        logger.error('Failed to initialize Gemini AI', error instanceof Error ? error : new Error(String(error)), 'AI');
   }
 }
 

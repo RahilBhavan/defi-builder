@@ -3,6 +3,8 @@
  * Provides WebSocket-based price updates for tokens
  */
 
+import { logger } from '../utils/logger';
+
 export interface PriceUpdate {
   token: string;
   price: number;
@@ -39,7 +41,7 @@ class PriceFeedService {
       // In production, upgrade to WebSocket service like CoinGecko Pro, CryptoCompare, or custom
       this.startPolling();
     } catch (error) {
-      console.error('Failed to connect to price feed:', error);
+      logger.error('Failed to connect to price feed', error instanceof Error ? error : new Error(String(error)), 'PriceFeed');
       this.isConnecting = false;
       this.scheduleReconnect();
     }
@@ -103,7 +105,7 @@ class PriceFeedService {
         }
       });
     } catch (error) {
-      console.error('Failed to fetch prices:', error);
+      logger.error('Failed to fetch prices', error instanceof Error ? error : new Error(String(error)), 'PriceFeed');
     }
   }
 
@@ -135,7 +137,7 @@ class PriceFeedService {
       }
     } catch (error) {
       // Backend unavailable - fall back to direct API (with rate limiting)
-      console.debug('Backend price feed unavailable, using direct API:', error);
+      logger.debug('Backend price feed unavailable, using direct API', 'PriceFeed', { error: String(error) });
     }
 
     // Fallback: Direct CoinGecko API call (with rate limiting)
@@ -169,7 +171,7 @@ class PriceFeedService {
       if (!response.ok) {
         if (response.status === 429) {
           // Rate limited - use fallback
-          console.warn('CoinGecko rate limited, using fallback prices');
+          logger.warn('CoinGecko rate limited, using fallback prices', 'PriceFeed');
           return this.getFallbackPrices(tokens);
         }
         throw new Error(`CoinGecko API error: ${response.status}`);
@@ -191,7 +193,7 @@ class PriceFeedService {
 
       return result;
     } catch (error) {
-      console.error('Failed to fetch prices from CoinGecko:', error);
+      logger.error('Failed to fetch prices from CoinGecko', error instanceof Error ? error : new Error(String(error)), 'PriceFeed');
       // Return fallback prices on error
       return this.getFallbackPrices(tokens);
     }
@@ -278,7 +280,7 @@ class PriceFeedService {
         try {
           callback(update);
         } catch (error) {
-          console.error('Error in price update callback:', error);
+          logger.error('Error in price update callback', error instanceof Error ? error : new Error(String(error)), 'PriceFeed');
         }
       });
     }
@@ -303,7 +305,7 @@ class PriceFeedService {
    */
   private scheduleReconnect(): void {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.error('Max reconnection attempts reached');
+      logger.error('Max reconnection attempts reached', undefined, 'PriceFeed');
       return;
     }
 

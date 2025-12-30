@@ -129,7 +129,8 @@ export const AIBlockSuggester: React.FC<AIBlockSuggesterProps> = ({
       retry: 1,
       onError: (error: unknown) => {
         // Silently fall back to client-side suggestions
-        console.debug('Backend AI suggestions not available:', error);
+        // Error handled gracefully - fallback to rule-based suggestions
+        // logger.debug('Backend AI suggestions not available', 'AIBlockSuggester', { error: String(error) });
       },
     }
   );

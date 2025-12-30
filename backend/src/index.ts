@@ -7,6 +7,7 @@ import prisma from './db/client';
 import { rateLimiters } from './middleware/rateLimiter';
 import { createContext } from './trpc/context';
 import { appRouter } from './trpc/router';
+import { logger } from './utils/logger';
 
 dotenv.config();
 
@@ -51,6 +52,6 @@ app.use(
 );
 
 app.listen(PORT, () => {
-  console.log(`Backend server running on http://localhost:${PORT}`);
-  console.log(`tRPC endpoint: http://localhost:${PORT}/trpc`);
+  logger.info(`Backend server running on http://localhost:${PORT}`, 'Server');
+  logger.info(`tRPC endpoint: http://localhost:${PORT}/trpc`, 'Server');
 });
