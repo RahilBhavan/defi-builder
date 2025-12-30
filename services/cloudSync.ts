@@ -42,13 +42,19 @@ export function nodeGraphToBlocks(nodeGraph: unknown): Strategy['blocks'] {
 
 /**
  * Hook for using cloud sync in components
+ * Note: Requires user to be authenticated (protectedProcedure)
  */
 export function useCloudSync() {
   const utils = trpc.useUtils();
-  const createMutation = trpc.strategies.create.useMutation();
-  const updateMutation = trpc.strategies.update.useMutation();
-  const deleteMutation = trpc.strategies.delete.useMutation();
-  const { data: strategies, isLoading } = trpc.strategies.list.useQuery();
+  
+  // Type assertion workaround for nested router type inference
+  // TODO: Fix when backend @trpc/server is upgraded to v11 to match frontend
+  const strategiesRouter = trpc.strategies as any;
+  
+  const createMutation = strategiesRouter.create.useMutation();
+  const updateMutation = strategiesRouter.update.useMutation();
+  const deleteMutation = strategiesRouter.delete.useMutation();
+  const { data: strategies, isLoading } = strategiesRouter.list.useQuery();
 
   const syncStrategy = async (strategy: Strategy) => {
     const nodeGraph = blocksToNodeGraph(strategy.blocks);
@@ -57,7 +63,7 @@ export function useCloudSync() {
       description: `Strategy with ${strategy.blocks.length} blocks`,
       nodeGraph,
     });
-    await utils.strategies.list.invalidate();
+    await (utils.strategies as any).list.invalidate();
   };
 
   const updateStrategy = async (strategyId: string, strategy: Strategy) => {
@@ -68,12 +74,12 @@ export function useCloudSync() {
       description: `Strategy with ${strategy.blocks.length} blocks`,
       nodeGraph,
     });
-    await utils.strategies.list.invalidate();
+    await (utils.strategies as any).list.invalidate();
   };
 
   const deleteStrategy = async (strategyId: string) => {
     await deleteMutation.mutateAsync({ id: strategyId });
-    await utils.strategies.list.invalidate();
+    await (utils.strategies as any).list.invalidate();
   };
 
   const cloudStrategies: Strategy[] = strategies
