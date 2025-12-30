@@ -442,15 +442,17 @@ const ParamField: React.FC<ParamFieldProps> = ({ name, value, onChange, definiti
           )}
         </div>
       ) : def.type === 'boolean' ? (
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4" role="group" aria-label={def.label}>
           <button
             onClick={() => handleBooleanChange(true)}
+            aria-pressed={value === true || value === 'true'}
             className={`flex-1 h-10 border text-xs font-bold uppercase ${value === true || value === 'true' ? 'bg-ink text-white border-ink' : 'bg-white text-gray-400 border-gray-300'}`}
           >
             Yes
           </button>
           <button
             onClick={() => handleBooleanChange(false)}
+            aria-pressed={value === false || value === 'false'}
             className={`flex-1 h-10 border text-xs font-bold uppercase ${value === false || value === 'false' ? 'bg-ink text-white border-ink' : 'bg-white text-gray-400 border-gray-300'}`}
           >
             No

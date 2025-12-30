@@ -43,6 +43,9 @@ export const Block: React.FC<BlockProps> = React.memo(
         }}
         role="button"
         tabIndex={0}
+        aria-label={`${block.label} block, ${block.category} category`}
+        aria-pressed={isSelected}
+        aria-describedby={`block-${block.id}-description`}
         className={`
         relative w-full max-w-[700px] bg-white border rounded-lg p-4 sm:p-6
         transition-all duration-200 cursor-grab active:cursor-grabbing group shadow-md hover:shadow-lg

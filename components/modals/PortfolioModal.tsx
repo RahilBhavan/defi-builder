@@ -108,8 +108,17 @@ export const PortfolioModal: React.FC<PortfolioModalProps> = ({ isOpen, onClose 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-12 touch-none">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-12 touch-none"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="portfolio-modal-title"
+    >
+      <div
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+        onClick={onClose}
+        aria-hidden="true"
+      />
 
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
@@ -120,11 +129,17 @@ export const PortfolioModal: React.FC<PortfolioModalProps> = ({ isOpen, onClose 
         {/* Header */}
         <div className="h-16 flex items-center justify-between px-6 border-b border-gray-300 bg-white">
           <div className="flex items-center gap-3">
-            <Wallet className="text-ink" size={24} />
-            <h2 className="text-lg font-bold font-mono uppercase">Portfolio</h2>
+            <Wallet className="text-ink" size={24} aria-hidden="true" />
+            <h2 id="portfolio-modal-title" className="text-lg font-bold font-mono uppercase">
+              Portfolio
+            </h2>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 text-ink transition-colors">
-            <X size={24} />
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 text-ink transition-colors"
+            aria-label="Close portfolio modal"
+          >
+            <X size={24} aria-hidden="true" />
           </button>
         </div>
 

@@ -91,6 +91,8 @@ export const Spine: React.FC<SpineProps> = ({
         e.dataTransfer.dropEffect = 'copy';
       }}
       onDrop={(e) => handleDropFromExternal(e)}
+      role="main"
+      aria-label="Strategy builder workspace"
     >
       <div className="w-full max-w-[750px] flex flex-col gap-4 sm:gap-8 items-center">
         {/* Empty State */}

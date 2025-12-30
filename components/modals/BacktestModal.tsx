@@ -251,8 +251,17 @@ export const BacktestModal: React.FC<BacktestModalProps> = ({ isOpen, onClose, r
   }, [result]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-12 touch-none">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-12 touch-none"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="backtest-modal-title"
+    >
+      <div
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+        onClick={onClose}
+        aria-hidden="true"
+      />
 
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
@@ -261,17 +270,27 @@ export const BacktestModal: React.FC<BacktestModalProps> = ({ isOpen, onClose, r
       >
         {/* Header */}
         <div className="h-16 flex items-center justify-between px-6 border-b border-gray-300 bg-white">
-          <h2 className="text-lg font-bold font-mono uppercase">Backtest Results</h2>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 text-ink">
-            <X size={24} />
+          <h2 id="backtest-modal-title" className="text-lg font-bold font-mono uppercase">
+            Backtest Results
+          </h2>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 text-ink"
+            aria-label="Close backtest results modal"
+          >
+            <X size={24} aria-hidden="true" />
           </button>
         </div>
 
         {/* Tabs */}
         {result && (
-          <div className="flex border-b border-gray-300 bg-white">
+          <div className="flex border-b border-gray-300 bg-white" role="tablist" aria-label="Backtest result tabs">
             <button
               onClick={() => setActiveTab('overview')}
+              role="tab"
+              aria-selected={activeTab === 'overview'}
+              aria-controls="overview-panel"
+              id="overview-tab"
               className={`px-6 py-3 text-xs font-bold uppercase transition-colors border-b-2 ${
                 activeTab === 'overview'
                   ? 'border-orange text-ink'
@@ -282,6 +301,10 @@ export const BacktestModal: React.FC<BacktestModalProps> = ({ isOpen, onClose, r
             </button>
             <button
               onClick={() => setActiveTab('trades')}
+              role="tab"
+              aria-selected={activeTab === 'trades'}
+              aria-controls="trades-panel"
+              id="trades-tab"
               className={`px-6 py-3 text-xs font-bold uppercase transition-colors border-b-2 ${
                 activeTab === 'trades'
                   ? 'border-orange text-ink'
@@ -292,6 +315,10 @@ export const BacktestModal: React.FC<BacktestModalProps> = ({ isOpen, onClose, r
             </button>
             <button
               onClick={() => setActiveTab('comparison')}
+              role="tab"
+              aria-selected={activeTab === 'comparison'}
+              aria-controls="comparison-panel"
+              id="comparison-tab"
               className={`px-6 py-3 text-xs font-bold uppercase transition-colors border-b-2 ${
                 activeTab === 'comparison'
                   ? 'border-orange text-ink'
@@ -302,6 +329,10 @@ export const BacktestModal: React.FC<BacktestModalProps> = ({ isOpen, onClose, r
             </button>
             <button
               onClick={() => setActiveTab('advanced')}
+              role="tab"
+              aria-selected={activeTab === 'advanced'}
+              aria-controls="advanced-panel"
+              id="advanced-tab"
               className={`px-6 py-3 text-xs font-bold uppercase transition-colors border-b-2 ${
                 activeTab === 'advanced'
                   ? 'border-orange text-ink'
@@ -323,7 +354,12 @@ export const BacktestModal: React.FC<BacktestModalProps> = ({ isOpen, onClose, r
               </div>
             </div>
           ) : activeTab === 'overview' ? (
-            <div className="flex flex-col md:flex-row gap-8 mb-8">
+            <div
+              role="tabpanel"
+              id="overview-panel"
+              aria-labelledby="overview-tab"
+              className="flex flex-col md:flex-row gap-8 mb-8"
+            >
               {/* Stats */}
               <div className="w-full md:w-1/4 space-y-6">
                 <div>
@@ -524,7 +560,12 @@ export const BacktestModal: React.FC<BacktestModalProps> = ({ isOpen, onClose, r
               </div>
             </div>
           ) : activeTab === 'trades' ? (
-            <div className="space-y-4">
+            <div
+              role="tabpanel"
+              id="trades-panel"
+              aria-labelledby="trades-tab"
+              className="space-y-4"
+            >
               <div className="flex justify-between items-center">
                 <h3 className="text-sm font-bold uppercase text-ink">Trade History</h3>
                 <div className="flex items-center gap-4">
@@ -712,7 +753,12 @@ export const BacktestModal: React.FC<BacktestModalProps> = ({ isOpen, onClose, r
               )}
             </div>
           ) : activeTab === 'comparison' ? (
-            <div className="space-y-6">
+            <div
+              role="tabpanel"
+              id="comparison-panel"
+              aria-labelledby="comparison-tab"
+              className="space-y-6"
+            >
               <div>
                 <h3 className="text-sm font-bold uppercase text-ink mb-4">
                   Strategy vs Benchmarks
@@ -926,7 +972,12 @@ export const BacktestModal: React.FC<BacktestModalProps> = ({ isOpen, onClose, r
               </div>
             </div>
           ) : activeTab === 'advanced' ? (
-            <div className="space-y-6">
+            <div
+              role="tabpanel"
+              id="advanced-panel"
+              aria-labelledby="advanced-tab"
+              className="space-y-6"
+            >
               <div>
                 <h3 className="text-sm font-bold uppercase text-ink mb-4">Advanced Risk Metrics</h3>
                 {advancedMetrics ? (

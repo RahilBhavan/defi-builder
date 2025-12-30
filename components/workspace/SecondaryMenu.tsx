@@ -27,15 +27,21 @@ export const SecondaryMenu: React.FC<SecondaryMenuProps> = ({
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
         className="w-10 h-10 bg-white border border-gray-300 hover:border-ink hover:bg-gray-50 transition-all flex items-center justify-center shadow-sm rounded-lg"
-        aria-label="Open menu"
+        aria-label={isOpen ? 'Close menu' : 'Open menu'}
+        aria-expanded={isOpen}
+        aria-haspopup="true"
       >
-        <Menu size={20} />
+        <Menu size={20} aria-hidden="true" />
       </button>
 
       {isOpen && (
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-          <div className="absolute right-0 top-12 w-64 bg-white border border-gray-300 rounded-lg z-50 shadow-xl overflow-hidden">
+          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} aria-hidden="true" />
+          <div
+            className="absolute right-0 top-12 w-64 bg-white border border-gray-300 rounded-lg z-50 shadow-xl overflow-hidden"
+            role="menu"
+            aria-label="Secondary menu"
+          >
             {[
               { label: 'Backtest', action: onOpenBacktest },
               { label: 'Portfolio', action: onOpenPortfolio },
@@ -58,6 +64,7 @@ export const SecondaryMenu: React.FC<SecondaryMenuProps> = ({
                     : 'uppercase font-bold'
                 }`}
                 disabled={item.label === '---'}
+                aria-label={item.label === '---' ? undefined : item.label}
               >
                 {item.label !== '---' && item.label}
               </button>

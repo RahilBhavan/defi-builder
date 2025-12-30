@@ -246,8 +246,17 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-12 touch-none">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-12 touch-none"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="strategy-library-modal-title"
+    >
+      <div
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+        onClick={onClose}
+        aria-hidden="true"
+      />
 
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
@@ -257,9 +266,15 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
       >
         {/* Header */}
         <div className="h-16 flex items-center justify-between px-6 border-b border-gray-300 bg-white">
-          <h2 className="text-lg font-bold font-mono uppercase">Strategy Library</h2>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 text-ink transition-colors">
-            <X size={24} />
+          <h2 id="strategy-library-modal-title" className="text-lg font-bold font-mono uppercase">
+            Strategy Library
+          </h2>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 text-ink transition-colors"
+            aria-label="Close strategy library modal"
+          >
+            <X size={24} aria-hidden="true" />
           </button>
         </div>
 
