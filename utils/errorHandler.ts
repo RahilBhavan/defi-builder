@@ -144,4 +144,3 @@ export function formatErrorForLogging(error: unknown, context?: string): string 
   const errorStr = error instanceof Error ? error.stack || error.message : String(error);
   return `${timestamp} ${contextStr}${errorStr}`;
 }
-
