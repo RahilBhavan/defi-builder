@@ -123,7 +123,6 @@ export const AIBlockSuggester: React.FC<AIBlockSuggesterProps> = ({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const aiRouter = trpc.ai as any;
   
-  // @ts-expect-error - tRPC version mismatch: backend v10 vs frontend v11
   const backendQuery = aiRouter.getSuggestions.useQuery(
     { currentBlocks, query: searchQuery || undefined },
     {

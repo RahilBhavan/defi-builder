@@ -2,13 +2,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { trpc } from '../utils/trpc';
 import { useWallet } from './useWallet';
 
-/**
- * Type-safe access to auth router
- * Uses type assertion due to tRPC v10/v11 version mismatch
- * TODO: Remove when backend is upgraded to @trpc/server v11
- */
-type AuthRouter = typeof trpc.auth;
-
 export function useAuth() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -19,7 +12,6 @@ export function useAuth() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const authRouter = trpc.auth as any;
   
-  // @ts-expect-error - tRPC version mismatch: backend v10 vs frontend v11
   const loginMutation = authRouter.login.useMutation({
     onSuccess: () => {
       // Token is set via httpOnly cookie, no need to store in localStorage
@@ -30,7 +22,6 @@ export function useAuth() {
     },
   });
 
-  // @ts-expect-error - tRPC version mismatch: backend v10 vs frontend v11
   const logoutMutation = authRouter.logout.useMutation({
     onSuccess: () => {
       setIsAuthenticated(false);
@@ -61,7 +52,6 @@ export function useAuth() {
   }, [logoutMutation]);
 
   // Check authentication status using me query
-  // @ts-expect-error - tRPC version mismatch: backend v10 vs frontend v11
   const { data: userData } = authRouter.me.useQuery(undefined, {
     enabled: isConnected,
     retry: false,

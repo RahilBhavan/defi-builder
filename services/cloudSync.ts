@@ -93,8 +93,8 @@ export function useCloudSync() {
       description: `Strategy with ${strategy.blocks.length} blocks`,
       nodeGraph,
     });
-    // @ts-expect-error - tRPC version mismatch: backend v10 vs frontend v11
-    await utils.strategies.list.invalidate();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (utils.strategies as any).list.invalidate();
   };
 
   const updateStrategy = async (strategyId: string, strategy: Strategy) => {
@@ -105,14 +105,14 @@ export function useCloudSync() {
       description: `Strategy with ${strategy.blocks.length} blocks`,
       nodeGraph,
     });
-    // @ts-expect-error - tRPC version mismatch: backend v10 vs frontend v11
-    await utils.strategies.list.invalidate();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (utils.strategies as any).list.invalidate();
   };
 
   const deleteStrategy = async (strategyId: string) => {
     await deleteMutation.mutateAsync({ id: strategyId });
-    // @ts-expect-error - tRPC version mismatch: backend v10 vs frontend v11
-    await utils.strategies.list.invalidate();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (utils.strategies as any).list.invalidate();
   };
 
   const cloudStrategies: Strategy[] = strategies
