@@ -841,6 +841,24 @@ export const BacktestModal: React.FC<BacktestModalProps> = ({ isOpen, onClose, r
                               <td className="px-4 py-3 text-right text-gray-400">-</td>
                               <td className="px-4 py-3 text-right text-gray-400">-</td>
                             </tr>
+                            <tr className="border-b border-gray-200">
+                              <td className="px-4 py-3 text-gray-600">Value at Risk (95%)</td>
+                              <td className="px-4 py-3 text-right font-bold text-alert-red">
+                                {advancedMetrics.valueAtRisk95.toFixed(2)}%
+                              </td>
+                              <td className="px-4 py-3 text-right text-gray-400">-</td>
+                              <td className="px-4 py-3 text-right text-gray-400">-</td>
+                              <td className="px-4 py-3 text-right text-gray-400">-</td>
+                            </tr>
+                            <tr className="border-b border-gray-200">
+                              <td className="px-4 py-3 text-gray-600">Conditional VaR (95%)</td>
+                              <td className="px-4 py-3 text-right font-bold text-alert-red">
+                                {advancedMetrics.conditionalVaR95.toFixed(2)}%
+                              </td>
+                              <td className="px-4 py-3 text-right text-gray-400">-</td>
+                              <td className="px-4 py-3 text-right text-gray-400">-</td>
+                              <td className="px-4 py-3 text-right text-gray-400">-</td>
+                            </tr>
                           </>
                         )}
                       </tbody>
