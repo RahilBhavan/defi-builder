@@ -207,10 +207,7 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
     setShareStrategy(strategy);
   };
 
-  const createShareLink = (strategy: Strategy): string => {
-    // Use secure sharing service with validation and sanitization
-    return generateShareLink(strategy);
-  };
+  // createShareLink is imported from strategySharing service
 
   const copyShareLink = async (strategy: Strategy) => {
     const link = createShareLink(strategy);
@@ -642,7 +639,7 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
                 <div className="flex gap-2">
                   <input
                     type="text"
-                    value={generateShareLink(shareStrategy)}
+                    value={createShareLink(shareStrategy)}
                     readOnly
                     className="flex-1 h-10 px-3 border border-gray-300 font-mono text-xs focus:border-orange focus:outline-none bg-gray-50"
                   />
@@ -666,7 +663,7 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
                 <Button
                   variant="primary"
                   onClick={() => {
-                    window.open(generateShareLink(shareStrategy), '_blank');
+                    window.open(createShareLink(shareStrategy), '_blank');
                     setShareStrategy(null);
                   }}
                   className="flex items-center gap-2"
