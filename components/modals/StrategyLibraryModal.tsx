@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { AlertCircle, BookOpen, Copy, ExternalLink, Save, Search, Share2, Sparkles, Star, X } from 'lucide-react';
+import { AlertCircle, BookOpen, Copy, ExternalLink, Loader2, Save, Search, Share2, Sparkles, Star, X } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { useToast } from '../../hooks/useToast';
@@ -49,7 +49,7 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
   const [shareStrategy, setShareStrategy] = useState<Strategy | null>(null);
   const [syncToCloud, setSyncToCloud] = useState(false);
-  const { strategies: cloudStrategies, syncStrategy } = useCloudSync();
+  const { strategies: cloudStrategies, syncStrategy, isLoading: isLoadingCloud } = useCloudSync();
 
   // Load strategies from storage and cloud
   useEffect(() => {
@@ -553,6 +553,13 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
                 })}
               </div>
             )
+          ) : isLoadingCloud && filteredStrategies.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-center">
+              <Loader2 size={24} className="text-orange animate-spin mb-4" />
+              <p className="text-sm font-mono text-gray-500 uppercase">
+                Loading strategies...
+              </p>
+            </div>
           ) : filteredStrategies.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center">
               <p className="text-sm font-mono text-gray-500 uppercase mb-2">

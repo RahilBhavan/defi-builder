@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Activity, ArrowDownLeft, ArrowUpRight, PieChart, Wallet, X } from 'lucide-react';
+import { Activity, ArrowDownLeft, ArrowUpRight, Loader2, PieChart, Wallet, X } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { useMultiPriceFeed } from '../../hooks/usePriceFeed';
@@ -43,6 +43,9 @@ export const PortfolioModal: React.FC<PortfolioModalProps> = ({ isOpen, onClose 
   const tokens = useMemo(() => holdings.map((h) => h.asset), [holdings]);
   const prices = useMultiPriceFeed(tokens);
   const [previousPrices, setPreviousPrices] = useState<Map<string, number>>(new Map());
+  
+  // Check if prices are loading (have tokens but no prices yet)
+  const isLoadingPrices = tokens.length > 0 && Array.from(prices.values()).every((p) => p === undefined);
 
   // Track price changes
   useEffect(() => {
@@ -198,35 +201,52 @@ export const PortfolioModal: React.FC<PortfolioModalProps> = ({ isOpen, onClose 
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {holdingsWithPrices.map((item) => (
-                      <tr key={item.asset} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-6 py-4 font-bold text-ink">{item.asset}</td>
-                        <td className="px-6 py-4 font-mono text-right text-gray-600">
-                          {item.amount.toLocaleString('en-US', {
-                            maximumFractionDigits: item.asset === 'USDC' ? 2 : 8,
-                          })}
-                        </td>
-                        <td className="px-6 py-4 font-mono text-right text-ink">
-                          {item.formattedValue}
-                        </td>
-                        <td
-                          className={`px-6 py-4 font-mono text-right flex items-center justify-end gap-1 ${
-                            item.change > 0
-                              ? 'text-success-green'
-                              : item.change < 0
-                                ? 'text-alert-red'
-                                : 'text-gray-400'
-                          }`}
-                        >
-                          {item.change > 0 ? (
-                            <ArrowUpRight size={12} />
-                          ) : item.change < 0 ? (
-                            <ArrowDownLeft size={12} />
-                          ) : null}
-                          {item.formattedChange}
+                    {isLoadingPrices && holdings.length > 0 ? (
+                      <tr>
+                        <td colSpan={4} className="px-6 py-8 text-center">
+                          <div className="flex flex-col items-center justify-center gap-2">
+                            <Loader2 size={20} className="text-orange animate-spin" />
+                            <p className="text-xs font-mono text-gray-500 uppercase">Loading prices...</p>
+                          </div>
                         </td>
                       </tr>
-                    ))}
+                    ) : holdingsWithPrices.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="px-6 py-8 text-center text-sm font-mono text-gray-400">
+                          No holdings
+                        </td>
+                      </tr>
+                    ) : (
+                      holdingsWithPrices.map((item) => (
+                        <tr key={item.asset} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-6 py-4 font-bold text-ink">{item.asset}</td>
+                          <td className="px-6 py-4 font-mono text-right text-gray-600">
+                            {item.amount.toLocaleString('en-US', {
+                              maximumFractionDigits: item.asset === 'USDC' ? 2 : 8,
+                            })}
+                          </td>
+                          <td className="px-6 py-4 font-mono text-right text-ink">
+                            {item.formattedValue}
+                          </td>
+                          <td
+                            className={`px-6 py-4 font-mono text-right flex items-center justify-end gap-1 ${
+                              item.change > 0
+                                ? 'text-success-green'
+                                : item.change < 0
+                                  ? 'text-alert-red'
+                                  : 'text-gray-400'
+                            }`}
+                          >
+                            {item.change > 0 ? (
+                              <ArrowUpRight size={12} />
+                            ) : item.change < 0 ? (
+                              <ArrowDownLeft size={12} />
+                            ) : null}
+                            {item.formattedChange}
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
