@@ -566,11 +566,10 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
               </div>
             )
           ) : isLoadingCloud && filteredStrategies.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-center">
-              <Loader2 size={24} className="text-orange animate-spin mb-4" />
-              <p className="text-sm font-mono text-gray-500 uppercase">
-                Loading strategies...
-              </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <CardSkeleton key={i} />
+              ))}
             </div>
           ) : filteredStrategies.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center">

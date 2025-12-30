@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useMultiPriceFeed } from '../../hooks/usePriceFeed';
 import { portfolioTracker, type PortfolioTransaction } from '../../services/portfolioTracker';
 import { Button } from '../ui/Button';
+import { Skeleton, TableRowSkeleton } from '../ui/Skeleton';
 
 interface PortfolioModalProps {
   isOpen: boolean;
@@ -24,19 +25,24 @@ export const PortfolioModal: React.FC<PortfolioModalProps> = ({ isOpen, onClose 
   // Load portfolio data when modal opens
   useEffect(() => {
     if (isOpen) {
-      const currentHoldings = portfolioTracker.getCurrentHoldings();
-      const holdingsArray: Holding[] = Array.from(currentHoldings.entries())
-        .filter(([, amount]) => amount > 0.0001) // Filter out dust
-        .map(([asset, amount]) => ({ asset, amount }));
+      setIsLoadingData(true);
+      // Simulate async loading for better UX
+      setTimeout(() => {
+        const currentHoldings = portfolioTracker.getCurrentHoldings();
+        const holdingsArray: Holding[] = Array.from(currentHoldings.entries())
+          .filter(([, amount]) => amount > 0.0001) // Filter out dust
+          .map(([asset, amount]) => ({ asset, amount }));
 
-      setHoldings(holdingsArray);
-      setTransactions(portfolioTracker.getTransactions(10)); // Last 10 transactions
+        setHoldings(holdingsArray);
+        setTransactions(portfolioTracker.getTransactions(10)); // Last 10 transactions
 
-      // Count unique strategies from transactions
-      const uniqueStrategies = new Set(
-        portfolioTracker.getTransactions().map((tx) => tx.strategyId).filter(Boolean)
-      );
-      setActiveStrategies(uniqueStrategies.size || 0);
+        // Count unique strategies from transactions
+        const uniqueStrategies = new Set(
+          portfolioTracker.getTransactions().map((tx) => tx.strategyId).filter(Boolean)
+        );
+        setActiveStrategies(uniqueStrategies.size || 0);
+        setIsLoadingData(false);
+      }, 100); // Small delay to show loading state
     }
   }, [isOpen]);
 
@@ -145,24 +151,58 @@ export const PortfolioModal: React.FC<PortfolioModalProps> = ({ isOpen, onClose 
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-8">
-          {/* Top Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-            <div className="p-6 bg-white border border-gray-200 shadow-sm">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                  Total Equity
-                </p>
-                <div title="Live">
-                  <Activity size={14} className="text-success-green animate-pulse" />
-                </div>
+          {isLoadingData ? (
+            <div className="space-y-6">
+              {/* Loading skeletons for stats */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="p-6 bg-white border border-gray-200 shadow-sm">
+                    <Skeleton height={16} className="mb-2" />
+                    <Skeleton height={40} className="mb-2" />
+                    <Skeleton height={14} width="60%" />
+                  </div>
+                ))}
               </div>
-              <p className="text-4xl font-mono font-bold text-ink">
-                $
-                {totalEquity.toLocaleString('en-US', {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
-              </p>
+              {/* Loading skeleton for table */}
+              <div className="bg-white border border-gray-200">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-gray-200">
+                      {[1, 2, 3, 4].map((i) => (
+                        <th key={i} className="px-6 py-3">
+                          <Skeleton height={12} />
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[1, 2, 3].map((i) => (
+                      <TableRowSkeleton key={i} columns={4} />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Top Stats */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                <div className="p-6 bg-white border border-gray-200 shadow-sm">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                      Total Equity
+                    </p>
+                    <div title="Live">
+                      <Activity size={14} className="text-success-green animate-pulse" />
+                    </div>
+                  </div>
+                  <p className="text-4xl font-mono font-bold text-ink">
+                    $
+                    {totalEquity.toLocaleString('en-US', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </p>
               <p
                 className={`text-sm font-mono mt-2 flex items-center gap-1 ${
                   totalChange24h >= 0 ? 'text-success-green' : 'text-alert-red'

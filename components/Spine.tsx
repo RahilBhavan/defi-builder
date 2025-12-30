@@ -83,6 +83,14 @@ export const Spine: React.FC<SpineProps> = ({
     <div
       className="w-full min-h-screen flex flex-col items-center py-8 sm:py-20 px-4 sm:px-6"
       onClick={() => onSelectBlock(null)}
+      aria-label="Clear selection"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelectBlock(null);
+        }
+      }}
       onDragOver={(e) => {
         // Allow dropping blocks from external sources
         e.preventDefault();
