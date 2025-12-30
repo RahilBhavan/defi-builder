@@ -21,23 +21,23 @@ interface ProtocolDocumentation {
  */
 export async function getAISuggestions(
   currentBlocks: unknown[],
-  userQuery?: string
+  _userQuery?: string
 ): Promise<AISuggestion[]> {
   // Use Gemini API if available, otherwise fallback to rule-based
   const apiKey = process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY;
   
   if (!apiKey) {
     // Fallback to rule-based suggestions
-    return getRuleBasedSuggestions(currentBlocks, userQuery);
+    return getRuleBasedSuggestions(currentBlocks, _userQuery);
   }
 
   try {
     // Enhanced rule-based suggestions with user query context
-    const suggestions = getRuleBasedSuggestions(currentBlocks, userQuery);
+    const suggestions = getRuleBasedSuggestions(currentBlocks, _userQuery);
     
     // If user query is provided, add query-specific suggestions
-    if (userQuery) {
-      const queryLower = userQuery.toLowerCase();
+    if (_userQuery) {
+      const queryLower = _userQuery.toLowerCase();
       
       // Check for common DeFi terms in query
       if (queryLower.includes('yield') || queryLower.includes('farm')) {

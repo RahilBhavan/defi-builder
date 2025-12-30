@@ -15,12 +15,12 @@ app.use(cors());
 app.use(express.json());
 
 // Health check
-app.get('/health', (req, res) => {
+app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 // Test DB connection
-app.get('/db-test', async (req, res) => {
+app.get('/db-test', async (_req, res) => {
   try {
     const userCount = await prisma.user.count();
     res.json({ success: true, userCount });
