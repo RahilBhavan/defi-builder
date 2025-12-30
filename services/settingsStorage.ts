@@ -17,7 +17,7 @@ export interface AppSettings {
   apiKeys: {
     etherscanApiKey: string;
     oneInchApiKey: string;
-    geminiApiKey: string;
+    // geminiApiKey removed - now managed server-side for security
   };
 }
 
@@ -38,7 +38,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   apiKeys: {
     etherscanApiKey: '',
     oneInchApiKey: '',
-    geminiApiKey: '',
+    // geminiApiKey removed - now managed server-side for security
   },
 };
 

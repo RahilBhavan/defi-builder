@@ -108,10 +108,37 @@ class PriceFeedService {
   }
 
   /**
-   * Fetch prices from CoinGecko API
-   * Uses free tier API with rate limiting
+   * Fetch prices from backend proxy (preferred) or CoinGecko API directly (fallback)
+   * Backend proxy keeps API keys secure and implements rate limiting
    */
   private async fetchPricesFromAPI(tokens: string[]): Promise<Record<string, number>> {
+    // Try backend proxy first (if available)
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    
+    try {
+      // Use backend proxy endpoint via tRPC if available
+      // For now, fall back to direct API call if backend is unavailable
+      // In production, always use backend proxy
+      const response = await fetch(`${API_URL}/trpc/prices.getPrices?input=${encodeURIComponent(JSON.stringify({ tokens }))}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // tRPC returns { result: { data: ... } }
+        if (data?.result?.data) {
+          return data.result.data;
+        }
+      }
+    } catch (error) {
+      // Backend unavailable - fall back to direct API (with rate limiting)
+      console.debug('Backend price feed unavailable, using direct API:', error);
+    }
+
+    // Fallback: Direct CoinGecko API call (with rate limiting)
     // Token symbol to CoinGecko ID mapping
     const TOKEN_IDS: Record<string, string> = {
       ETH: 'ethereum',
@@ -129,11 +156,12 @@ class PriceFeedService {
       .filter((id): id is string => id !== undefined);
 
     if (tokenIds.length === 0) {
-      return {};
+      return this.getFallbackPrices(tokens);
     }
 
     try {
       // CoinGecko free tier: simple price endpoint
+      // NOTE: This should be removed in production - always use backend proxy
       const ids = tokenIds.join(',');
       const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`;
 

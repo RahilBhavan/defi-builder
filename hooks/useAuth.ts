@@ -7,19 +7,21 @@ export function useAuth() {
   const [isLoading, setIsLoading] = useState(false);
   const { address, isConnected } = useWallet();
 
-  const loginMutation = trpc.auth.login.useMutation({
-    onSuccess: (data) => {
+  // Type assertion needed due to tRPC version mismatch
+  const authRouter = trpc.auth as any;
+  const loginMutation = authRouter?.login?.useMutation?.({
+    onSuccess: (data: { token?: string; user?: unknown }) => {
       // Store token in localStorage
       if (data.token) {
         localStorage.setItem('auth_token', data.token);
         setIsAuthenticated(true);
       }
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       console.error('Login error:', error);
       setIsAuthenticated(false);
     },
-  });
+  }) || { mutate: () => {}, isPending: false };
 
   const login = useCallback(() => {
     if (!address || !isConnected) {

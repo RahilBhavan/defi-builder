@@ -302,27 +302,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                           }))
                         }
                         className="w-full h-10 px-3 border border-gray-300 font-mono text-sm focus:border-orange focus:outline-none"
-                        placeholder="Enter 1Inch API key"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold uppercase text-gray-500 mb-2">
-                        Gemini API Key
-                      </label>
-                      <input
-                        type="password"
-                        value={localSettings.apiKeys.geminiApiKey}
-                        onChange={(e) =>
-                          setLocalSettings((prev) => ({
-                            ...prev,
-                            apiKeys: { ...prev.apiKeys, geminiApiKey: e.target.value },
-                          }))
-                        }
-                        className="w-full h-10 px-3 border border-gray-300 font-mono text-sm focus:border-orange focus:outline-none"
-                        placeholder="Enter Gemini API key (or use VITE_GEMINI_API_KEY env var)"
+                        placeholder="Enter 1Inch API key (optional)"
                       />
                       <p className="text-xs text-gray-500 mt-1">
-                        Leave empty to use environment variable
+                        Optional: For advanced 1Inch aggregator features
+                      </p>
+                    </div>
+                    <div className="bg-blue-50 border border-blue-200 rounded p-3">
+                      <p className="text-xs text-blue-800 font-bold uppercase mb-1">
+                        🔒 API Key Security
+                      </p>
+                      <p className="text-xs text-blue-700">
+                        Gemini API keys are now managed server-side for security. 
+                        Contact your administrator to configure API keys on the backend.
                       </p>
                     </div>
                     <div className="p-4 bg-orange/10 border border-orange/20 flex gap-3 items-start">

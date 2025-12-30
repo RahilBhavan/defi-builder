@@ -53,9 +53,8 @@ export default defineConfig(({ mode }) => {
         },
       }),
     ],
-    define: {
-      'import.meta.env.VITE_GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-    },
+    // API keys are now managed server-side - no client-side exposure
+    // Removed VITE_GEMINI_API_KEY from client build
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),

@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { signToken } from '../auth/jwt';
 import redis from '../cache/redis';
 import { getAISuggestions, getProtocolDocumentation } from '../services/ai';
+import { getTokenPrices } from '../services/priceFeed';
 import { publicProcedure, router } from './index';
 import { protectedProcedure } from './procedures';
 
@@ -140,6 +141,19 @@ export const appRouter = router({
       .input(z.object({ protocol: z.string() }))
       .query(async ({ input }) => {
         return getProtocolDocumentation(input.protocol);
+      }),
+  }),
+
+  // Price feed endpoints (proxy for CoinGecko)
+  prices: router({
+    getPrices: publicProcedure
+      .input(
+        z.object({
+          tokens: z.array(z.string()).min(1).max(50), // Limit to 50 tokens per request
+        })
+      )
+      .query(async ({ input }) => {
+        return getTokenPrices(input.tokens);
       }),
   }),
 });

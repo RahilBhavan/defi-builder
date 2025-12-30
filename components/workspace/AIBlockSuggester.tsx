@@ -11,10 +11,9 @@ import {
   Search,
   Shield,
   Sparkles,
-  X,
 } from 'lucide-react';
 import type React from 'react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AVAILABLE_BLOCKS } from '../../constants';
 import { useDebounce } from '../../hooks/useDebounce';
 import { useToast } from '../../hooks/useToast';
@@ -86,6 +85,7 @@ function getFallbackSuggestions(blocks: LegoBlock[]): LegoBlock[] {
   }
 
   const lastBlock = blocks[blocks.length - 1];
+  if (!lastBlock) return AVAILABLE_BLOCKS.slice(0, 3);
 
   if (lastBlock.category === 'ENTRY') {
     return AVAILABLE_BLOCKS.filter((b) => b.category === 'PROTOCOL').slice(0, 3);
@@ -108,7 +108,7 @@ export const AIBlockSuggester: React.FC<AIBlockSuggesterProps> = ({
   onAddBlock,
   currentBlocks,
 }) => {
-  const { error: showError, warning: showWarning } = useToast();
+  const { warning: showWarning } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
   const [expandedCategory, setExpandedCategory] = useState<string>('PROTOCOL');
@@ -117,41 +117,40 @@ export const AIBlockSuggester: React.FC<AIBlockSuggesterProps> = ({
   const [aiError, setAiError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Fetch AI suggestions from backend (optional - will work without backend)
-  let isLoadingBackend = false;
-  let backendSuggestions: LegoBlock[] | undefined = undefined;
-  try {
-    // @ts-expect-error - tRPC might not be fully configured
-    const query = trpc?.ai?.getSuggestions?.useQuery?.(
-      { currentBlocks },
-      {
-        enabled: isOpen && false, // Disabled for now until backend is fully set up
-        refetchOnWindowFocus: false,
-        retry: 1,
-      }
-    );
-    if (query) {
-      isLoadingBackend = query.isLoading ?? false;
-      backendSuggestions = query.data;
+  // Fetch AI suggestions from backend (preferred method - API keys are server-side)
+  // Type assertion needed due to tRPC version mismatch (backend v10 vs frontend v11)
+  // TODO: Remove type assertion when backend @trpc/server is upgraded to v11
+  const aiRouter = trpc.ai as any;
+  const backendQuery = aiRouter?.getSuggestions?.useQuery?.(
+    { currentBlocks, query: searchQuery || undefined },
+    {
+      enabled: isOpen && false, // Disabled until backend properly returns block IDs
+      refetchOnWindowFocus: false,
+      retry: 1,
+      onError: (error: unknown) => {
+        // Silently fall back to client-side suggestions
+        console.debug('Backend AI suggestions not available:', error);
+      },
     }
-  } catch (error) {
-    // Backend not available, continue without it
-    console.debug('Backend AI suggestions not available:', error);
-  }
+  );
+
+  const isLoadingBackend = backendQuery?.isLoading ?? false;
+  const backendError = backendQuery?.error;
 
   const isLoadingAISuggestions = isLoadingAI || isLoadingBackend;
 
-  // Fetch AI suggestions when blocks change (fallback to Gemini)
+  // Use backend suggestions if available, otherwise use fallback
   useEffect(() => {
     if (!isOpen) return;
 
-    // Prefer backend suggestions if available
-    if (backendSuggestions && backendSuggestions.length > 0) {
-      // Convert backend suggestions to blocks (simplified)
-      // In production, this would map AI suggestions to actual blocks
-      return;
+    // Prefer backend suggestions (from tRPC query)
+    if (backendQuery?.data && Array.isArray(backendQuery.data)) {
+      // Backend returns AISuggestion[] - we need to convert to blocks
+      // For now, use fallback suggestions since backend format is different
+      // TODO: Map backend suggestions to actual blocks
     }
 
+    // Fallback to client-side rule-based suggestions
     const cacheKey = getCacheKey(currentBlocks);
     const cached = suggestionCache.get(cacheKey);
 
@@ -171,11 +170,11 @@ export const AIBlockSuggester: React.FC<AIBlockSuggesterProps> = ({
     abortControllerRef.current = new AbortController();
     const signal = abortControllerRef.current.signal;
 
-    // Fetch AI suggestions
+    // Fetch fallback suggestions (rule-based)
     setIsLoadingAI(true);
     setAiError(null);
 
-    suggestNextBlocks(currentBlocks, undefined, signal)
+    suggestNextBlocks(currentBlocks, searchQuery || undefined, signal)
       .then((suggestions) => {
         if (!signal.aborted) {
           setAiSuggestions(suggestions);
@@ -310,7 +309,7 @@ export const AIBlockSuggester: React.FC<AIBlockSuggesterProps> = ({
                     <Loader2 size={12} className="animate-spin text-orange ml-auto" />
                   )}
                   {aiError && !isLoadingAI && (
-                    <AlertCircle size={12} className="text-gray-400 ml-auto" title={aiError} />
+                    <AlertCircle size={12} className="text-gray-400 ml-auto" />
                   )}
                 </div>
                 <div className="max-h-48 sm:max-h-64 overflow-y-auto scroll-smooth pr-2 -mr-2 touch-pan-y">

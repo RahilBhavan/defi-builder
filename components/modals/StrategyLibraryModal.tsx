@@ -16,6 +16,7 @@ import {
   getTemplatesByCategory,
   searchTemplates,
 } from '../../services/strategyTemplates';
+import { generateShareLink as createShareLink } from '../../services/strategySharing';
 import type { LegoBlock, Strategy } from '../../types';
 import { Button } from '../ui/Button';
 import { ConfirmationDialog } from '../ui/ConfirmationDialog';
@@ -207,14 +208,8 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
   };
 
   const generateShareLink = (strategy: Strategy): string => {
-    // Encode strategy as base64 URL parameter
-    const strategyData = JSON.stringify({
-      name: strategy.name,
-      blocks: strategy.blocks,
-      createdAt: strategy.createdAt,
-    });
-    const encoded = btoa(strategyData);
-    return `${window.location.origin}${window.location.pathname}?share=${encoded}`;
+    // Use secure sharing service with validation and sanitization
+    return createShareLink(strategy);
   };
 
   const copyShareLink = async (strategy: Strategy) => {

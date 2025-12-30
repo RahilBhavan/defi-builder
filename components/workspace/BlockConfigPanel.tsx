@@ -395,7 +395,7 @@ const ParamField: React.FC<ParamFieldProps> = ({ name, value, onChange, definiti
         <div className="relative">
           <input
             type={def.type === 'number' ? 'number' : 'text'}
-            value={value}
+            value={String(value ?? '')}
             onChange={handleChange}
             placeholder={def.placeholder}
             min={def.min}
@@ -524,7 +524,7 @@ export const BlockConfigPanel: React.FC<BlockConfigPanelProps> = ({
                       <ParamField
                         key={key}
                         name={key}
-                        value={params[key]}
+                        value={params[key] ?? ''}
                         onChange={(val) => handleChange(key, val)}
                         definition={FIELD_DEFINITIONS[definitionKey]}
                       />
