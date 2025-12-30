@@ -577,33 +577,41 @@ export const BlockConfigPanel: React.FC<BlockConfigPanelProps> = ({
             exit={{ x: 400 }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
             className="fixed top-0 right-0 h-full w-[400px] bg-canvas border-l border-ink z-50 flex flex-col shadow-2xl"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="block-config-title"
           >
             {/* Header */}
             <div className="h-20 flex items-center justify-between px-8 border-b border-gray-300 bg-white relative overflow-hidden shrink-0">
               <div
                 className="absolute left-0 top-0 bottom-0 w-1.5"
                 style={{ backgroundColor: accentColor }}
+                aria-hidden="true"
               />
 
               <div className="pl-2">
-                <div className="text-[10px] text-gray-400 font-mono uppercase tracking-widest mb-1">
+                <div className="text-[10px] text-gray-400 font-mono uppercase tracking-widest mb-1" aria-hidden="true">
                   {block.protocol}
                 </div>
-                <h2 className="text-sm font-bold uppercase tracking-wide">{block.label}</h2>
+                <h2 id="block-config-title" className="text-sm font-bold uppercase tracking-wide">
+                  {block.label} Configuration
+                </h2>
               </div>
 
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => onDelete(block.id)}
                   className="w-8 h-8 flex items-center justify-center hover:bg-red-50 text-gray-400 hover:text-alert-red transition-colors"
+                  aria-label={`Delete ${block.label} block`}
                 >
-                  <Trash2 size={16} />
+                  <Trash2 size={16} aria-hidden="true" />
                 </button>
                 <button
                   onClick={onClose}
                   className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 text-ink transition-colors"
+                  aria-label="Close block configuration panel"
                 >
-                  <X size={20} />
+                  <X size={20} aria-hidden="true" />
                 </button>
               </div>
             </div>

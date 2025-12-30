@@ -291,12 +291,16 @@ export const AIBlockSuggester: React.FC<AIBlockSuggesterProps> = ({
             exit={{ opacity: 0 }}
             onClick={onClose}
             className="fixed inset-0 bg-black/20 z-40"
+            aria-hidden="true"
           />
 
           {/* Panel */}
           <motion.div
             initial={{ x: -320 }}
             animate={{ x: 0 }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="ai-suggester-title"
             exit={{ x: -320 }}
             transition={{ type: 'tween', duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
             className="fixed left-0 top-0 h-full w-80 bg-canvas/95 backdrop-blur-md border-r border-ink z-50 flex flex-col shadow-2xl"
@@ -308,8 +312,11 @@ export const AIBlockSuggester: React.FC<AIBlockSuggesterProps> = ({
                   <Sparkles
                     size={14}
                     className={`${isLoadingAI ? 'animate-pulse' : ''} text-orange`}
+                    aria-hidden="true"
                   />
-                  <h3 className="text-xs font-bold uppercase text-gray-500">Suggested Next</h3>
+                  <h3 id="ai-suggester-title" className="text-xs font-bold uppercase text-gray-500">
+                    AI Block Suggester
+                  </h3>
                   {isLoadingAI && (
                     <Loader2 size={12} className="animate-spin text-orange ml-auto" />
                   )}
@@ -346,6 +353,7 @@ export const AIBlockSuggester: React.FC<AIBlockSuggesterProps> = ({
                           onDragStart={(e) => handleDragStart(e, block)}
                           onDragEnd={handleDragEnd}
                           className="w-full p-3 bg-white border border-gray-300 hover:border-ink transition-all text-left group shadow-sm hover:shadow-md cursor-grab active:cursor-grabbing rounded-lg"
+                          aria-label={`Add ${block.label} block to strategy`}
                         >
                           <div className="flex items-center gap-3">
                             <span className="text-gray-600 group-hover:text-ink">
@@ -358,7 +366,7 @@ export const AIBlockSuggester: React.FC<AIBlockSuggesterProps> = ({
                               </p>
                             </div>
                             {aiSuggestions.length > 0 && aiSuggestions.includes(block) && (
-                              <Sparkles size={10} className="text-orange flex-shrink-0" />
+                              <Sparkles size={10} className="text-orange flex-shrink-0" aria-label="AI suggested" />
                             )}
                           </div>
                         </button>
@@ -378,8 +386,9 @@ export const AIBlockSuggester: React.FC<AIBlockSuggesterProps> = ({
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search blocks..."
                   className="w-full h-10 pl-3 pr-10 border border-gray-300 focus:border-ink font-mono text-sm outline-none bg-gray-50 focus:bg-white transition-colors rounded-lg"
+                  aria-label="Search for blocks"
                 />
-                <div className="absolute right-3 top-3 text-gray-400">
+                <div className="absolute right-3 top-3 text-gray-400" aria-hidden="true">
                   <Search size={16} />
                 </div>
               </div>
@@ -395,6 +404,8 @@ export const AIBlockSuggester: React.FC<AIBlockSuggesterProps> = ({
                       setExpandedCategory((prev) => (prev === category ? '' : category))
                     }
                     className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-100 transition-colors bg-white"
+                    aria-expanded={expandedCategory === category}
+                    aria-controls={`category-${category}`}
                   >
                     <span
                       id={`category-header-${category}`}
@@ -402,7 +413,7 @@ export const AIBlockSuggester: React.FC<AIBlockSuggesterProps> = ({
                     >
                       {categoryNames[category] || category}
                     </span>
-                    <span className="text-gray-400">
+                    <span className="text-gray-400" aria-hidden="true">
                       {expandedCategory === category ? (
                         <ChevronDown size={14} />
                       ) : (
@@ -432,6 +443,7 @@ export const AIBlockSuggester: React.FC<AIBlockSuggesterProps> = ({
                               onDragStart={(e) => handleDragStart(e, block)}
                               onDragEnd={handleDragEnd}
                               className="w-full p-3 bg-white border border-gray-200 hover:border-ink transition-all text-left group cursor-grab active:cursor-grabbing rounded-lg"
+                              aria-label={`Add ${block.label} block to strategy`}
                             >
                               <div className="flex items-center gap-3">
                                 <span className="text-gray-400 group-hover:text-ink transition-colors">
