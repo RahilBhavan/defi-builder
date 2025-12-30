@@ -329,7 +329,9 @@ const ParamField: React.FC<ParamFieldProps> = ({ name, value, onChange, definiti
   const validate = (val: string | number | boolean): string | null => {
     // Number validation using utility function
     if (def.type === 'number') {
-      const error = validateNumberRange(val, def.min, def.max, def.label || name);
+      // Convert boolean to number for validation (though booleans shouldn't be in number fields)
+      const numVal = typeof val === 'boolean' ? (val ? 1 : 0) : val;
+      const error = validateNumberRange(numVal, def.min, def.max, def.label || name);
       if (error) {
         // Add suffix if provided
         return def.suffix ? `${error}${def.suffix}` : error;
@@ -358,8 +360,9 @@ const ParamField: React.FC<ParamFieldProps> = ({ name, value, onChange, definiti
         }
       }
 
-      // Length validation using utility function
-      const lengthError = validateStringLength(strVal, undefined, def.maxLength || 500, def.label || name);
+      // Length validation using utility function (default max length is 500)
+      const maxLength = 'maxLength' in def && typeof def.maxLength === 'number' ? def.maxLength : 500;
+      const lengthError = validateStringLength(strVal, undefined, maxLength, def.label || name);
       if (lengthError) return lengthError;
     }
 
