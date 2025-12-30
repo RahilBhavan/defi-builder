@@ -23,6 +23,7 @@ class PriceFeedService {
   private maxReconnectAttempts = 5;
   private reconnectDelay = 1000;
   private isConnecting = false;
+  private reconnectTimeout: NodeJS.Timeout | null = null;
 
   /**
    * Connect to price feed WebSocket
@@ -267,6 +268,10 @@ class PriceFeedService {
           this.subscribers.delete(token);
         }
       }
+      // Stop polling if no more subscribers
+      if (this.subscribers.size === 0) {
+        this.stopPolling();
+      }
     };
   }
 
@@ -309,8 +314,15 @@ class PriceFeedService {
       return;
     }
 
+    // Clear any existing reconnect timeout
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
+    }
+
     this.reconnectAttempts++;
-    setTimeout(() => {
+    this.reconnectTimeout = setTimeout(() => {
+      this.reconnectTimeout = null;
       this.connect();
     }, this.reconnectDelay * this.reconnectAttempts);
   }
@@ -324,6 +336,10 @@ class PriceFeedService {
       this.ws = null;
     }
     this.stopPolling();
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
+    }
     this.subscribers.clear();
     this.reconnectAttempts = 0;
   }

@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface HistoryState<T> {
   past: T[];
@@ -24,6 +24,17 @@ export function useUndoRedo<T>(
 
   const isUndoingRef = useRef(false);
   const isRedoingRef = useRef(false);
+  const timeoutRefs = useRef<Set<NodeJS.Timeout>>(new Set());
+
+  // Cleanup all timeouts on unmount
+  useEffect(() => {
+    return () => {
+      timeoutRefs.current.forEach((timeoutId) => {
+        clearTimeout(timeoutId);
+      });
+      timeoutRefs.current.clear();
+    };
+  }, []);
 
   const setState = useCallback(
     (newState: T | ((prev: T) => T)) => {
@@ -70,9 +81,11 @@ export function useUndoRedo<T>(
       }
       const newPast = prev.past.slice(0, -1);
 
-      setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         isUndoingRef.current = false;
+        timeoutRefs.current.delete(timeoutId);
       }, 0);
+      timeoutRefs.current.add(timeoutId);
 
       return {
         past: newPast,
@@ -95,9 +108,11 @@ export function useUndoRedo<T>(
       }
       const newFuture = prev.future.slice(1);
 
-      setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         isRedoingRef.current = false;
+        timeoutRefs.current.delete(timeoutId);
       }, 0);
+      timeoutRefs.current.add(timeoutId);
 
       return {
         past: [...prev.past, prev.present],

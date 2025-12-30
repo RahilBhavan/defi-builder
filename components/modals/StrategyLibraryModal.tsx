@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { BookOpen, Copy, ExternalLink, Save, Search, Share2, Sparkles, Star, X } from 'lucide-react';
+import { AlertCircle, BookOpen, Copy, ExternalLink, Save, Search, Share2, Sparkles, Star, X } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { useToast } from '../../hooks/useToast';
@@ -43,6 +43,7 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
   const [filter, setFilter] = useState<FilterType>('all');
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [saveStrategyName, setSaveStrategyName] = useState('');
+  const [nameError, setNameError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('saved');
   const [templateCategory, setTemplateCategory] = useState<string>('all');
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
@@ -153,8 +154,24 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
       return;
     }
 
+    // Validate strategy name
     if (!saveStrategyName.trim()) {
+      setNameError('Strategy name is required');
       showError('Please enter a strategy name');
+      return;
+    }
+    if (saveStrategyName.length > 100) {
+      setNameError('Strategy name must be 100 characters or less');
+      showError('Strategy name is too long (max 100 characters)');
+      return;
+    }
+    if (!/^[a-zA-Z0-9\s\-_]+$/.test(saveStrategyName)) {
+      setNameError('Strategy name contains invalid characters');
+      showError('Strategy name can only contain letters, numbers, spaces, hyphens, and underscores');
+      return;
+    }
+    if (nameError) {
+      showError('Please fix the validation errors before saving');
       return;
     }
 
@@ -177,6 +194,7 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
       setStrategies(getStrategies());
       setShowSaveDialog(false);
       setSaveStrategyName('');
+      setNameError(null);
       setSyncToCloud(false);
     } catch (error) {
       showError('Failed to save strategy. Please try again.');
@@ -361,19 +379,51 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
                 <input
                   type="text"
                   value={saveStrategyName}
-                  onChange={(e) => setSaveStrategyName(e.target.value)}
+                  onChange={(e) => {
+                    const newValue = e.target.value;
+                    setSaveStrategyName(newValue);
+                    
+                    // Real-time validation
+                    if (newValue.trim().length === 0) {
+                      setNameError('Strategy name is required');
+                    } else if (newValue.length > 100) {
+                      setNameError('Strategy name must be 100 characters or less');
+                    } else if (!/^[a-zA-Z0-9\s\-_]+$/.test(newValue)) {
+                      setNameError('Strategy name can only contain letters, numbers, spaces, hyphens, and underscores');
+                    } else {
+                      setNameError(null);
+                    }
+                  }}
+                  onBlur={() => {
+                    // Validate on blur if empty
+                    if (saveStrategyName.trim().length === 0) {
+                      setNameError('Strategy name is required');
+                    }
+                  }}
                   placeholder="Enter strategy name..."
-                  className="w-full h-10 px-3 border border-gray-300 font-mono text-sm focus:border-orange focus:outline-none mb-3"
+                  className={`w-full h-10 px-3 border font-mono text-sm focus:outline-none mb-1 ${
+                    nameError 
+                      ? 'border-alert-red focus:border-alert-red text-alert-red' 
+                      : 'border-gray-300 focus:border-orange'
+                  }`}
                   autoFocus
+                  aria-invalid={nameError ? 'true' : 'false'}
+                  aria-describedby={nameError ? 'strategy-name-error' : undefined}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
+                    if (e.key === 'Enter' && !nameError) {
                       handleSaveCurrentStrategy();
                     } else if (e.key === 'Escape') {
                       setShowSaveDialog(false);
                       setSaveStrategyName('');
+                      setNameError(null);
                     }
                   }}
                 />
+                {nameError && (
+                  <div id="strategy-name-error" className="text-xs text-alert-red mb-3 flex items-center gap-1" role="alert">
+                    <AlertCircle size={12} /> {nameError}
+                  </div>
+                )}
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
@@ -390,6 +440,7 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
                   onClick={() => {
                     setShowSaveDialog(false);
                     setSaveStrategyName('');
+                    setNameError(null);
                   }}
                 >
                   Cancel

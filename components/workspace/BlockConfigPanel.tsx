@@ -323,23 +323,80 @@ interface ParamFieldProps {
 const ParamField: React.FC<ParamFieldProps> = ({ name, value, onChange, definition }) => {
   const def = definition || { label: name, type: 'text' };
   const [error, setError] = useState<string | null>(null);
+  const [touched, setTouched] = useState(false);
+
+  const validate = (val: string | number | boolean): string | null => {
+    // Number validation
+    if (def.type === 'number') {
+      const strVal = String(val);
+      if (strVal === '' || strVal === null || strVal === undefined) {
+        return 'This field is required';
+      }
+      const numVal = Number.parseFloat(strVal);
+      if (Number.isNaN(numVal)) {
+        return 'Must be a valid number';
+      }
+      if (def.min !== undefined && numVal < def.min) {
+        return `Minimum value is ${def.min}${def.suffix || ''}`;
+      }
+      if (def.max !== undefined && numVal > def.max) {
+        return `Maximum value is ${def.max}${def.suffix || ''}`;
+      }
+    }
+
+    // Text validation
+    if (def.type === 'text') {
+      const strVal = String(val);
+      
+      // JSON validation for targetAllocation
+      if (name === 'targetAllocation') {
+        if (strVal.trim() === '') {
+          return 'This field is required';
+        }
+        try {
+          const parsed = JSON.parse(strVal);
+          if (typeof parsed !== 'object' || Array.isArray(parsed)) {
+            return 'Must be a valid JSON object';
+          }
+          // Validate that values are numbers
+          for (const [key, val] of Object.entries(parsed)) {
+            if (typeof val !== 'number') {
+              return `All values must be numbers. "${key}" is ${typeof val}`;
+            }
+            if (val < 0 || val > 100) {
+              return `Allocation values must be between 0 and 100. "${key}" is ${val}`;
+            }
+          }
+        } catch (e) {
+          return 'Invalid JSON format. Example: {"ETH": 40, "USDC": 30, "WBTC": 30}';
+        }
+      }
+
+      // Length validation for text fields
+      if (strVal.length > 500) {
+        return 'Maximum length is 500 characters';
+      }
+    }
+
+    return null;
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const newVal: string | number | boolean = e.target.value;
 
-    // Validation Logic
-    if (def.type === 'number') {
-      const numVal = Number.parseFloat(newVal);
-      if (def.min !== undefined && numVal < def.min) {
-        setError(`Min value is ${def.min}`);
-      } else if (def.max !== undefined && numVal > def.max) {
-        setError(`Max value is ${def.max}`);
-      } else {
-        setError(null);
-      }
+    // Real-time validation (only show errors if field has been touched)
+    if (touched) {
+      const validationError = validate(newVal);
+      setError(validationError);
     }
 
     onChange(newVal);
+  };
+
+  const handleBlur = () => {
+    setTouched(true);
+    const validationError = validate(value);
+    setError(validationError);
   };
 
   const handleBooleanChange = (val: boolean) => {
@@ -364,7 +421,10 @@ const ParamField: React.FC<ParamFieldProps> = ({ name, value, onChange, definiti
           <select
             value={String(value)}
             onChange={handleChange}
-            className="w-full h-12 px-4 border border-gray-300 focus:border-ink bg-white font-mono text-sm outline-none appearance-none rounded-none transition-colors cursor-pointer"
+            onBlur={handleBlur}
+            className={`w-full h-12 px-4 border ${error ? 'border-alert-red focus:border-alert-red' : 'border-gray-300 focus:border-ink'} bg-white font-mono text-sm outline-none appearance-none rounded-none transition-colors cursor-pointer`}
+            aria-invalid={error ? 'true' : 'false'}
+            aria-describedby={error ? `${name}-error` : undefined}
           >
             {def.options?.map((opt) => (
               <option key={opt} value={opt}>
@@ -375,6 +435,11 @@ const ParamField: React.FC<ParamFieldProps> = ({ name, value, onChange, definiti
           <div className="absolute right-4 top-4 pointer-events-none text-gray-500">
             <ChevronDown size={14} />
           </div>
+          {error && (
+            <div id={`${name}-error`} className="sr-only" role="alert">
+              {error}
+            </div>
+          )}
         </div>
       ) : def.type === 'boolean' ? (
         <div className="flex items-center gap-4">
@@ -397,15 +462,23 @@ const ParamField: React.FC<ParamFieldProps> = ({ name, value, onChange, definiti
             type={def.type === 'number' ? 'number' : 'text'}
             value={String(value ?? '')}
             onChange={handleChange}
+            onBlur={handleBlur}
             placeholder={def.placeholder}
             min={def.min}
             max={def.max}
             step={def.step}
             className={`w-full h-12 px-4 border ${error ? 'border-alert-red focus:border-alert-red text-alert-red' : 'border-gray-300 focus:border-ink'} outline-none font-mono text-sm bg-white transition-colors`}
+            aria-invalid={error ? 'true' : 'false'}
+            aria-describedby={error ? `${name}-error` : undefined}
           />
           {def.suffix && (
             <div className="absolute right-4 top-3.5 text-gray-400 font-mono text-xs font-bold pointer-events-none">
               {def.suffix}
+            </div>
+          )}
+          {error && (
+            <div id={`${name}-error`} className="sr-only" role="alert">
+              {error}
             </div>
           )}
         </div>
@@ -440,10 +513,43 @@ export const BlockConfigPanel: React.FC<BlockConfigPanelProps> = ({
   };
 
   const handleSave = () => {
-    if (block) {
-      onUpdate(block.id, params);
-      onClose();
+    if (!block) return;
+
+    // Validate all fields before saving
+    let hasErrors = false;
+    const paramKeys = Object.keys(params);
+    
+    for (const key of paramKeys) {
+      const def = FIELD_DEFINITIONS[key];
+      if (def) {
+        const value = params[key];
+        // Basic validation - check required fields
+        if (def.type === 'number' && (value === '' || value === null || value === undefined)) {
+          hasErrors = true;
+          break;
+        }
+        if (def.type === 'text' && key === 'targetAllocation') {
+          try {
+            const parsed = JSON.parse(String(value));
+            if (typeof parsed !== 'object' || Array.isArray(parsed)) {
+              hasErrors = true;
+              break;
+            }
+          } catch {
+            hasErrors = true;
+            break;
+          }
+        }
+      }
     }
+
+    if (hasErrors) {
+      // Show error message - validation errors should be visible in the UI
+      return;
+    }
+
+    onUpdate(block.id, params);
+    onClose();
   };
 
   if (!block) return null;
