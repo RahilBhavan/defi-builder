@@ -1,4 +1,5 @@
 import { BlockCategory, type LegoBlock, type ValidationResult } from '../types';
+import { validateNumberRange, validateRequired, validateEnum } from '../utils/validation';
 
 /**
  * Validates a DeFi strategy by checking all blocks for required parameters and constraints.
@@ -325,8 +326,13 @@ function validateBlockParameters(
       if (!block.params.duration || Number(block.params.duration) <= 0) {
         errors.push({ blockId: block.id, message: 'Duration must be greater than 0' });
       }
-      if (!block.params.from || !['entry', 'position'].includes(String(block.params.from))) {
-        errors.push({ blockId: block.id, message: 'From must be "entry" or "position"' });
+      const fromError = validateEnum(
+        String(block.params.from || ''),
+        ['entry', 'position'] as const,
+        'From'
+      );
+      if (fromError) {
+        errors.push({ blockId: block.id, message: `From must be "entry" or "position": ${fromError}` });
       }
       break;
 
@@ -337,13 +343,15 @@ function validateBlockParameters(
       break;
 
     case 'position_sizing':
-      if (
-        !block.params.method ||
-        !['fixed', 'percentage', 'kelly', 'risk_based'].includes(String(block.params.method))
-      ) {
+      const methodError = validateEnum(
+        String(block.params.method || ''),
+        ['fixed', 'percentage', 'kelly', 'risk_based'] as const,
+        'Method'
+      );
+      if (methodError) {
         errors.push({
           blockId: block.id,
-          message: 'Valid method (fixed, percentage, kelly, risk_based) is required',
+          message: `Valid method (fixed, percentage, kelly, risk_based) is required: ${methodError}`,
         });
       }
       if (!block.params.value || Number(block.params.value) <= 0) {
@@ -373,13 +381,15 @@ function validateBlockParameters(
       if (!block.params.threshold || Number(block.params.threshold) <= 0) {
         errors.push({ blockId: block.id, message: 'Rebalancing threshold must be greater than 0' });
       }
-      if (
-        !block.params.method ||
-        !['proportional', 'equal'].includes(String(block.params.method))
-      ) {
+      const rebalanceMethodError = validateEnum(
+        String(block.params.method || ''),
+        ['proportional', 'equal'] as const,
+        'Rebalancing method'
+      );
+      if (rebalanceMethodError) {
         errors.push({
           blockId: block.id,
-          message: 'Rebalancing method must be "proportional" or "equal"',
+          message: `Rebalancing method must be "proportional" or "equal": ${rebalanceMethodError}`,
         });
       }
       break;

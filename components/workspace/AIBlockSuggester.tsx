@@ -118,12 +118,7 @@ export const AIBlockSuggester: React.FC<AIBlockSuggesterProps> = ({
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Fetch AI suggestions from backend (preferred method - API keys are server-side)
-  // Type assertion needed due to tRPC version mismatch (backend v10 vs frontend v11)
-  // TODO: Upgrade backend to @trpc/server v11 to match frontend and remove type assertion
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const aiRouter = trpc.ai as any;
-  
-  const backendQuery = aiRouter.getSuggestions.useQuery(
+  const backendQuery = trpc.ai.getSuggestions.useQuery(
     { currentBlocks, query: searchQuery || undefined },
     {
       enabled: isOpen, // Enable when panel is open

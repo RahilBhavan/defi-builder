@@ -8,12 +8,7 @@ export function useAuth() {
   const [isLoading, setIsLoading] = useState(false);
   const { address, isConnected } = useWallet();
 
-  // Type assertion needed due to tRPC version mismatch (backend v10 vs frontend v11)
-  // TODO: Upgrade backend to @trpc/server v11 to match frontend and remove type assertion
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const authRouter = trpc.auth as any;
-  
-  const loginMutation = authRouter.login.useMutation({
+  const loginMutation = trpc.auth.login.useMutation({
     onSuccess: () => {
       // Token is set via httpOnly cookie, no need to store in localStorage
       setIsAuthenticated(true);
@@ -23,7 +18,7 @@ export function useAuth() {
     },
   });
 
-  const logoutMutation = authRouter.logout.useMutation({
+  const logoutMutation = trpc.auth.logout.useMutation({
     onSuccess: () => {
       setIsAuthenticated(false);
     },
@@ -53,13 +48,13 @@ export function useAuth() {
   }, [logoutMutation]);
 
   // Check authentication status using me query
-  const { data: userData } = authRouter.me.useQuery(undefined, {
+  const { data: userData } = trpc.auth.me.useQuery(undefined, {
     enabled: isConnected,
     retry: false,
   });
 
   // Token refresh mechanism
-  const refreshMutation = authRouter.refresh.useMutation();
+  const refreshMutation = trpc.auth.refresh.useMutation();
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const SESSION_TIMEOUT = 6 * 60 * 60 * 1000; // 6 hours
   const REFRESH_INTERVAL = 60 * 60 * 1000; // Refresh every hour

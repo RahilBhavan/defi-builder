@@ -67,15 +67,10 @@ export function nodeGraphToBlocks(nodeGraph: unknown): Strategy['blocks'] {
 export function useCloudSync() {
   const utils = trpc.useUtils();
   
-  // Type assertion needed due to tRPC version mismatch (backend v10 vs frontend v11)
-  // TODO: Upgrade backend to @trpc/server v11 to match frontend and remove type assertion
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const strategiesRouter = trpc.strategies as any;
-  
-  const createMutation = strategiesRouter.create.useMutation();
-  const updateMutation = strategiesRouter.update.useMutation();
-  const deleteMutation = strategiesRouter.delete.useMutation();
-  const { data: strategies, isLoading } = strategiesRouter.list.useQuery();
+  const createMutation = trpc.strategies.create.useMutation();
+  const updateMutation = trpc.strategies.update.useMutation();
+  const deleteMutation = trpc.strategies.delete.useMutation();
+  const { data: strategies, isLoading } = trpc.strategies.list.useQuery();
 
   const syncStrategy = async (strategy: Strategy): Promise<void> => {
     try {
@@ -93,8 +88,7 @@ export function useCloudSync() {
           retryable: isRetryableError,
         }
       );
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (utils.strategies as any).list.invalidate();
+      await utils.strategies.list.invalidate();
     } catch (error) {
       logger.error('Failed to sync strategy to cloud', error instanceof Error ? error : new Error(String(error)), 'CloudSync');
       throw new Error('Failed to sync strategy. Please check your internet connection and try again.');
@@ -118,8 +112,7 @@ export function useCloudSync() {
           retryable: isRetryableError,
         }
       );
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (utils.strategies as any).list.invalidate();
+      await utils.strategies.list.invalidate();
     } catch (error) {
       logger.error('Failed to update strategy in cloud', error instanceof Error ? error : new Error(String(error)), 'CloudSync');
       throw new Error('Failed to update strategy. Please check your internet connection and try again.');
@@ -137,8 +130,7 @@ export function useCloudSync() {
           retryable: isRetryableError,
         }
       );
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (utils.strategies as any).list.invalidate();
+      await utils.strategies.list.invalidate();
     } catch (error) {
       logger.error('Failed to delete strategy from cloud', error instanceof Error ? error : new Error(String(error)), 'CloudSync');
       throw new Error('Failed to delete strategy. Please check your internet connection and try again.');
