@@ -44,18 +44,35 @@ class PriceFeedService {
     }
   }
 
+  private pollingInterval: NodeJS.Timeout | null = null;
+
   /**
    * Start polling for price updates (fallback when WebSocket unavailable)
    */
   private startPolling(): void {
-    // Poll every 5 seconds
-    setInterval(() => {
+    // Clear any existing interval
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
+    }
+
+    // Poll every 10 seconds (CoinGecko free tier: 10-50 calls/minute)
+    this.pollingInterval = setInterval(() => {
       this.fetchPrices();
-    }, 5000);
+    }, 10000);
 
     // Initial fetch
     this.fetchPrices();
     this.isConnecting = false;
+  }
+
+  /**
+   * Stop polling
+   */
+  private stopPolling(): void {
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
+      this.pollingInterval = null;
+    }
   }
 
   /**
@@ -90,22 +107,88 @@ class PriceFeedService {
   }
 
   /**
-   * Fetch prices from API (mock implementation)
-   * Replace with real API call
+   * Fetch prices from CoinGecko API
+   * Uses free tier API with rate limiting
    */
   private async fetchPricesFromAPI(tokens: string[]): Promise<Record<string, number>> {
-    // Mock prices - in production, call CoinGecko, CryptoCompare, or your own API
-    const mockPrices: Record<string, number> = {
-      ETH: 2500 + Math.random() * 100 - 50,
+    // Token symbol to CoinGecko ID mapping
+    const TOKEN_IDS: Record<string, string> = {
+      ETH: 'ethereum',
+      USDC: 'usd-coin',
+      DAI: 'dai',
+      WBTC: 'wrapped-bitcoin',
+      USDT: 'tether',
+      AAVE: 'aave',
+      LINK: 'chainlink',
+      UNI: 'uniswap',
+    };
+
+    const tokenIds = tokens
+      .map((token) => TOKEN_IDS[token])
+      .filter((id): id is string => id !== undefined);
+
+    if (tokenIds.length === 0) {
+      return {};
+    }
+
+    try {
+      // CoinGecko free tier: simple price endpoint
+      const ids = tokenIds.join(',');
+      const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`;
+
+      const response = await fetch(url);
+      if (!response.ok) {
+        if (response.status === 429) {
+          // Rate limited - use fallback
+          console.warn('CoinGecko rate limited, using fallback prices');
+          return this.getFallbackPrices(tokens);
+        }
+        throw new Error(`CoinGecko API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const result: Record<string, number> = {};
+
+      // Map CoinGecko IDs back to token symbols
+      tokens.forEach((token) => {
+        const tokenId = TOKEN_IDS[token];
+        if (tokenId && data[tokenId]?.usd) {
+          result[token] = data[tokenId].usd;
+        } else {
+          // Fallback for unmapped tokens
+          result[token] = this.getFallbackPrices([token])[token] || 0;
+        }
+      });
+
+      return result;
+    } catch (error) {
+      console.error('Failed to fetch prices from CoinGecko:', error);
+      // Return fallback prices on error
+      return this.getFallbackPrices(tokens);
+    }
+  }
+
+  /**
+   * Get fallback prices (for when API is unavailable)
+   */
+  private getFallbackPrices(tokens: string[]): Record<string, number> {
+    // Use cached prices or reasonable defaults
+    const fallbackPrices: Record<string, number> = {
+      ETH: 2500,
       USDC: 1.0,
-      DAI: 0.999 + Math.random() * 0.002,
-      WBTC: 45000 + Math.random() * 2000 - 1000,
-      USDT: 0.999 + Math.random() * 0.002,
+      DAI: 1.0,
+      WBTC: 45000,
+      USDT: 1.0,
+      AAVE: 100,
+      LINK: 15,
+      UNI: 10,
     };
 
     const result: Record<string, number> = {};
     tokens.forEach((token) => {
-      result[token] = mockPrices[token] || 0;
+      // Try to use cached price first
+      const cached = this.prices.get(token);
+      result[token] = cached ?? fallbackPrices[token] ?? 0;
     });
 
     return result;
@@ -209,6 +292,7 @@ class PriceFeedService {
       this.ws.close();
       this.ws = null;
     }
+    this.stopPolling();
     this.subscribers.clear();
     this.reconnectAttempts = 0;
   }
