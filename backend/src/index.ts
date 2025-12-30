@@ -9,8 +9,15 @@ import { createContext } from './trpc/context';
 import { appRouter } from './trpc/router';
 import { validateEnv } from './utils/envValidation';
 import { logger } from './utils/logger';
+import { initSentry, performanceMiddleware } from './utils/monitoring';
 
 dotenv.config();
+
+// Initialize monitoring (Sentry)
+const sentryDsn = process.env.SENTRY_DSN;
+if (sentryDsn) {
+  initSentry(sentryDsn);
+}
 
 // Validate environment variables on startup
 try {
