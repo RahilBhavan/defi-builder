@@ -45,11 +45,11 @@ DeFi Builder has achieved significant production readiness improvements. The app
 - [x] Route guards for protected routes
 
 ### Remaining Gaps ⚠️
-- [ ] **API Key Rotation** - No automated rotation mechanism
-- [ ] **Audit Logging** - No comprehensive audit trail
+- [ ] **API Key Rotation** - No automated rotation mechanism (Doppler supports this)
+- [ ] **Audit Logging** - No comprehensive audit trail (Doppler provides audit logs)
 - [ ] **Penetration Testing** - Not performed
 - [ ] **Dependency Scanning** - Should be automated in CI
-- [ ] **Secrets Management** - Using env vars (consider Vault/AWS Secrets Manager)
+- [x] **Secrets Management** - ✅ Doppler integration implemented (see DOPPLER_SETUP.md)
 
 **Recommendation:** Security is strong. Add automated dependency scanning and consider audit logging for production.
 

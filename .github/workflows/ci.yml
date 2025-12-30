@@ -104,6 +104,14 @@ jobs:
         env:
           VITE_API_URL: ${{ secrets.VITE_API_URL || 'http://localhost:3001' }}
       
+      # Optional: Use Doppler for secrets in CI
+      # - name: Install Doppler CLI
+      #   uses: dopplerhq/cli-action@v3
+      #   with:
+      #     token: ${{ secrets.DOPPLER_TOKEN }}
+      # - name: Build with Doppler secrets
+      #   run: doppler run --config ci -- npm run build
+      
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:

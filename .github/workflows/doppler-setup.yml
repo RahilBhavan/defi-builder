@@ -1,0 +1,40 @@
+name: Doppler Setup Example
+
+# Example workflow showing how to use Doppler in CI/CD
+# Uncomment and configure when ready to use Doppler
+
+on:
+  workflow_dispatch:
+
+jobs:
+  example-with-doppler:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Doppler CLI
+        uses: dopplerhq/cli-action@v3
+        with:
+          token: ${{ secrets.DOPPLER_TOKEN }}
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run tests with Doppler secrets
+        run: doppler run -- npm test
+        env:
+          DOPPLER_PROJECT: defi-builder
+          DOPPLER_CONFIG: ci
+      
+      - name: Build with Doppler secrets
+        run: doppler run -- npm run build
+        env:
+          DOPPLER_PROJECT: defi-builder
+          DOPPLER_CONFIG: ci
+

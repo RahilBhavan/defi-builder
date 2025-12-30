@@ -13,6 +13,14 @@ import { initSentry, performanceMiddleware } from './utils/monitoring';
 
 dotenv.config();
 
+// Initialize Doppler secrets management
+// Note: In production with Doppler CLI, secrets are injected before process starts
+// This initialization is for programmatic access or fallback scenarios
+initDoppler().catch((error) => {
+  logger.warn('Doppler initialization failed, continuing with environment variables', 'Secrets');
+  logger.debug('Doppler error', error instanceof Error ? error : new Error(String(error)), 'Secrets');
+});
+
 // Initialize monitoring (Sentry)
 const sentryDsn = process.env.SENTRY_DSN;
 if (sentryDsn) {
@@ -20,6 +28,7 @@ if (sentryDsn) {
 }
 
 // Validate environment variables on startup
+// This will use Doppler secrets if available, otherwise env vars
 try {
   validateEnv();
 } catch (error) {

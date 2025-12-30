@@ -194,6 +194,33 @@ This guide covers deploying the DeFi Builder application to production.
 
 ## Environment Variables
 
+### Option 1: Doppler (Recommended)
+
+Use Doppler for secure secrets management. See [Doppler Setup Guide](./DOPPLER_SETUP.md) for details.
+
+**Quick Setup:**
+```bash
+# Install Doppler CLI
+brew install dopplerhq/cli/doppler  # macOS
+# or visit: https://docs.doppler.com/docs/install-cli
+
+# Authenticate
+doppler login
+
+# Set up project
+doppler setup
+
+# Add secrets
+doppler secrets set DATABASE_URL="postgresql://..."
+doppler secrets set JWT_SECRET="your-secret-key"
+# ... etc
+
+# Run with Doppler
+doppler run -- npm start
+```
+
+### Option 2: Environment Variables (Fallback)
+
 ### Frontend (.env.production)
 ```env
 VITE_API_URL=https://api.your-domain.com
@@ -219,7 +246,12 @@ FRONTEND_URL=https://your-frontend-domain.com
 
 # Server
 PORT=3001
+
+# Monitoring (optional)
+SENTRY_DSN=https://your-sentry-dsn@sentry.io/project-id
 ```
+
+**Note:** The application supports both Doppler and environment variables. Doppler is recommended for production.
 
 ## Database Setup
 

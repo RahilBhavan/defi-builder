@@ -102,12 +102,43 @@ The server will start on `http://localhost:3001`
 
 ## Environment Variables
 
+### Option 1: Doppler (Recommended)
+
+For secure secrets management, use Doppler. See [Doppler Setup Guide](../DOPPLER_SETUP.md).
+
+**Quick Start:**
+```bash
+# Install and authenticate
+doppler login
+doppler setup
+
+# Run with Doppler
+doppler run -- npm run dev
+```
+
+### Option 2: Environment Variables
+
+Create `.env` file or set environment variables:
+
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `DATABASE_URL` | Yes | - | Database connection string |
 | `PORT` | No | 3001 | Server port |
-| `JWT_SECRET` | No | dev-secret | Secret for JWT tokens |
+| `JWT_SECRET` | No | dev-secret | Secret for JWT tokens (⚠️ Use strong secret in production) |
 | `REDIS_URL` | No | redis://localhost:6379 | Redis connection URL |
+| `GEMINI_API_KEY` | No | - | API key for AI suggestions |
+| `FRONTEND_URL` | No | http://localhost:3000 | Frontend URL for CORS |
+| `SENTRY_DSN` | No | - | Sentry DSN for error tracking |
+| `NODE_ENV` | No | development | Environment (development/production) |
+
+**For Doppler:**
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `DOPPLER_TOKEN` | No | Service token for Doppler API access |
+| `DOPPLER_PROJECT` | No | Doppler project name |
+| `DOPPLER_CONFIG` | No | Doppler config name (dev/staging/prod) |
+
+**Note:** Application automatically uses Doppler if configured, otherwise falls back to environment variables.
 | `GEMINI_API_KEY` | No | - | API key for AI suggestions |
 
 ## Troubleshooting
