@@ -124,12 +124,16 @@ export const AIBlockSuggester: React.FC<AIBlockSuggesterProps> = ({
       enabled: isOpen, // Enable when panel is open
       refetchOnWindowFocus: false,
       retry: 2,
-      onError: () => {
-        // Silently fall back to client-side suggestions if backend fails
-        // Error handled gracefully - fallback to rule-based suggestions
-      },
     }
   );
+
+  // Handle query errors separately using useEffect (tRPC v11 doesn't support onError in useQuery)
+  useEffect(() => {
+    if (backendQuery.error) {
+      // Silently fall back to client-side suggestions if backend fails
+      // Error handled gracefully - fallback to rule-based suggestions
+    }
+  }, [backendQuery.error]);
 
   // isLoadingBackend removed - not currently used in UI
 
