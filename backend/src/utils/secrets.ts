@@ -16,7 +16,6 @@
 
 import { logger } from './logger';
 
-let dopplerClient: any = null;
 let isDopplerInitialized = false;
 
 /**
@@ -92,13 +91,10 @@ export async function initDoppler(): Promise<void> {
  * Get secret value from Doppler or environment
  */
 export async function getSecret(key: string, defaultValue?: string): Promise<string | undefined> {
-  if (isDopplerInitialized && dopplerClient) {
-    try {
-      const value = await dopplerClient.getSecret(key);
-      return value || defaultValue;
-    } catch (error) {
-      logger.warn(`Failed to get secret "${key}" from Doppler, using environment variable`, 'Secrets');
-    }
+  // If Doppler is initialized, secrets are already in process.env
+  // (either via CLI injection or API fetch)
+  if (isDopplerInitialized) {
+    return process.env[key] || defaultValue;
   }
 
   // Fallback to environment variable
@@ -111,24 +107,10 @@ export async function getSecret(key: string, defaultValue?: string): Promise<str
 export async function getSecrets(keys: string[]): Promise<Record<string, string | undefined>> {
   const secrets: Record<string, string | undefined> = {};
 
-  if (isDopplerInitialized && dopplerClient) {
-    try {
-      const dopplerSecrets = await dopplerClient.getSecrets();
-      keys.forEach((key) => {
-        secrets[key] = dopplerSecrets[key] || process.env[key];
-      });
-    } catch (error) {
-      logger.warn('Failed to get secrets from Doppler, using environment variables', 'Secrets');
-      keys.forEach((key) => {
-        secrets[key] = process.env[key];
-      });
-    }
-  } else {
-    // Fallback to environment variables
-    keys.forEach((key) => {
-      secrets[key] = process.env[key];
-    });
-  }
+  // If Doppler is initialized, secrets are already in process.env
+  keys.forEach((key) => {
+    secrets[key] = process.env[key];
+  });
 
   return secrets;
 }
@@ -137,7 +119,7 @@ export async function getSecrets(keys: string[]): Promise<Record<string, string 
  * Check if Doppler is available and initialized
  */
 export function isDopplerAvailable(): boolean {
-  return isDopplerInitialized && dopplerClient !== null;
+  return isDopplerInitialized;
 }
 
 /**
@@ -150,22 +132,41 @@ export async function syncSecrets(): Promise<void> {
   }
 
   try {
+    const dopplerToken = process.env.DOPPLER_TOKEN;
     const dopplerProject = process.env.DOPPLER_PROJECT;
     const dopplerConfig = process.env.DOPPLER_CONFIG || 'dev';
 
-    const secrets = await dopplerClient.getSecrets({
-      project: dopplerProject,
-      config: dopplerConfig,
-    });
-
-    // Update process.env with latest secrets
-    if (secrets && typeof secrets === 'object') {
-      Object.entries(secrets).forEach(([key, value]) => {
-        process.env[key] = String(value);
-      });
+    if (!dopplerToken || !dopplerProject) {
+      logger.warn('Cannot sync secrets: Doppler token or project not configured', 'Secrets');
+      return;
     }
 
-    logger.info('Secrets synced from Doppler', 'Secrets');
+    // Fetch latest secrets from Doppler API
+    const dopplerApiUrl = process.env.DOPPLER_API_URL || 'https://api.doppler.com/v3';
+    const response = await fetch(
+      `${dopplerApiUrl}/configs/config/secrets/download?project=${encodeURIComponent(dopplerProject)}&config=${encodeURIComponent(dopplerConfig)}&format=json`,
+      {
+        headers: {
+          Authorization: `Bearer ${dopplerToken}`,
+        },
+      }
+    );
+
+    if (response.ok) {
+      const data = (await response.json()) as { secrets?: Record<string, string> } | Record<string, string>;
+      const secrets = 'secrets' in data && data.secrets ? data.secrets : (data as Record<string, string>);
+
+      // Update process.env with latest secrets
+      if (secrets && typeof secrets === 'object') {
+        Object.entries(secrets).forEach(([key, value]) => {
+          process.env[key] = String(value);
+        });
+      }
+
+      logger.info('Secrets synced from Doppler', 'Secrets');
+    } else {
+      logger.warn('Failed to sync secrets from Doppler API', 'Secrets');
+    }
   } catch (error) {
     logger.error('Failed to sync secrets from Doppler', error instanceof Error ? error : new Error(String(error)), 'Secrets');
   }

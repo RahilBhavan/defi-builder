@@ -10,6 +10,7 @@ import { appRouter } from './trpc/router';
 import { validateEnv } from './utils/envValidation';
 import { logger } from './utils/logger';
 import { initSentry, performanceMiddleware } from './utils/monitoring';
+import { initDoppler } from './utils/secrets';
 
 dotenv.config();
 
