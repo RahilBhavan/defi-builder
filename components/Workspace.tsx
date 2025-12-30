@@ -1,6 +1,7 @@
 import type React from 'react';
 import { Suspense, lazy, useCallback, useState } from 'react';
 import { ErrorBoundary } from './ErrorBoundary';
+import { getUserFriendlyErrorMessage } from '../utils/errorHandler';
 import { Spine } from './Spine';
 import { AIBlockSuggester } from './workspace/AIBlockSuggester';
 import { BlockConfigPanel } from './workspace/BlockConfigPanel';
@@ -126,10 +127,7 @@ const Workspace: React.FC = () => {
           showSuccess('Strategy imported successfully');
         } catch (error) {
           console.error('Import failed:', error);
-          const errorMessage = error instanceof Error ? error.message : 'Failed to import strategy';
-          showError(
-            `Import failed: ${errorMessage}. Please ensure the file is a valid strategy JSON.`
-          );
+          showError(getUserFriendlyErrorMessage(error, 'import'));
         }
       };
       reader.readAsText(file);
@@ -154,7 +152,8 @@ const Workspace: React.FC = () => {
       setShowSimulation(true);
     } catch (error) {
       console.error('Simulation failed:', error);
-      showError('Failed to simulate transaction. Please try again.');
+      const { getUserFriendlyErrorMessage } = await import('../utils/errorHandler');
+      showError(getUserFriendlyErrorMessage(error, 'simulation'));
     }
   };
 
@@ -179,10 +178,8 @@ const Workspace: React.FC = () => {
         const message = error.actionable ? `${error.message}. ${error.actionable}` : error.message;
         showError(message);
       } else {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-        showError(
-          `Strategy execution failed: ${errorMessage}. Please check your strategy configuration and try again.`
-        );
+        const { getUserFriendlyErrorMessage } = await import('../utils/errorHandler');
+        showError(getUserFriendlyErrorMessage(error, 'execution'));
       }
     } finally {
       setIsExecuting(false);

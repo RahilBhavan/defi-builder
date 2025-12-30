@@ -18,6 +18,7 @@ import {
 } from '../../services/strategyTemplates';
 import { generateShareLink } from '../../services/strategySharing';
 import type { LegoBlock, Strategy } from '../../types';
+import { getUserFriendlyErrorMessage } from '../../utils/errorHandler';
 import { Button } from '../ui/Button';
 import { ConfirmationDialog } from '../ui/ConfirmationDialog';
 
@@ -122,7 +123,7 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
       showSuccess(`Strategy "${strategy.name}" loaded successfully`);
       onClose();
     } catch (error) {
-      showError('Failed to load strategy. Please try again.');
+      showError(getUserFriendlyErrorMessage(error, 'load'));
       console.error('Error loading strategy:', error);
     }
   };
@@ -143,7 +144,7 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
       showSuccess(`Template "${template.name}" loaded successfully`);
       onClose();
     } catch (error) {
-      showError('Failed to load template. Please try again.');
+      showError(getUserFriendlyErrorMessage(error, 'load'));
       console.error('Error loading template:', error);
     }
   };
@@ -197,7 +198,7 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
       setNameError(null);
       setSyncToCloud(false);
     } catch (error) {
-      showError('Failed to save strategy. Please try again.');
+      showError(getUserFriendlyErrorMessage(error, 'save'));
       console.error('Error saving strategy:', error);
     }
   };
@@ -215,7 +216,7 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
       showSuccess('Strategy deleted successfully');
       setDeleteConfirm(null);
     } catch (error) {
-      showError('Failed to delete strategy. Please try again.');
+      showError(getUserFriendlyErrorMessage(error, 'delete'));
       console.error('Error deleting strategy:', error);
       setDeleteConfirm(null);
     }

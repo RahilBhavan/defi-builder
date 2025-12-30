@@ -243,10 +243,8 @@ export const OptimizationPanel: React.FC<OptimizationPanelProps> = ({
       );
     } catch (error) {
       console.error('Optimization failed:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      showError(
-        `Optimization failed: ${errorMessage}. Please check your strategy configuration and try again.`
-      );
+      // getUserFriendlyErrorMessage is already imported at the top
+      showError(getUserFriendlyErrorMessage(error, 'optimization'));
     } finally {
       setIsOptimizing(false);
     }
