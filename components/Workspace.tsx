@@ -213,7 +213,7 @@ const Workspace: React.FC = () => {
       {/* 1. Canvas Layer - Spine View */}
       <main className="relative w-full h-full overflow-hidden bg-dot-pattern">
         <div
-          className="w-full h-full overflow-y-auto overflow-x-hidden flex items-start justify-center scroll-smooth"
+          className="w-full h-full overflow-y-auto overflow-x-hidden flex items-start justify-center scroll-smooth touch-pan-y"
           style={{
             transform: `scale(${zoomLevel / 100})`,
             transformOrigin: 'center top',

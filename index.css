@@ -6,3 +6,19 @@
   background-image: radial-gradient(circle, #d0d0d0 1px, transparent 1px);
   background-size: 16px 16px;
 }
+
+/* Mobile optimizations */
+body {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* Improve touch interactions on mobile */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button, a, [role="button"] {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
