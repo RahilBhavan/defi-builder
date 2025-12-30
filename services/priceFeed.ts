@@ -31,11 +31,12 @@ class PriceFeedService {
     }
 
     this.isConnecting = true;
-    const wsUrl = import.meta.env.VITE_PRICE_FEED_WS_URL || 'wss://api.coingecko.com/v3/ws';
+    // WebSocket URL for future implementation
+    // const wsUrl = import.meta.env.VITE_PRICE_FEED_WS_URL || 'wss://api.coingecko.com/v3/ws';
 
     try {
-      // For demo purposes, we'll simulate WebSocket with polling
-      // In production, use a real WebSocket service like CoinGecko Pro, CryptoCompare, or custom
+      // For now, use polling with CoinGecko API
+      // In production, upgrade to WebSocket service like CoinGecko Pro, CryptoCompare, or custom
       this.startPolling();
     } catch (error) {
       console.error('Failed to connect to price feed:', error);
