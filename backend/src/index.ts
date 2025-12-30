@@ -1,4 +1,5 @@
 import { createExpressMiddleware } from '@trpc/server/adapters/express';
+import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import express from 'express';
@@ -12,8 +13,15 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(cors());
+// Configure CORS to allow credentials (cookies)
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    credentials: true, // Allow cookies
+  })
+);
 app.use(express.json());
+app.use(cookieParser()); // Parse cookies
 
 // Apply rate limiting to all routes
 app.use(rateLimiters.general);

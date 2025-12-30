@@ -3,13 +3,21 @@ import type { Context } from '../trpc/context';
 import { verifyToken } from './jwt';
 
 export const getUserFromToken = async (ctx: Context) => {
-  const authHeader = ctx.req.headers.authorization;
+  // Try to get token from httpOnly cookie first (preferred)
+  let token = ctx.req.cookies?.auth_token;
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  // Fallback to Authorization header for backward compatibility
+  if (!token) {
+    const authHeader = ctx.req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7);
+    }
+  }
+
+  if (!token) {
     throw new TRPCError({ code: 'UNAUTHORIZED', message: 'No token provided' });
   }
 
-  const token = authHeader.substring(7);
   const payload = verifyToken(token);
 
   if (!payload) {

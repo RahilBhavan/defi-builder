@@ -340,11 +340,7 @@ export const AVAILABLE_BLOCKS: LegoBlock[] = [
     protocol: Protocol.GENERIC,
     icon: 'refresh-cw',
     params: {
-      targetAllocation: JSON.stringify({
-        ETH: 40,
-        USDC: 30,
-        WBTC: 30,
-      },
+      targetAllocation: '{"ETH":40,"USDC":30,"WBTC":30}',
       threshold: 5,
       method: 'proportional',
     },

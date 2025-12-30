@@ -49,8 +49,29 @@ export const appRouter = router({
           walletAddress: user.walletAddress,
         });
 
-        return { token, user };
+        // Set httpOnly cookie
+        ctx.res.cookie('auth_token', token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+          sameSite: 'strict',
+          maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+          path: '/',
+        });
+
+        // Return user (token is in cookie, not in response)
+        return { user };
       }),
+
+    logout: publicProcedure.mutation(async ({ ctx }) => {
+      // Clear the auth cookie
+      ctx.res.clearCookie('auth_token', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        path: '/',
+      });
+      return { success: true };
+    }),
 
     me: protectedProcedure.query(({ ctx }) => {
       return ctx.user;

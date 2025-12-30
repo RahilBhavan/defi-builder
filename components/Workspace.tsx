@@ -1,5 +1,6 @@
 import type React from 'react';
 import { Suspense, lazy, useCallback, useState } from 'react';
+import { ErrorBoundary } from './ErrorBoundary';
 import { Spine } from './Spine';
 import { AIBlockSuggester } from './workspace/AIBlockSuggester';
 import { BlockConfigPanel } from './workspace/BlockConfigPanel';
@@ -326,42 +327,58 @@ const Workspace: React.FC = () => {
         onDelete={() => selectedBlock && handleDeleteBlock(selectedBlock.id)}
       />
 
-      {/* Modals - Lazy loaded */}
+      {/* Modals - Lazy loaded with error boundaries */}
       <Suspense fallback={null}>
         {showSimulation && (
-          <SimulationModal
-            isOpen={showSimulation}
-            onClose={() => setShowSimulation(false)}
-            onProceed={handleProceedWithExecution}
-            result={simulationResult}
-          />
+          <ErrorBoundary>
+            <SimulationModal
+              isOpen={showSimulation}
+              onClose={() => setShowSimulation(false)}
+              onProceed={handleProceedWithExecution}
+              result={simulationResult}
+            />
+          </ErrorBoundary>
         )}
         {isBacktestOpen && (
-          <BacktestModal isOpen={isBacktestOpen} onClose={closeModal} result={backtestResult} />
+          <ErrorBoundary>
+            <BacktestModal isOpen={isBacktestOpen} onClose={closeModal} result={backtestResult} />
+          </ErrorBoundary>
         )}
-        {isPortfolioOpen && <PortfolioModal isOpen={isPortfolioOpen} onClose={closeModal} />}
+        {isPortfolioOpen && (
+          <ErrorBoundary>
+            <PortfolioModal isOpen={isPortfolioOpen} onClose={closeModal} />
+          </ErrorBoundary>
+        )}
         {isLibraryOpen && (
-          <StrategyLibraryModal
-            isOpen={isLibraryOpen}
-            onClose={closeModal}
-            currentBlocks={blocks}
-            onLoadStrategy={(loadedBlocks) => {
-              setBlocks(loadedBlocks);
-              showSuccess('Strategy loaded successfully');
-            }}
-          />
+          <ErrorBoundary>
+            <StrategyLibraryModal
+              isOpen={isLibraryOpen}
+              onClose={closeModal}
+              currentBlocks={blocks}
+              onLoadStrategy={(loadedBlocks) => {
+                setBlocks(loadedBlocks);
+                showSuccess('Strategy loaded successfully');
+              }}
+            />
+          </ErrorBoundary>
         )}
-        {isSettingsOpen && <SettingsModal isOpen={isSettingsOpen} onClose={closeModal} />}
+        {isSettingsOpen && (
+          <ErrorBoundary>
+            <SettingsModal isOpen={isSettingsOpen} onClose={closeModal} />
+          </ErrorBoundary>
+        )}
         {isOptimizationOpen && (
-          <OptimizationPanel
-            isOpen={isOptimizationOpen}
-            onClose={closeModal}
-            blocks={blocks}
-            onApplySolution={(updatedBlocks) => {
-              setBlocks(updatedBlocks);
-              showSuccess('Optimized parameters applied to strategy');
-            }}
-          />
+          <ErrorBoundary>
+            <OptimizationPanel
+              isOpen={isOptimizationOpen}
+              onClose={closeModal}
+              blocks={blocks}
+              onApplySolution={(updatedBlocks) => {
+                setBlocks(updatedBlocks);
+                showSuccess('Optimized parameters applied to strategy');
+              }}
+            />
+          </ErrorBoundary>
         )}
       </Suspense>
     </div>

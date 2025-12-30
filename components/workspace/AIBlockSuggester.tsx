@@ -135,9 +135,7 @@ export const AIBlockSuggester: React.FC<AIBlockSuggesterProps> = ({
   );
 
   const isLoadingBackend = backendQuery?.isLoading ?? false;
-  const backendError = backendQuery?.error;
-
-  const isLoadingAISuggestions = isLoadingAI || isLoadingBackend;
+  // backendError and isLoadingAISuggestions removed - not currently used in UI
 
   // Use backend suggestions if available, otherwise use fallback
   useEffect(() => {

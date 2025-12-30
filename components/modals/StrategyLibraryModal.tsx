@@ -16,7 +16,7 @@ import {
   getTemplatesByCategory,
   searchTemplates,
 } from '../../services/strategyTemplates';
-import { generateShareLink as createShareLink } from '../../services/strategySharing';
+import { createShareLink } from '../../services/strategySharing';
 import type { LegoBlock, Strategy } from '../../types';
 import { Button } from '../ui/Button';
 import { ConfirmationDialog } from '../ui/ConfirmationDialog';
@@ -207,13 +207,13 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
     setShareStrategy(strategy);
   };
 
-  const generateShareLink = (strategy: Strategy): string => {
+  const createShareLink = (strategy: Strategy): string => {
     // Use secure sharing service with validation and sanitization
-    return createShareLink(strategy);
+    return generateShareLink(strategy);
   };
 
   const copyShareLink = async (strategy: Strategy) => {
-    const link = generateShareLink(strategy);
+    const link = createShareLink(strategy);
     try {
       await navigator.clipboard.writeText(link);
       showSuccess('Share link copied to clipboard!');
