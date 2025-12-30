@@ -11,6 +11,12 @@ A visual, AI-powered DeFi strategy builder and workspace. Build, test, and optim
 - **Export/Import**: Save and share your strategies as JSON
 - **Real-time Validation**: Validate strategies as you build
 - **Persistent Storage**: Strategies are automatically saved to localStorage
+- **Smart Contracts**: Production-grade Solidity contracts for on-chain execution
+  - Strategy Executor: Execute multi-step strategies on-chain
+  - Multi-Protocol Router: Best price routing across DEXs
+  - Yield Optimizer Vault: Auto-compounding yield vault
+  - Flash Loan Arbitrage: Advanced arbitrage bot
+  - Position Manager: Leveraged position management
 
 ## Prerequisites
 
@@ -85,7 +91,10 @@ defi-builder/
 │   ├── studio/        # ReactFlow components
 │   ├── workspace/     # Workspace-specific components
 │   └── ui/            # Reusable UI components
-├── contracts/         # Smart contracts (Solidity)
+├── contracts/         # Smart contracts (Solidity + Foundry)
+│   ├── src/          # Contract source files
+│   ├── script/       # Deployment scripts
+│   └── test/         # Foundry tests
 ├── hooks/             # Custom React hooks
 ├── services/          # Business logic and services
 │   ├── protocols/     # Protocol integrations
@@ -114,6 +123,19 @@ This project uses:
 ### Environment Variables
 
 - `VITE_GEMINI_API_KEY`: Your Google Gemini API key (optional, for AI suggestions)
+
+### Smart Contracts
+
+The project includes production-grade smart contracts built with Foundry:
+
+```bash
+cd contracts
+./setup.sh  # Install Foundry and dependencies
+forge test  # Run tests
+forge build # Build contracts
+```
+
+See `contracts/README.md` for contract documentation and `contracts/PORTFOLIO_GUIDE.md` for how these contracts demonstrate DeFi expertise.
 
 ## License
 

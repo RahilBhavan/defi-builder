@@ -184,7 +184,7 @@ export const PortfolioModal: React.FC<PortfolioModalProps> = ({ isOpen, onClose 
               </div>
             </div>
           ) : (
-            <>
+            <div>
               {/* Top Stats */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
                 <div className="p-6 bg-white border border-gray-200 shadow-sm">
@@ -346,7 +346,8 @@ export const PortfolioModal: React.FC<PortfolioModalProps> = ({ isOpen, onClose 
                 )}
               </div>
             </div>
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Footer */}

@@ -1,0 +1,41 @@
+name: Foundry Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Install Dependencies
+        run: |
+          cd contracts
+          forge install OpenZeppelin/openzeppelin-contracts --no-commit
+
+      - name: Run Tests
+        run: |
+          cd contracts
+          forge test
+
+      - name: Generate Gas Report
+        run: |
+          cd contracts
+          forge test --gas-report
+
+      - name: Check Formatting
+        run: |
+          cd contracts
+          forge fmt --check
+
