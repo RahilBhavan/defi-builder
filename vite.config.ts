@@ -1,6 +1,7 @@
 import path from 'path';
 import react from '@vitejs/plugin-react';
 import { defineConfig, loadEnv } from 'vite';
+import { visualizer } from 'rollup-plugin-visualizer';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig(({ mode }) => {
@@ -55,6 +56,22 @@ export default defineConfig(({ mode }) => {
     ],
     // API keys are now managed server-side - no client-side exposure
     // Removed VITE_GEMINI_API_KEY from client build
+    build: {
+      sourcemap: process.env.NODE_ENV === 'production' ? false : true, // No source maps in production
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            // Separate vendor chunks for better caching
+            'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+            'ui-vendor': ['framer-motion', 'lucide-react'],
+            'chart-vendor': ['recharts'],
+            'web3-vendor': ['wagmi', 'viem', '@tanstack/react-query'],
+            'trpc-vendor': ['@trpc/client', '@trpc/react-query'],
+          },
+        },
+      },
+      chunkSizeWarningLimit: 1000, // Warn if chunk exceeds 1MB
+    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
