@@ -16,7 +16,21 @@ export interface UsePriceFeedResult {
 }
 
 /**
- * Hook to subscribe to price updates for a single token
+ * Hook to subscribe to real-time price updates for a single token
+ * 
+ * Automatically subscribes to price feed service and updates when price changes.
+ * 
+ * @param token - Token symbol (e.g., 'ETH', 'USDC') or null to unsubscribe
+ * @returns UsePriceFeedResult with current price, update info, loading state, and error
+ * 
+ * @example
+ * ```typescript
+ * const { price, isLoading, error } = usePriceFeed('ETH');
+ * 
+ * if (isLoading) return <div>Loading price...</div>;
+ * if (error) return <div>Error: {error.message}</div>;
+ * return <div>ETH Price: ${price}</div>;
+ * ```
  */
 export function usePriceFeed(token: string | null): UsePriceFeedResult {
   const [price, setPrice] = useState<number | undefined>(undefined);

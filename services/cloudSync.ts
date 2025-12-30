@@ -42,7 +42,25 @@ export function nodeGraphToBlocks(nodeGraph: unknown): Strategy['blocks'] {
 
 /**
  * Hook for using cloud sync in components
- * Note: Requires user to be authenticated (protectedProcedure)
+ * 
+ * Provides functions to sync strategies to/from the backend cloud storage.
+ * Requires user to be authenticated (protectedProcedure).
+ * 
+ * @returns Object containing:
+ * - `strategies`: Array of strategies from cloud
+ * - `isLoading`: Loading state
+ * - `syncStrategy`: Function to sync a strategy to cloud
+ * - `updateStrategy`: Function to update a strategy in cloud
+ * - `deleteStrategy`: Function to delete a strategy from cloud
+ * 
+ * @example
+ * ```typescript
+ * const { strategies, syncStrategy, isLoading } = useCloudSync();
+ * 
+ * const handleSave = async () => {
+ *   await syncStrategy(currentStrategy);
+ * };
+ * ```
  */
 export function useCloudSync() {
   const utils = trpc.useUtils();

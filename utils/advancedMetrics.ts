@@ -194,7 +194,21 @@ export function calculateConditionalVaR(
 }
 
 /**
- * Calculate all advanced metrics
+ * Calculate all advanced financial metrics for a backtest result
+ * 
+ * Computes Sortino Ratio, Calmar Ratio, Information Ratio, Beta, Alpha,
+ * Volatility, Downside Volatility, Value at Risk (VaR), and Conditional VaR (CVaR).
+ * 
+ * @param result - DeFi backtest result containing equity curve and trades
+ * @param benchmarkReturns - Optional benchmark returns for comparison (e.g., HODL, BTC, ETH)
+ * @returns AdvancedMetrics object with all calculated metrics
+ * 
+ * @example
+ * ```typescript
+ * const metrics = calculateAdvancedMetrics(backtestResult, benchmarkReturns);
+ * console.log(`Sortino Ratio: ${metrics.sortinoRatio}`);
+ * console.log(`VaR (95%): ${metrics.valueAtRisk95}%`);
+ * ```
  */
 export function calculateAdvancedMetrics(
   result: DeFiBacktestResult,
