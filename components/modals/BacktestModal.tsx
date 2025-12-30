@@ -643,9 +643,15 @@ export const BacktestModal: React.FC<BacktestModalProps> = ({ isOpen, onClose, r
                 </div>
               ) : (
                 <div className="border border-gray-300 bg-white">
-                  <div className="overflow-x-auto">
+                  {/* Performance warning for large lists */}
+                  {filteredTrades.length > 100 && (
+                    <div className="p-3 bg-yellow-50 border-b border-yellow-200 text-xs text-yellow-800 font-mono">
+                      Showing first 100 of {filteredTrades.length} trades. Use filters to narrow results.
+                    </div>
+                  )}
+                  <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
                     <table className="w-full text-xs font-mono">
-                      <thead className="bg-gray-50 border-b border-gray-300">
+                      <thead className="bg-gray-50 sticky top-0 border-b border-gray-300 z-10">
                         <tr>
                           <th className="px-4 py-3 text-left font-bold uppercase text-ink">Date</th>
                           <th className="px-4 py-3 text-left font-bold uppercase text-ink">Type</th>
@@ -668,7 +674,7 @@ export const BacktestModal: React.FC<BacktestModalProps> = ({ isOpen, onClose, r
                         </tr>
                       </thead>
                       <tbody>
-                        {filteredTrades.map((trade) => (
+                        {filteredTrades.slice(0, 100).map((trade) => (
                           <tr key={trade.id} className="border-b border-gray-200 hover:bg-gray-50">
                             <td className="px-4 py-3 text-gray-600">
                               {new Date(trade.timestamp).toLocaleString()}
