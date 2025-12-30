@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowDown } from 'lucide-react';
 import React, { useState } from 'react';
+import { safeJsonParse } from '../utils/json';
 import type { LegoBlock } from '../types';
 import { Block } from './Block';
 
