@@ -23,6 +23,7 @@ import {
   YAxis,
 } from 'recharts';
 import { useToast } from '../hooks/useToast';
+import { getUserFriendlyErrorMessage } from '../utils/errorHandler';
 import {
   type OptimizationAlgorithm,
   type OptimizationConfig,
