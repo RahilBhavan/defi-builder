@@ -41,7 +41,7 @@ export function getStrategies(): Strategy[] {
     const data = localStorage.getItem(STRATEGY_STORAGE_KEY);
     if (!data) return [];
 
-    const parsed = JSON.parse(data) as unknown;
+    const parsed = safeJsonParse<VersionedData<Strategy[]> | Strategy[]>(data);
 
     // Check if versioned
     if (parsed && typeof parsed === 'object' && 'version' in parsed) {

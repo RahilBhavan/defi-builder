@@ -79,10 +79,15 @@ export function validateAndSanitizeStrategy(strategy: Strategy): StrategyShareDa
  * In production, this should use JWT or similar signed tokens
  * For now, we'll use a simple encoding with validation
  */
+import { safeJsonParse, safeJsonStringify } from '../utils/json';
+
 export function generateShareToken(strategy: Strategy): string {
   try {
     const sanitized = validateAndSanitizeStrategy(strategy);
-    const data = JSON.stringify(sanitized);
+    const data = safeJsonStringify(sanitized);
+    if (data === '{}') {
+      throw new Error('Failed to stringify strategy data');
+    }
     // Use base64 encoding (acceptable for non-sensitive data when validated)
     // In production, consider using JWT with server-side signing
     return btoa(data);
@@ -98,8 +103,12 @@ export function generateShareToken(strategy: Strategy): string {
 export function parseShareToken(token: string): StrategyShareData | null {
   try {
     const decoded = atob(token);
-    const parsed = JSON.parse(decoded);
-    
+    const parsed = safeJsonParse<StrategyShareData>(decoded);
+
+    if (!parsed) {
+      return null;
+    }
+
     // Validate with Zod schema
     const validated = StrategyShareSchema.parse(parsed);
     return validated;

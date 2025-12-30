@@ -1,4 +1,5 @@
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import { safeJsonParse, safeJsonStringify } from '../utils/json';
 
 export interface AppSettings {
   appearance: {
@@ -50,7 +51,7 @@ export function getSettings(): AppSettings {
     const stored = localStorage.getItem('defi-builder-settings');
     if (!stored) return DEFAULT_SETTINGS;
 
-    const parsed = JSON.parse(stored);
+    const parsed = safeJsonParse<AppSettings>(stored);
     // Merge with defaults to handle missing properties
     return {
       ...DEFAULT_SETTINGS,
@@ -71,7 +72,7 @@ export function getSettings(): AppSettings {
  */
 export function saveSettings(settings: AppSettings): void {
   try {
-    localStorage.setItem('defi-builder-settings', JSON.stringify(settings));
+    localStorage.setItem('defi-builder-settings', safeJsonStringify(settings));
   } catch (error) {
     console.error('Error saving settings:', error);
     throw new Error('Failed to save settings');

@@ -4,6 +4,7 @@
  */
 
 import { useEffect, useState } from 'react';
+import { safeJsonParse } from '../utils/json';
 import { migrateData } from '../services/storage/migrations';
 import {
   CURRENT_VERSION,
@@ -47,7 +48,7 @@ export function useVersionedStorage<T>(
         return initialValue;
       }
 
-      const parsed = JSON.parse(item) as unknown;
+      const parsed = safeJsonParse<VersionedData<T> | T>(item);
 
       // Check if it's versioned
       if (parsed && typeof parsed === 'object' && 'version' in parsed) {

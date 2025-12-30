@@ -67,16 +67,14 @@ export const Spine: React.FC<SpineProps> = ({
     e.preventDefault();
     e.stopPropagation();
 
-    try {
-      const blockData = e.dataTransfer.getData('application/json');
-      if (blockData && onAddBlock) {
-        const block = JSON.parse(blockData) as LegoBlock;
+    const blockData = e.dataTransfer.getData('application/json');
+    if (blockData && onAddBlock) {
+      const block = safeJsonParse<LegoBlock>(blockData);
+      if (block) {
         // Create a new block with a unique ID
         const newBlock = { ...block, id: `${block.id}-${Date.now()}` };
         onAddBlock(newBlock, targetIndex ?? blocks.length);
       }
-    } catch (error) {
-      console.error('Failed to parse dropped block:', error);
     }
   };
 

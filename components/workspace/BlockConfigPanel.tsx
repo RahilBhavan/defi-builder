@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { AlertCircle, ChevronDown, Info, Trash2, X } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useState } from 'react';
+import { validateJsonObject, validateNumberRange, validateStringLength } from '../../utils/validation';
 import { PROTOCOL_COLORS } from '../../constants';
 import type { BlockParams, LegoBlock } from '../../types';
 import { Button } from '../ui/Button';
@@ -326,21 +327,12 @@ const ParamField: React.FC<ParamFieldProps> = ({ name, value, onChange, definiti
   const [touched, setTouched] = useState(false);
 
   const validate = (val: string | number | boolean): string | null => {
-    // Number validation
+    // Number validation using utility function
     if (def.type === 'number') {
-      const strVal = String(val);
-      if (strVal === '' || strVal === null || strVal === undefined) {
-        return 'This field is required';
-      }
-      const numVal = Number.parseFloat(strVal);
-      if (Number.isNaN(numVal)) {
-        return 'Must be a valid number';
-      }
-      if (def.min !== undefined && numVal < def.min) {
-        return `Minimum value is ${def.min}${def.suffix || ''}`;
-      }
-      if (def.max !== undefined && numVal > def.max) {
-        return `Maximum value is ${def.max}${def.suffix || ''}`;
+      const error = validateNumberRange(val, def.min, def.max, def.label || name);
+      if (error) {
+        // Add suffix if provided
+        return def.suffix ? `${error}${def.suffix}` : error;
       }
     }
 
@@ -348,34 +340,27 @@ const ParamField: React.FC<ParamFieldProps> = ({ name, value, onChange, definiti
     if (def.type === 'text') {
       const strVal = String(val);
       
-      // JSON validation for targetAllocation
+      // JSON validation for targetAllocation using utility function
       if (name === 'targetAllocation') {
-        if (strVal.trim() === '') {
-          return 'This field is required';
-        }
-        try {
-          const parsed = JSON.parse(strVal);
-          if (typeof parsed !== 'object' || Array.isArray(parsed)) {
-            return 'Must be a valid JSON object';
-          }
-          // Validate that values are numbers
-          for (const [key, val] of Object.entries(parsed)) {
-            if (typeof val !== 'number') {
-              return `All values must be numbers. "${key}" is ${typeof val}`;
-            }
-            if (val < 0 || val > 100) {
-              return `Allocation values must be between 0 and 100. "${key}" is ${val}`;
-            }
-          }
-        } catch (e) {
-          return 'Invalid JSON format. Example: {"ETH": 40, "USDC": 30, "WBTC": 30}';
+        const jsonError = validateJsonObject(strVal, {
+          required: true,
+          fieldName: 'Target Allocation',
+          validateValues: (value) => {
+            if (typeof value !== 'number') return false;
+            return value >= 0 && value <= 100;
+          },
+        });
+        if (jsonError) {
+          // Provide more specific error message for JSON format
+          return jsonError.includes('required')
+            ? jsonError
+            : 'Invalid JSON format. Example: {"ETH": 40, "USDC": 30, "WBTC": 30}';
         }
       }
 
-      // Length validation for text fields
-      if (strVal.length > 500) {
-        return 'Maximum length is 500 characters';
-      }
+      // Length validation using utility function
+      const lengthError = validateStringLength(strVal, undefined, def.maxLength || 500, def.label || name);
+      if (lengthError) return lengthError;
     }
 
     return null;
@@ -531,13 +516,8 @@ export const BlockConfigPanel: React.FC<BlockConfigPanelProps> = ({
           break;
         }
         if (def.type === 'text' && key === 'targetAllocation') {
-          try {
-            const parsed = JSON.parse(String(value));
-            if (typeof parsed !== 'object' || Array.isArray(parsed)) {
-              hasErrors = true;
-              break;
-            }
-          } catch {
+          const jsonError = validateJsonObject(String(value), { required: true });
+          if (jsonError) {
             hasErrors = true;
             break;
           }
