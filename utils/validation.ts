@@ -114,3 +114,44 @@ export function validateRequired(
   return null;
 }
 
+/**
+ * Sanitize HTML from string
+ * Removes HTML tags and dangerous characters
+ */
+export function sanitizeHtml(input: string): string {
+  // Remove HTML tags
+  const withoutHtml = input.replace(/<[^>]*>/g, '');
+  // Remove potentially dangerous characters
+  const sanitized = withoutHtml.replace(/[<>\"'&]/g, '');
+  return sanitized.trim();
+}
+
+/**
+ * Sanitize and limit string length
+ */
+export function sanitizeString(input: string, maxLength: number): string {
+  const sanitized = sanitizeHtml(input);
+  return sanitized.slice(0, maxLength);
+}
+
+/**
+ * Validate and sanitize strategy name
+ */
+export function validateAndSanitizeStrategyName(name: string): { valid: boolean; sanitized: string; error?: string } {
+  if (!name || name.trim().length === 0) {
+    return { valid: false, sanitized: '', error: 'Strategy name is required' };
+  }
+
+  const sanitized = sanitizeString(name, 100);
+  
+  if (sanitized.length < 1) {
+    return { valid: false, sanitized: '', error: 'Strategy name must be at least 1 character' };
+  }
+
+  if (sanitized.length > 100) {
+    return { valid: false, sanitized: sanitized.slice(0, 100), error: 'Strategy name must be at most 100 characters' };
+  }
+
+  return { valid: true, sanitized };
+}
+

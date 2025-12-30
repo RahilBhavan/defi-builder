@@ -111,7 +111,7 @@ export function VirtualList<T>({
               key={absoluteIndex}
               role="listitem"
               style={{
-                height: itemHeight,
+                minHeight: itemHeight,
                 position: 'relative',
               }}
             >

@@ -44,13 +44,20 @@ export const appRouter = router({
           });
         }
 
-        const token = signToken({
+        const accessToken = signToken({
           userId: user.id,
           walletAddress: user.walletAddress,
         });
+        const refreshToken = signToken(
+          {
+            userId: user.id,
+            walletAddress: user.walletAddress,
+          },
+          true
+        );
 
-        // Set httpOnly cookie
-        ctx.res.cookie('auth_token', token, {
+        // Set httpOnly cookies
+        ctx.res.cookie('auth_token', accessToken, {
           httpOnly: true,
           secure: process.env.NODE_ENV === 'production', // HTTPS only in production
           sameSite: 'strict',
@@ -58,18 +65,58 @@ export const appRouter = router({
           path: '/',
         });
 
-        // Return user (token is in cookie, not in response)
+        ctx.res.cookie('refresh_token', refreshToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict',
+          maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+          path: '/',
+        });
+
+        // Return user (tokens are in cookies, not in response)
         return { user };
       }),
 
     logout: publicProcedure.mutation(async ({ ctx }) => {
-      // Clear the auth cookie
+      // Clear the auth cookies
       ctx.res.clearCookie('auth_token', {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
         path: '/',
       });
+      ctx.res.clearCookie('refresh_token', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        path: '/',
+      });
+      return { success: true };
+    }),
+
+    refresh: publicProcedure.mutation(async ({ ctx }) => {
+      const refreshToken = ctx.req.cookies?.refresh_token;
+      if (!refreshToken) {
+        throw new Error('No refresh token provided');
+      }
+
+      const newAccessToken = refreshAccessToken(refreshToken);
+      if (!newAccessToken) {
+        // Invalid refresh token - clear cookies
+        ctx.res.clearCookie('auth_token');
+        ctx.res.clearCookie('refresh_token');
+        throw new Error('Invalid or expired refresh token');
+      }
+
+      // Set new access token
+      ctx.res.cookie('auth_token', newAccessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        path: '/',
+      });
+
       return { success: true };
     }),
 
@@ -175,6 +222,46 @@ export const appRouter = router({
       )
       .query(async ({ input }) => {
         return getTokenPrices(input.tokens);
+      }),
+  }),
+
+  // Strategy sharing endpoints
+  sharing: router({
+    generateShareToken: publicProcedure
+      .input(
+        z.object({
+          strategy: z.object({
+            name: z.string().min(1).max(100),
+            blocks: z.array(
+              z.object({
+                id: z.string(),
+                type: z.string(),
+                label: z.string(),
+                description: z.string(),
+                category: z.string(),
+                protocol: z.string(),
+                icon: z.string(),
+                params: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])),
+              })
+            ),
+            createdAt: z.number(),
+          }),
+        })
+      )
+      .mutation(async ({ input }) => {
+        const { generateShareToken } = await import('../utils/strategySharing');
+        return { token: generateShareToken(input.strategy) };
+      }),
+
+    parseShareToken: publicProcedure
+      .input(z.object({ token: z.string() }))
+      .query(async ({ input }) => {
+        const { verifyShareToken } = await import('../utils/strategySharing');
+        const payload = verifyShareToken(input.token);
+        if (!payload) {
+          throw new Error('Invalid or expired share token');
+        }
+        return payload.strategy;
       }),
   }),
 });

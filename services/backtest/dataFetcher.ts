@@ -1,7 +1,11 @@
 /**
  * Historical price data fetcher for backtesting
  * Uses CoinGecko API (free, no API key required)
+ * Implements rate limiting to respect API limits
  */
+
+import { generalRateLimiter, requestDeduplicator } from '../../utils/rateLimiter';
+import { logger } from '../../utils/logger';
 
 export interface PriceDataPoint {
   timestamp: number;
@@ -78,13 +82,24 @@ export async function fetchHistoricalPrices(
 
     const url = `${COINGECKO_API}/coins/${tokenId}/market_chart?vs_currency=usd&days=${days}&interval=${interval === 'hourly' ? 'hourly' : 'daily'}`;
 
-    const response = await fetch(url);
+    // Use rate limiter and deduplication
+    const response = await generalRateLimiter.enqueue(
+      () =>
+        requestDeduplicator.deduplicate(cacheKey, async () => {
+          const res = await fetch(url);
+          if (!res.ok) {
+            if (res.status === 429) {
+              // Rate limited - throw error to trigger retry in rate limiter
+              throw new Error('Rate limit exceeded (429)');
+            }
+            throw new Error(`CoinGecko API error: ${res.status} ${res.statusText}`);
+          }
+          return res;
+        }),
+      `historical-${cacheKey}`
+    ) as Response;
+
     if (!response.ok) {
-      if (response.status === 429) {
-        // Rate limited - wait and retry
-        await new Promise((resolve) => setTimeout(resolve, 60000));
-        return fetchHistoricalPrices(token, startDate, endDate, interval);
-      }
       throw new Error(`CoinGecko API error: ${response.status} ${response.statusText}`);
     }
 
@@ -106,7 +121,7 @@ export async function fetchHistoricalPrices(
 
     return prices;
   } catch (error) {
-    console.error(`Error fetching prices for ${token}:`, error);
+    logger.error(`Error fetching prices for ${token}`, error instanceof Error ? error : new Error(String(error)), 'DataFetcher');
     throw error;
   }
 }

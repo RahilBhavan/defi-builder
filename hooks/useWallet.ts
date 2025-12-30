@@ -5,6 +5,7 @@
 
 import { useCallback } from 'react';
 import { useAccount, useChainId, useConnect, useDisconnect, useSwitchChain } from 'wagmi';
+import { logger } from '../utils/logger';
 import { getChainName } from '../services/web3/config';
 import { useToast } from './useToast';
 
@@ -86,7 +87,7 @@ export function useWallet(): WalletState {
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to switch network';
         showError(message);
-        console.error('Network switch error:', error);
+        logger.error('Network switch error', error instanceof Error ? error : new Error(String(error)), 'Wallet');
       }
     },
     [wagmiSwitchChain, showError, showSuccess]

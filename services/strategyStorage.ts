@@ -1,4 +1,5 @@
 import type { LegoBlock, Strategy } from '../types';
+import { logger } from '../utils/logger';
 import { autoBackup } from './storage/backup';
 import { CURRENT_VERSION, type VersionedData, wrapWithVersion } from './storage/versioning';
 
@@ -28,8 +29,8 @@ export function saveStrategy(strategy: Strategy, createBackup = true): void {
     const versioned = wrapWithVersion(strategies, CURRENT_VERSION);
     localStorage.setItem(STRATEGY_STORAGE_KEY, JSON.stringify(versioned));
   } catch (error) {
-    console.error('Error saving strategy:', error);
-    throw new Error('Failed to save strategy');
+    logger.error('Error saving strategy', error instanceof Error ? error : new Error(String(error)), 'StrategyStorage');
+    throw new Error('Failed to save strategy. Please try again.');
   }
 }
 
@@ -79,7 +80,7 @@ export function deleteStrategy(id: string, createBackup = true): void {
     const versioned = wrapWithVersion(strategies, CURRENT_VERSION);
     localStorage.setItem(STRATEGY_STORAGE_KEY, JSON.stringify(versioned));
   } catch (error) {
-    console.error('Error deleting strategy:', error);
+    logger.error('Error deleting strategy', error instanceof Error ? error : new Error(String(error)), 'StrategyStorage');
     throw new Error('Failed to delete strategy');
   }
 }
@@ -109,7 +110,7 @@ export function importStrategy(json: string): Strategy {
 
     return strategy;
   } catch (error) {
-    console.error('Error importing strategy:', error);
+    logger.error('Error importing strategy', error instanceof Error ? error : new Error(String(error)), 'StrategyStorage');
     throw new Error('Failed to import strategy. Invalid JSON format.');
   }
 }
@@ -150,7 +151,7 @@ export function importBlocks(json: string): LegoBlock[] {
       id: crypto.randomUUID(),
     }));
   } catch (error) {
-    console.error('Error importing blocks:', error);
+    logger.error('Error importing blocks', error instanceof Error ? error : new Error(String(error)), 'StrategyStorage');
     throw new Error('Failed to import blocks. Invalid JSON format.');
   }
 }

@@ -25,6 +25,7 @@ export class OptimizationEngine {
   private isRunning = false;
   private errors: string[] = [];
   private lastError: string | undefined;
+  private abortController: AbortController | null = null;
 
   constructor() {
     // Set up error callback for worker pool
@@ -49,12 +50,16 @@ export class OptimizationEngine {
     config: OptimizationConfig,
     onProgress?: (progress: OptimizationProgress) => void
   ): Promise<OptimizationResult> {
+    // Cancel any existing optimization
+    this.stop();
+
     this.isRunning = true;
     this.currentIteration = 0;
     this.solutions = [];
     this.errors = [];
     this.lastError = undefined;
     this.startTime = Date.now();
+    this.abortController = new AbortController();
 
     try {
       if (config.algorithm === 'bayesian') {
@@ -64,6 +69,7 @@ export class OptimizationEngine {
       }
     } finally {
       this.isRunning = false;
+      this.abortController = null;
     }
   }
 

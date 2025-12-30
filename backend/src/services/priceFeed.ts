@@ -79,7 +79,7 @@ export async function getTokenPrices(tokens: string[]): Promise<Record<string, n
     if (!response.ok) {
       if (response.status === 429) {
         // Rate limited - return cached or fallback
-        console.warn('CoinGecko rate limited, using fallback');
+        logger.warn('CoinGecko rate limited, using fallback', 'PriceFeed');
         return cached?.data || getFallbackPrices(tokens);
       }
       throw new Error(`CoinGecko API error: ${response.status} ${response.statusText}`);
@@ -108,7 +108,7 @@ export async function getTokenPrices(tokens: string[]): Promise<Record<string, n
 
     return result;
   } catch (error) {
-    console.error('Failed to fetch prices from CoinGecko:', error);
+    logger.error('Failed to fetch prices from CoinGecko', error instanceof Error ? error : new Error(String(error)), 'PriceFeed');
     // Return cached data or fallback
     return cached?.data || getFallbackPrices(tokens);
   }

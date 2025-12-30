@@ -5,6 +5,7 @@
  */
 
 import { GoogleGenAI, Type } from '@google/genai';
+import { logger } from '../utils/logger';
 
 interface AISuggestion {
   type: 'block' | 'parameter' | 'strategy';
@@ -27,9 +28,12 @@ const apiKey = process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY;
 if (apiKey) {
   try {
     ai = new GoogleGenAI({ apiKey });
+    logger.info('Gemini AI initialized successfully', 'AI');
   } catch (error) {
-        logger.error('Failed to initialize Gemini AI', error instanceof Error ? error : new Error(String(error)), 'AI');
+    logger.error('Failed to initialize Gemini AI', error instanceof Error ? error : new Error(String(error)), 'AI');
   }
+} else {
+  logger.warn('No Gemini API key found - AI suggestions will use rule-based fallback', 'AI');
 }
 
 const MAX_RETRIES = 3;
@@ -58,7 +62,7 @@ export async function getAISuggestions(
       // Merge AI suggestions with rule-based ones
       return [...suggestions, ...aiSuggestions];
     } catch (error) {
-      console.error('Gemini API error (falling back to rule-based):', error);
+      logger.error('Gemini API error (falling back to rule-based)', error instanceof Error ? error : new Error(String(error)), 'AI');
       // Return rule-based suggestions on error
       return suggestions;
     }
@@ -149,7 +153,7 @@ async function getGeminiSuggestions(
 
   // All retries failed
   if (lastError) {
-    console.error('Gemini API error after retries:', lastError);
+    logger.error('Gemini API error after retries', lastError instanceof Error ? lastError : new Error(String(lastError)), 'AI');
   }
 
   return [];

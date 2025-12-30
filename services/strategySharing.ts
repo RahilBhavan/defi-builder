@@ -33,16 +33,20 @@ export type StrategyShareData = z.infer<typeof StrategyShareSchema>;
 export function sanitizeStrategyName(name: string): string {
   // Remove HTML tags
   const withoutHtml = name.replace(/<[^>]*>/g, '');
+  // Remove potentially dangerous characters
+  const sanitized = withoutHtml.replace(/[<>\"'&]/g, '');
   // Limit length
-  return withoutHtml.slice(0, 100).trim();
+  return sanitized.slice(0, 100).trim();
 }
 
 export function sanitizeStrategyDescription(description: string | undefined): string {
   if (!description) return '';
   // Remove HTML tags
   const withoutHtml = description.replace(/<[^>]*>/g, '');
+  // Remove potentially dangerous characters
+  const sanitized = withoutHtml.replace(/[<>\"'&]/g, '');
   // Limit length
-  return withoutHtml.slice(0, 500).trim();
+  return sanitized.slice(0, 500).trim();
 }
 
 /**
@@ -75,45 +79,79 @@ export function validateAndSanitizeStrategy(strategy: Strategy): StrategyShareDa
 }
 
 /**
- * Generate a shareable token for strategy
- * In production, this should use JWT or similar signed tokens
- * For now, we'll use a simple encoding with validation
+ * Generate a shareable token for strategy using backend JWT signing
+ * Uses backend endpoint for secure token generation
  */
-import { safeJsonParse, safeJsonStringify } from '../utils/json';
+import { logger } from '../utils/logger';
 
-export function generateShareToken(strategy: Strategy): string {
+/**
+ * Generate share token via backend (secure JWT signing)
+ */
+export async function generateShareToken(strategy: Strategy): Promise<string> {
   try {
     const sanitized = validateAndSanitizeStrategy(strategy);
-    const data = safeJsonStringify(sanitized);
-    if (data === '{}') {
-      throw new Error('Failed to stringify strategy data');
+    
+    // Call backend to generate signed JWT token
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    const response = await fetch(`${API_URL}/trpc/sharing.generateShareToken`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        strategy: sanitized,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Backend error: ${response.status}`);
     }
-    // Use base64 encoding (acceptable for non-sensitive data when validated)
-    // In production, consider using JWT with server-side signing
-    return btoa(data);
+
+    const data = await response.json();
+    // tRPC returns { result: { data: { token: ... } } }
+    if (data?.result?.data?.token) {
+      return data.result.data.token;
+    }
+
+    throw new Error('Invalid response from backend');
   } catch (error) {
-    throw new Error('Failed to generate share token: Invalid strategy data');
+    logger.error('Failed to generate share token', error instanceof Error ? error : new Error(String(error)), 'StrategySharing');
+    throw new Error('Failed to generate share token: Invalid strategy data or backend unavailable');
   }
 }
 
 /**
- * Parse and validate a share token
- * Returns null if invalid
+ * Parse and validate a share token via backend
+ * Returns null if invalid or expired
  */
-export function parseShareToken(token: string): StrategyShareData | null {
+export async function parseShareToken(token: string): Promise<StrategyShareData | null> {
   try {
-    const decoded = atob(token);
-    const parsed = safeJsonParse<StrategyShareData>(decoded);
+    // Call backend to verify and parse JWT token
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    const response = await fetch(`${API_URL}/trpc/sharing.parseShareToken?input=${encodeURIComponent(JSON.stringify({ token }))}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+    });
 
-    if (!parsed) {
+    if (!response.ok) {
       return null;
     }
 
-    // Validate with Zod schema
-    const validated = StrategyShareSchema.parse(parsed);
-    return validated;
+    const data = await response.json();
+    // tRPC returns { result: { data: ... } }
+    if (data?.result?.data) {
+      // Validate with Zod schema
+      const validated = StrategyShareSchema.parse(data.result.data);
+      return validated;
+    }
+
+    return null;
   } catch (error) {
-    console.error('Invalid share token:', error);
+    logger.error('Invalid share token', error instanceof Error ? error : new Error(String(error)), 'StrategySharing');
     return null;
   }
 }
@@ -121,8 +159,8 @@ export function parseShareToken(token: string): StrategyShareData | null {
 /**
  * Generate shareable link with token
  */
-export function generateShareLink(strategy: Strategy): string {
-  const token = generateShareToken(strategy);
+export async function generateShareLink(strategy: Strategy): Promise<string> {
+  const token = await generateShareToken(strategy);
   return `${window.location.origin}${window.location.pathname}?share=${encodeURIComponent(token)}`;
 }
 

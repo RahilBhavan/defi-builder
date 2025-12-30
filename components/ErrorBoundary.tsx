@@ -156,8 +156,30 @@ export class ErrorBoundary extends Component<Props, State> {
               </ul>
             )}
 
+            <div className="flex gap-3 mt-4">
+              <button
+                onClick={() => {
+                  this.setState({ hasError: false, error: null, errorInfo: null });
+                  if (this.props.onReset) {
+                    this.props.onReset();
+                  }
+                }}
+                className="px-4 py-2 bg-ink text-white text-sm font-bold uppercase hover:bg-gray-800 transition-colors"
+              >
+                Try Again
+              </button>
+              <button
+                onClick={() => {
+                  window.location.reload();
+                }}
+                className="px-4 py-2 bg-gray-200 text-gray-700 text-sm font-bold uppercase hover:bg-gray-300 transition-colors"
+              >
+                Reload Page
+              </button>
+            </div>
+
             {this.state.error && (
-              <details className="mb-4">
+              <details className="mb-4 mt-4">
                 <summary className="text-xs text-gray-400 cursor-pointer font-mono mb-2 hover:text-gray-600">
                   Error Details
                 </summary>

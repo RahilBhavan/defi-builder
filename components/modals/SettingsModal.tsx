@@ -54,7 +54,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
       onClose();
     } catch (error) {
       showError('Failed to save settings. Please try again.');
-      console.error('Error saving settings:', error);
+      logger.error('Error saving settings', error instanceof Error ? error : new Error(String(error)), 'SettingsModal');
     }
   };
 

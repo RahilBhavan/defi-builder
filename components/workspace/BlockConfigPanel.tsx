@@ -369,6 +369,12 @@ const ParamField: React.FC<ParamFieldProps> = ({ name, value, onChange, definiti
     return null;
   };
 
+  const handleBlur = () => {
+    setTouched(true);
+    const error = validate(value);
+    setError(error);
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const newVal: string | number | boolean = e.target.value;
 

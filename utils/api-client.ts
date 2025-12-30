@@ -5,9 +5,13 @@ export const trpcClient = trpc.createClient({
   links: [
     httpBatchLink({
       url: import.meta.env.VITE_API_URL || 'http://localhost:3001/trpc',
-      headers() {
-        const token = localStorage.getItem('auth_token');
-        return token ? { authorization: `Bearer ${token}` } : {};
+      // Cookies are automatically sent with credentials: 'include'
+      // No need to manually add token to headers - backend reads from httpOnly cookie
+      fetch(url, options) {
+        return fetch(url, {
+          ...options,
+          credentials: 'include', // Include cookies for authentication
+        });
       },
     }),
   ],

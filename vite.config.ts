@@ -13,6 +13,17 @@ export default defineConfig(({ mode }) => {
     },
     plugins: [
       react(),
+      // Bundle analyzer (only in analyze mode)
+      ...(process.env.ANALYZE === 'true'
+        ? [
+            visualizer({
+              open: true,
+              filename: 'dist/stats.html',
+              gzipSize: true,
+              brotliSize: true,
+            }),
+          ]
+        : []),
       VitePWA({
         registerType: 'autoUpdate',
         includeAssets: ['icon-192.png', 'icon-512.png'],
@@ -60,13 +71,56 @@ export default defineConfig(({ mode }) => {
       sourcemap: process.env.NODE_ENV === 'production' ? false : true, // No source maps in production
       rollupOptions: {
         output: {
-          manualChunks: {
+          manualChunks: (id) => {
             // Separate vendor chunks for better caching
-            'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-            'ui-vendor': ['framer-motion', 'lucide-react'],
-            'chart-vendor': ['recharts'],
-            'web3-vendor': ['wagmi', 'viem', '@tanstack/react-query'],
-            'trpc-vendor': ['@trpc/client', '@trpc/react-query'],
+            if (id.includes('node_modules')) {
+              // React core
+              if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
+                return 'react-vendor';
+              }
+              // UI libraries
+              if (id.includes('framer-motion') || id.includes('lucide-react')) {
+                return 'ui-vendor';
+              }
+              // Chart library (large, lazy load)
+              if (id.includes('recharts')) {
+                return 'chart-vendor';
+              }
+              // Web3 libraries
+              if (id.includes('wagmi') || id.includes('viem') || id.includes('@tanstack/react-query')) {
+                return 'web3-vendor';
+              }
+              // tRPC
+              if (id.includes('@trpc')) {
+                return 'trpc-vendor';
+              }
+              // Other large dependencies
+              if (id.includes('reactflow')) {
+                return 'reactflow-vendor';
+              }
+              // Default vendor chunk for other node_modules
+              return 'vendor';
+            }
+            // Code split by route/feature
+            if (id.includes('/components/modals/')) {
+              return 'modals';
+            }
+            if (id.includes('/components/optimization/')) {
+              return 'optimization';
+            }
+            if (id.includes('/services/optimization/')) {
+              return 'optimization-engine';
+            }
+            if (id.includes('/services/backtest/')) {
+              return 'backtest-engine';
+            }
+          },
+          // Optimize chunk names
+          chunkFileNames: (chunkInfo) => {
+            const facadeModuleId = chunkInfo.facadeModuleId
+              ? chunkInfo.facadeModuleId.split('/').pop()?.replace(/\.[^.]*$/, '')
+              : 'chunk';
+            return `assets/${facadeModuleId}-[hash].js`;
           },
         },
       },

@@ -124,7 +124,7 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
       onClose();
     } catch (error) {
       showError(getUserFriendlyErrorMessage(error, 'load'));
-      console.error('Error loading strategy:', error);
+      logger.error('Error loading strategy', error instanceof Error ? error : new Error(String(error)), 'StrategyLibrary');
     }
   };
 
@@ -145,7 +145,7 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
       onClose();
     } catch (error) {
       showError(getUserFriendlyErrorMessage(error, 'load'));
-      console.error('Error loading template:', error);
+      logger.error('Error loading template', error instanceof Error ? error : new Error(String(error)), 'StrategyLibrary');
     }
   };
 
@@ -199,7 +199,7 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
       setSyncToCloud(false);
     } catch (error) {
       showError(getUserFriendlyErrorMessage(error, 'save'));
-      console.error('Error saving strategy:', error);
+      logger.error('Error saving strategy', error instanceof Error ? error : new Error(String(error)), 'StrategyLibrary');
     }
   };
 
@@ -217,7 +217,7 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
       setDeleteConfirm(null);
     } catch (error) {
       showError(getUserFriendlyErrorMessage(error, 'delete'));
-      console.error('Error deleting strategy:', error);
+      logger.error('Error deleting strategy', error instanceof Error ? error : new Error(String(error)), 'StrategyLibrary');
       setDeleteConfirm(null);
     }
   };
@@ -226,20 +226,16 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
     setShareStrategy(strategy);
   };
 
-  const createShareLink = (strategy: Strategy): string => {
-    // Use secure sharing service with validation and sanitization
-    return generateShareLink(strategy);
-  };
-
   const copyShareLink = async (strategy: Strategy) => {
-    const link = createShareLink(strategy);
     try {
+      // Use secure sharing service with validation and sanitization (async)
+      const link = await generateShareLink(strategy);
       await navigator.clipboard.writeText(link);
       showSuccess('Share link copied to clipboard!');
       setShareStrategy(null);
     } catch (error) {
-      showError('Failed to copy link. Please try again.');
-      console.error('Error copying link:', error);
+      showError('Failed to generate or copy share link. Please try again.');
+      logger.error('Error generating/copying share link', error instanceof Error ? error : new Error(String(error)), 'StrategyLibrary');
     }
   };
 

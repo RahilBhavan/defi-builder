@@ -3,6 +3,7 @@
  * Tracks portfolio state from executed strategies and backtests
  */
 
+import { logger } from '../utils/logger';
 import type { DeFiBacktestResult } from './defiBacktestEngine';
 import type { Trade } from './backtest/portfolio';
 
@@ -202,7 +203,7 @@ class PortfolioTracker {
       };
       localStorage.setItem('defi-builder-portfolio', JSON.stringify(data));
     } catch (error) {
-      console.error('Error persisting portfolio data:', error);
+      logger.error('Error persisting portfolio data', error instanceof Error ? error : new Error(String(error)), 'PortfolioTracker');
     }
   }
 
@@ -222,7 +223,7 @@ class PortfolioTracker {
       this.transactions = data.transactions || [];
       this.currentHoldings = new Map(data.currentHoldings || []);
     } catch (error) {
-      console.error('Error loading portfolio data:', error);
+      logger.error('Error loading portfolio data', error instanceof Error ? error : new Error(String(error)), 'PortfolioTracker');
     }
   }
 }

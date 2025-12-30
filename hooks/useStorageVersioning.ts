@@ -4,6 +4,7 @@
  */
 
 import { useEffect, useState } from 'react';
+import { logger } from '../utils/logger';
 import { safeJsonParse } from '../utils/json';
 import { migrateData } from '../services/storage/migrations';
 import {
@@ -86,7 +87,7 @@ export function useVersionedStorage<T>(
 
       return parsed as T;
     } catch (error) {
-      console.error(`Error reading versioned storage key "${key}":`, error);
+      logger.error(`Error reading versioned storage key "${key}"`, error instanceof Error ? error : new Error(String(error)), 'StorageVersioning');
       return initialValue;
     }
   });
@@ -101,7 +102,7 @@ export function useVersionedStorage<T>(
         window.localStorage.setItem(key, JSON.stringify(versioned));
       }
     } catch (error) {
-      console.error(`Error setting versioned storage key "${key}":`, error);
+      logger.error(`Error setting versioned storage key "${key}"`, error instanceof Error ? error : new Error(String(error)), 'StorageVersioning');
     }
   };
 
@@ -114,7 +115,7 @@ export function useVersionedStorage<T>(
         window.localStorage.removeItem(key);
       }
     } catch (error) {
-      console.error(`Error removing versioned storage key "${key}":`, error);
+      logger.error(`Error removing versioned storage key "${key}"`, error instanceof Error ? error : new Error(String(error)), 'StorageVersioning');
     }
   };
 

@@ -45,11 +45,13 @@ A visual, AI-powered DeFi strategy builder and workspace. Build, test, and optim
    ```
 
 4. Set up frontend environment variables:
-   Create a `.env.local` file in the root directory:
+   Create a `.env.local` file in the root directory (see `.env.example` for template):
    ```
-   VITE_GEMINI_API_KEY=your_gemini_api_key_here
    VITE_API_URL=http://localhost:3001
    ```
+   
+   **Note:** API keys (Gemini, CoinGecko, etc.) are now managed server-side for security.
+   Configure them in the backend `.env` file (see `backend/SETUP.md`).
 
 5. Run the frontend development server:
    ```bash

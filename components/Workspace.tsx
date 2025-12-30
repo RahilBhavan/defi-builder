@@ -35,6 +35,7 @@ import { useModalState } from '../hooks/useModalState';
 import { useToast } from '../hooks/useToast';
 import { useWallet } from '../hooks/useWallet';
 import { useWorkspaceState } from '../hooks/useWorkspaceState';
+import { RouteGuard } from './RouteGuard';
 import type { DeFiBacktestResult } from '../services/defiBacktestEngine';
 import { BacktestExecutionError, executeStrategy } from '../services/executionEngine';
 import { portfolioTracker } from '../services/portfolioTracker';
@@ -105,7 +106,7 @@ const Workspace: React.FC = () => {
       URL.revokeObjectURL(url);
       showSuccess('Strategy exported successfully');
     } catch (error) {
-      console.error('Export failed:', error);
+      logger.error('Export failed', error instanceof Error ? error : new Error(String(error)), 'Workspace');
       showError('Failed to export strategy. Please ensure your strategy is valid and try again.');
     }
   }, [blocks, showError, showSuccess]);
@@ -126,7 +127,7 @@ const Workspace: React.FC = () => {
           setBlocks(importedBlocks);
           showSuccess('Strategy imported successfully');
         } catch (error) {
-          console.error('Import failed:', error);
+          logger.error('Import failed', error instanceof Error ? error : new Error(String(error)), 'Workspace');
           showError(getUserFriendlyErrorMessage(error, 'import'));
         }
       };

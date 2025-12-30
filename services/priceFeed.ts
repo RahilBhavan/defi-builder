@@ -1,6 +1,7 @@
 /**
  * Real-time Price Feed Service
  * Provides WebSocket-based price updates for tokens
+ * All API calls go through backend proxy for security
  */
 
 import { logger } from '../utils/logger';
@@ -111,93 +112,62 @@ class PriceFeedService {
   }
 
   /**
-   * Fetch prices from backend proxy (preferred) or CoinGecko API directly (fallback)
+   * Fetch prices from backend proxy
    * Backend proxy keeps API keys secure and implements rate limiting
+   * No direct API calls - all requests go through backend
+   * Uses client-side rate limiting and request deduplication
    */
   private async fetchPricesFromAPI(tokens: string[]): Promise<Record<string, number>> {
-    // Try backend proxy first (if available)
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
     
-    try {
-      // Use backend proxy endpoint via tRPC if available
-      // For now, fall back to direct API call if backend is unavailable
-      // In production, always use backend proxy
-      const response = await fetch(`${API_URL}/trpc/prices.getPrices?input=${encodeURIComponent(JSON.stringify({ tokens }))}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+    // Create cache key for deduplication
+    const cacheKey = `prices-${tokens.sort().join(',')}`;
+    
+    // Use rate limiter and deduplication
+    return priceFeedRateLimiter.enqueue(
+      () =>
+        requestDeduplicator.deduplicate(cacheKey, async () => {
+          try {
+            // Use backend proxy endpoint via tRPC
+            const response = await fetch(
+              `${API_URL}/trpc/prices.getPrices?input=${encodeURIComponent(JSON.stringify({ tokens }))}`,
+              {
+                method: 'GET',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                credentials: 'include', // Include cookies for authentication
+              }
+            );
 
-      if (response.ok) {
-        const data = await response.json();
-        // tRPC returns { result: { data: ... } }
-        if (data?.result?.data) {
-          return data.result.data;
-        }
-      }
-    } catch (error) {
-      // Backend unavailable - fall back to direct API (with rate limiting)
-      logger.debug('Backend price feed unavailable, using direct API', 'PriceFeed', { error: String(error) });
-    }
+            if (response.ok) {
+              const data = await response.json();
+              // tRPC returns { result: { data: ... } }
+              if (data?.result?.data) {
+                return data.result.data;
+              }
+            } else if (response.status === 429) {
+              // Rate limited - use fallback
+              logger.warn('Backend rate limited, using fallback prices', 'PriceFeed');
+              return this.getFallbackPrices(tokens);
+            } else {
+              throw new Error(`Backend API error: ${response.status}`);
+            }
+          } catch (error) {
+            // Backend unavailable - use fallback prices
+            logger.error(
+              'Backend price feed unavailable, using fallback prices',
+              error instanceof Error ? error : new Error(String(error)),
+              'PriceFeed'
+            );
+            return this.getFallbackPrices(tokens);
+          }
 
-    // Fallback: Direct CoinGecko API call (with rate limiting)
-    // Token symbol to CoinGecko ID mapping
-    const TOKEN_IDS: Record<string, string> = {
-      ETH: 'ethereum',
-      USDC: 'usd-coin',
-      DAI: 'dai',
-      WBTC: 'wrapped-bitcoin',
-      USDT: 'tether',
-      AAVE: 'aave',
-      LINK: 'chainlink',
-      UNI: 'uniswap',
-    };
-
-    const tokenIds = tokens
-      .map((token) => TOKEN_IDS[token])
-      .filter((id): id is string => id !== undefined);
-
-    if (tokenIds.length === 0) {
-      return this.getFallbackPrices(tokens);
-    }
-
-    try {
-      // CoinGecko free tier: simple price endpoint
-      // NOTE: This should be removed in production - always use backend proxy
-      const ids = tokenIds.join(',');
-      const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`;
-
-      const response = await fetch(url);
-      if (!response.ok) {
-        if (response.status === 429) {
-          // Rate limited - use fallback
-          logger.warn('CoinGecko rate limited, using fallback prices', 'PriceFeed');
+          // If we get here, return fallback (shouldn't happen)
           return this.getFallbackPrices(tokens);
-        }
-        throw new Error(`CoinGecko API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const result: Record<string, number> = {};
-
-      // Map CoinGecko IDs back to token symbols
-      tokens.forEach((token) => {
-        const tokenId = TOKEN_IDS[token];
-        if (tokenId && data[tokenId]?.usd) {
-          result[token] = data[tokenId].usd;
-        } else {
-          // Fallback for unmapped tokens
-          result[token] = this.getFallbackPrices([token])[token] || 0;
-        }
-      });
-
-      return result;
-    } catch (error) {
-      logger.error('Failed to fetch prices from CoinGecko', error instanceof Error ? error : new Error(String(error)), 'PriceFeed');
-      // Return fallback prices on error
-      return this.getFallbackPrices(tokens);
-    }
+        }),
+      `price-fetch-${cacheKey}`
+    ) as Promise<Record<string, number>>;
   }
 
   /**
@@ -329,19 +299,32 @@ class PriceFeedService {
 
   /**
    * Disconnect from price feed
+   * Cleans up all intervals, timeouts, and subscriptions
    */
   disconnect(): void {
+    // Close WebSocket if open
     if (this.ws) {
       this.ws.close();
+      this.ws.removeEventListener('open', () => {});
+      this.ws.removeEventListener('message', () => {});
+      this.ws.removeEventListener('error', () => {});
+      this.ws.removeEventListener('close', () => {});
       this.ws = null;
     }
+    
+    // Stop polling
     this.stopPolling();
+    
+    // Clear reconnect timeout
     if (this.reconnectTimeout) {
       clearTimeout(this.reconnectTimeout);
       this.reconnectTimeout = null;
     }
+    
+    // Clear all subscribers
     this.subscribers.clear();
     this.reconnectAttempts = 0;
+    this.isConnecting = false;
   }
 }
 

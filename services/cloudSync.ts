@@ -5,6 +5,8 @@
 
 import type { Strategy } from '../types';
 import { trpc } from '../utils/trpc';
+import { logger } from '../utils/logger';
+import { retryWithBackoff, isRetryableError } from '../utils/retry';
 
 /**
  * Convert blocks to nodeGraph format for backend storage
@@ -35,7 +37,7 @@ export function nodeGraphToBlocks(nodeGraph: unknown): Strategy['blocks'] {
       return graph.blocks as Strategy['blocks'];
     }
   } catch (error) {
-    console.error('Error parsing nodeGraph:', error);
+    logger.error('Error parsing nodeGraph', error instanceof Error ? error : new Error(String(error)), 'CloudSync');
   }
   return [];
 }
@@ -75,33 +77,72 @@ export function useCloudSync() {
   const deleteMutation = strategiesRouter.delete.useMutation();
   const { data: strategies, isLoading } = strategiesRouter.list.useQuery();
 
-  const syncStrategy = async (strategy: Strategy) => {
-    const nodeGraph = blocksToNodeGraph(strategy.blocks);
-    await createMutation.mutateAsync({
-      name: strategy.name,
-      description: `Strategy with ${strategy.blocks.length} blocks`,
-      nodeGraph,
-    });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (utils.strategies as any).list.invalidate();
+  const syncStrategy = async (strategy: Strategy): Promise<void> => {
+    try {
+      const nodeGraph = blocksToNodeGraph(strategy.blocks);
+      await retryWithBackoff(
+        async () => {
+          await createMutation.mutateAsync({
+            name: strategy.name,
+            description: `Strategy with ${strategy.blocks.length} blocks`,
+            nodeGraph,
+          });
+        },
+        {
+          maxRetries: 3,
+          retryable: isRetryableError,
+        }
+      );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (utils.strategies as any).list.invalidate();
+    } catch (error) {
+      logger.error('Failed to sync strategy to cloud', error instanceof Error ? error : new Error(String(error)), 'CloudSync');
+      throw new Error('Failed to sync strategy. Please check your internet connection and try again.');
+    }
   };
 
-  const updateStrategy = async (strategyId: string, strategy: Strategy) => {
-    const nodeGraph = blocksToNodeGraph(strategy.blocks);
-    await updateMutation.mutateAsync({
-      id: strategyId,
-      name: strategy.name,
-      description: `Strategy with ${strategy.blocks.length} blocks`,
-      nodeGraph,
-    });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (utils.strategies as any).list.invalidate();
+  const updateStrategy = async (strategyId: string, strategy: Strategy): Promise<void> => {
+    try {
+      const nodeGraph = blocksToNodeGraph(strategy.blocks);
+      await retryWithBackoff(
+        async () => {
+          await updateMutation.mutateAsync({
+            id: strategyId,
+            name: strategy.name,
+            description: `Strategy with ${strategy.blocks.length} blocks`,
+            nodeGraph,
+          });
+        },
+        {
+          maxRetries: 3,
+          retryable: isRetryableError,
+        }
+      );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (utils.strategies as any).list.invalidate();
+    } catch (error) {
+      logger.error('Failed to update strategy in cloud', error instanceof Error ? error : new Error(String(error)), 'CloudSync');
+      throw new Error('Failed to update strategy. Please check your internet connection and try again.');
+    }
   };
 
-  const deleteStrategy = async (strategyId: string) => {
-    await deleteMutation.mutateAsync({ id: strategyId });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (utils.strategies as any).list.invalidate();
+  const deleteStrategy = async (strategyId: string): Promise<void> => {
+    try {
+      await retryWithBackoff(
+        async () => {
+          await deleteMutation.mutateAsync({ id: strategyId });
+        },
+        {
+          maxRetries: 3,
+          retryable: isRetryableError,
+        }
+      );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (utils.strategies as any).list.invalidate();
+    } catch (error) {
+      logger.error('Failed to delete strategy from cloud', error instanceof Error ? error : new Error(String(error)), 'CloudSync');
+      throw new Error('Failed to delete strategy. Please check your internet connection and try again.');
+    }
   };
 
   const cloudStrategies: Strategy[] = strategies

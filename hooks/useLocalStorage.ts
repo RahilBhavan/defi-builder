@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { logger } from '../utils/logger';
 import { migrateData } from '../services/storage/migrations';
 import {
   type VersionedData,
@@ -82,7 +83,7 @@ export function useLocalStorage<T>(
           return valueToStore;
         });
       } catch (error) {
-        console.error(`Error setting localStorage key "${key}":`, error);
+        logger.error(`Error setting localStorage key "${key}"`, error instanceof Error ? error : new Error(String(error)), 'LocalStorage');
       }
     },
     [key, useVersioning]
@@ -95,7 +96,7 @@ export function useLocalStorage<T>(
         window.localStorage.removeItem(key);
       }
     } catch (error) {
-      console.error(`Error removing localStorage key "${key}":`, error);
+      logger.error(`Error removing localStorage key "${key}"`, error instanceof Error ? error : new Error(String(error)), 'LocalStorage');
     }
   }, [key, initialValue]);
 
