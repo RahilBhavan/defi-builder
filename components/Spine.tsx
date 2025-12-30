@@ -82,7 +82,7 @@ export const Spine: React.FC<SpineProps> = ({
 
   return (
     <div
-      className="w-full min-h-screen flex flex-col items-center py-20 px-6"
+      className="w-full min-h-screen flex flex-col items-center py-8 sm:py-20 px-4 sm:px-6"
       onClick={() => onSelectBlock(null)}
       onDragOver={(e) => {
         // Allow dropping blocks from external sources
@@ -92,7 +92,7 @@ export const Spine: React.FC<SpineProps> = ({
       }}
       onDrop={(e) => handleDropFromExternal(e)}
     >
-      <div className="w-full max-w-[750px] flex flex-col gap-8 items-center">
+      <div className="w-full max-w-[750px] flex flex-col gap-4 sm:gap-8 items-center">
         {/* Empty State */}
         {blocks.length === 0 && (
           <motion.div

@@ -251,7 +251,7 @@ export const BacktestModal: React.FC<BacktestModalProps> = ({ isOpen, onClose, r
   }, [result]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-12">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-12 touch-none">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
 
       <motion.div

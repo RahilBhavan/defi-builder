@@ -44,10 +44,12 @@ export const Block: React.FC<BlockProps> = React.memo(
         role="button"
         tabIndex={0}
         className={`
-        relative w-full max-w-[700px] bg-white border rounded-lg p-6
+        relative w-full max-w-[700px] bg-white border rounded-lg p-4 sm:p-6
         transition-all duration-200 cursor-grab active:cursor-grabbing group shadow-md hover:shadow-lg
+        touch-manipulation
         ${isSelected ? 'border-2 ring-2 ring-offset-2' : 'border border-gray-300 hover:border-gray-400'}
         hover:scale-[1.01] active:scale-[0.99]
+        sm:hover:scale-[1.01] sm:active:scale-[0.99]
       `}
         style={{
           borderColor: isSelected ? accentColor : undefined,
@@ -113,7 +115,7 @@ export const Block: React.FC<BlockProps> = React.memo(
 
         {/* Params Preview */}
         {Object.keys(block.params).length > 0 && (
-          <div className="mt-4 pt-4 border-t border-gray-200 grid grid-cols-2 gap-y-3 gap-x-6">
+          <div className="mt-4 pt-4 border-t border-gray-200 grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-6">
             {Object.entries(block.params).map(([key, value]) => (
               <div key={key} className="flex flex-col">
                 <span className="text-[10px] text-gray-500 uppercase font-mono font-bold mb-1.5 tracking-wider">

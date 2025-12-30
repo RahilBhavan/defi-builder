@@ -313,7 +313,7 @@ export const AIBlockSuggester: React.FC<AIBlockSuggesterProps> = ({
                     <AlertCircle size={12} className="text-gray-400 ml-auto" title={aiError} />
                   )}
                 </div>
-                <div className="max-h-64 overflow-y-auto scroll-smooth pr-2 -mr-2">
+                <div className="max-h-48 sm:max-h-64 overflow-y-auto scroll-smooth pr-2 -mr-2 touch-pan-y">
                   {isLoadingAI ? (
                     <div className="space-y-2">
                       {[1, 2, 3].map((i) => (

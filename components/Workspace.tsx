@@ -262,7 +262,7 @@ const Workspace: React.FC = () => {
       />
 
       {/* Bottom Toolbar - Centered */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex gap-3 z-40 items-center bg-white/95 backdrop-blur-sm px-6 py-3 rounded-lg border border-gray-200 shadow-lg">
+      <div className="fixed bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 flex gap-2 sm:gap-3 z-40 items-center bg-white/95 backdrop-blur-sm px-4 sm:px-6 py-2 sm:py-3 rounded-lg border border-gray-200 shadow-lg">
         <button
           onClick={() => openModal('optimization')}
           className="px-4 py-2 bg-white border border-gray-300 hover:border-orange hover:text-orange hover:bg-orange/5 text-ink font-mono text-xs font-bold uppercase transition-all shadow-sm rounded"
