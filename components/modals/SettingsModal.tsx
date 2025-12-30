@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useToast } from '../../hooks/useToast';
 import { type AppSettings, useSettings } from '../../services/settingsStorage';
 import { Button } from '../ui/Button';
+import { ConfirmationDialog } from '../ui/ConfirmationDialog';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -19,6 +20,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   const [activeTab, setActiveTab] = useState<Tab>('general');
   const [localSettings, setLocalSettings] = useState(settings);
   const [hasChanges, setHasChanges] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   // Sync local state with settings when modal opens
   useEffect(() => {
@@ -57,11 +59,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   };
 
   const handleReset = () => {
-    if (confirm('Are you sure you want to reset all settings to defaults?')) {
-      resetSettings();
-      setLocalSettings(settings);
-      showSuccess('Settings reset to defaults');
-    }
+    setShowResetConfirm(true);
+  };
+
+  const confirmReset = () => {
+    resetSettings();
+    setLocalSettings(settings);
+    showSuccess('Settings reset to defaults');
+    setShowResetConfirm(false);
   };
 
   if (!isOpen) return null;
@@ -354,6 +359,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
             </Button>
           </div>
         </div>
+
+        {/* Reset Confirmation Dialog */}
+        <ConfirmationDialog
+          isOpen={showResetConfirm}
+          title="Reset Settings"
+          message="Are you sure you want to reset all settings to defaults? This action cannot be undone."
+          confirmLabel="Reset"
+          cancelLabel="Cancel"
+          variant="danger"
+          onConfirm={confirmReset}
+          onCancel={() => setShowResetConfirm(false)}
+        />
       </motion.div>
     </div>
   );

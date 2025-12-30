@@ -35,6 +35,7 @@ import { useWallet } from '../hooks/useWallet';
 import { useWorkspaceState } from '../hooks/useWorkspaceState';
 import type { DeFiBacktestResult } from '../services/defiBacktestEngine';
 import { BacktestExecutionError, executeStrategy } from '../services/executionEngine';
+import { portfolioTracker } from '../services/portfolioTracker';
 import { exportBlocks, importBlocks } from '../services/strategyStorage';
 import { simulateStrategyExecution } from '../services/web3/transactionSimulator';
 
@@ -162,6 +163,11 @@ const Workspace: React.FC = () => {
     try {
       const result = await executeStrategy(blocks);
       setBacktestResult(result);
+
+      // Record backtest result in portfolio tracker
+      const strategyName = blocks.length > 0 ? `Strategy with ${blocks.length} blocks` : 'Strategy';
+      portfolioTracker.recordBacktestResult(result, undefined, strategyName);
+
       openModal('backtest'); // Show results after execution
       showSuccess('Strategy executed successfully');
     } catch (error) {

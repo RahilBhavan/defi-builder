@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { BookOpen, Save, Search, Sparkles, Star, X } from 'lucide-react';
+import { BookOpen, Copy, ExternalLink, Save, Search, Share2, Sparkles, Star, X } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { useToast } from '../../hooks/useToast';
@@ -9,6 +9,7 @@ import {
   getStrategies,
   saveStrategy,
 } from '../../services/strategyStorage';
+import { useCloudSync } from '../../services/cloudSync';
 import {
   STRATEGY_TEMPLATES,
   type StrategyTemplate,
@@ -17,6 +18,7 @@ import {
 } from '../../services/strategyTemplates';
 import type { LegoBlock, Strategy } from '../../types';
 import { Button } from '../ui/Button';
+import { ConfirmationDialog } from '../ui/ConfirmationDialog';
 
 interface StrategyLibraryModalProps {
   isOpen: boolean;
@@ -40,16 +42,26 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
   const [filter, setFilter] = useState<FilterType>('all');
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [saveStrategyName, setSaveStrategyName] = useState('');
-  const [viewMode, setViewMode] = useState<ViewMode>('templates');
+  const [viewMode, setViewMode] = useState<ViewMode>('saved');
   const [templateCategory, setTemplateCategory] = useState<string>('all');
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
+  const [shareStrategy, setShareStrategy] = useState<Strategy | null>(null);
+  const [syncToCloud, setSyncToCloud] = useState(false);
+  const { strategies: cloudStrategies, syncStrategy } = useCloudSync();
 
-  // Load strategies from storage
+  // Load strategies from storage and cloud
   useEffect(() => {
     if (isOpen) {
       const loaded = getStrategies();
-      setStrategies(loaded);
+      // Merge local and cloud strategies
+      const allStrategies = [...loaded, ...cloudStrategies];
+      // Remove duplicates by ID
+      const uniqueStrategies = Array.from(
+        new Map(allStrategies.map((s) => [s.id, s])).values()
+      );
+      setStrategies(uniqueStrategies);
     }
-  }, [isOpen]);
+  }, [isOpen, cloudStrategies]);
 
   // Filter templates
   const filteredTemplates = useMemo(() => {
@@ -134,7 +146,7 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
     }
   };
 
-  const handleSaveCurrentStrategy = () => {
+  const handleSaveCurrentStrategy = async () => {
     if (currentBlocks.length === 0) {
       showWarning('Cannot save an empty strategy');
       return;
@@ -148,10 +160,23 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
     try {
       const strategy = createStrategyFromBlocks(currentBlocks, saveStrategyName.trim());
       saveStrategy(strategy);
+      
+      // Sync to cloud if enabled
+      if (syncToCloud) {
+        try {
+          await syncStrategy(strategy);
+          showSuccess(`Strategy "${strategy.name}" saved and synced to cloud`);
+        } catch (error) {
+          showWarning(`Strategy saved locally but cloud sync failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+      } else {
+        showSuccess(`Strategy "${strategy.name}" saved successfully`);
+      }
+      
       setStrategies(getStrategies());
-      showSuccess(`Strategy "${strategy.name}" saved successfully`);
       setShowSaveDialog(false);
       setSaveStrategyName('');
+      setSyncToCloud(false);
     } catch (error) {
       showError('Failed to save strategy. Please try again.');
       console.error('Error saving strategy:', error);
@@ -159,17 +184,48 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
   };
 
   const handleDeleteStrategy = (strategyId: string, strategyName: string) => {
-    if (!confirm(`Are you sure you want to delete "${strategyName}"?`)) {
-      return;
-    }
+    setDeleteConfirm({ id: strategyId, name: strategyName });
+  };
+
+  const confirmDelete = () => {
+    if (!deleteConfirm) return;
 
     try {
-      deleteStrategy(strategyId);
+      deleteStrategy(deleteConfirm.id);
       setStrategies(getStrategies());
       showSuccess('Strategy deleted successfully');
+      setDeleteConfirm(null);
     } catch (error) {
       showError('Failed to delete strategy. Please try again.');
       console.error('Error deleting strategy:', error);
+      setDeleteConfirm(null);
+    }
+  };
+
+  const handleShareStrategy = (strategy: Strategy) => {
+    setShareStrategy(strategy);
+  };
+
+  const generateShareLink = (strategy: Strategy): string => {
+    // Encode strategy as base64 URL parameter
+    const strategyData = JSON.stringify({
+      name: strategy.name,
+      blocks: strategy.blocks,
+      createdAt: strategy.createdAt,
+    });
+    const encoded = btoa(strategyData);
+    return `${window.location.origin}${window.location.pathname}?share=${encoded}`;
+  };
+
+  const copyShareLink = async (strategy: Strategy) => {
+    const link = generateShareLink(strategy);
+    try {
+      await navigator.clipboard.writeText(link);
+      showSuccess('Share link copied to clipboard!');
+      setShareStrategy(null);
+    } catch (error) {
+      showError('Failed to copy link. Please try again.');
+      console.error('Error copying link:', error);
     }
   };
 
@@ -312,7 +368,7 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
                   value={saveStrategyName}
                   onChange={(e) => setSaveStrategyName(e.target.value)}
                   placeholder="Enter strategy name..."
-                  className="w-full h-10 px-3 border border-gray-300 font-mono text-sm focus:border-orange focus:outline-none"
+                  className="w-full h-10 px-3 border border-gray-300 font-mono text-sm focus:border-orange focus:outline-none mb-3"
                   autoFocus
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
@@ -323,6 +379,15 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
                     }
                   }}
                 />
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={syncToCloud}
+                    onChange={(e) => setSyncToCloud(e.target.checked)}
+                    className="w-4 h-4 accent-orange"
+                  />
+                  <span className="text-xs text-gray-600">Sync to cloud</span>
+                </label>
               </div>
               <div className="flex gap-3 justify-end">
                 <Button
@@ -483,8 +548,15 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
                       </div>
                       <div className="flex gap-2">
                         {blockCount >= 4 && (
-                          <Star size={16} className="text-orange fill-orange" title="Popular" />
+                          <Star size={16} className="text-orange fill-orange" />
                         )}
+                        <button
+                          onClick={() => handleShareStrategy(strategy)}
+                          className="text-gray-400 hover:text-orange transition-colors"
+                          title="Share strategy"
+                        >
+                          <Share2 size={16} />
+                        </button>
                         <button
                           onClick={() => handleDeleteStrategy(strategy.id, strategy.name)}
                           className="text-gray-400 hover:text-alert-red transition-colors"
@@ -535,6 +607,82 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
             </div>
           )}
         </div>
+
+        {/* Delete Confirmation Dialog */}
+        <ConfirmationDialog
+          isOpen={deleteConfirm !== null}
+          title="Delete Strategy"
+          message={`Are you sure you want to delete "${deleteConfirm?.name}"? This action cannot be undone.`}
+          confirmLabel="Delete"
+          cancelLabel="Cancel"
+          variant="danger"
+          onConfirm={confirmDelete}
+          onCancel={() => setDeleteConfirm(null)}
+        />
+
+        {/* Share Dialog */}
+        {shareStrategy && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-white border-2 border-ink p-6 max-w-md w-full"
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h3 className="text-lg font-bold font-mono uppercase mb-2">Share Strategy</h3>
+                  <p className="text-sm text-gray-600">{shareStrategy.name}</p>
+                </div>
+                <button
+                  onClick={() => setShareStrategy(null)}
+                  className="p-1 hover:bg-gray-100 text-gray-400 hover:text-ink transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="mb-4">
+                <label className="block text-xs font-bold uppercase text-gray-500 mb-2">
+                  Share Link
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={generateShareLink(shareStrategy)}
+                    readOnly
+                    className="flex-1 h-10 px-3 border border-gray-300 font-mono text-xs focus:border-orange focus:outline-none bg-gray-50"
+                  />
+                  <Button
+                    variant="secondary"
+                    onClick={() => copyShareLink(shareStrategy)}
+                    className="flex items-center gap-2"
+                  >
+                    <Copy size={14} />
+                    Copy
+                  </Button>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Anyone with this link can import your strategy
+                </p>
+              </div>
+              <div className="flex gap-3 justify-end">
+                <Button variant="secondary" onClick={() => setShareStrategy(null)}>
+                  Close
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={() => {
+                    window.open(generateShareLink(shareStrategy), '_blank');
+                    setShareStrategy(null);
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  <ExternalLink size={14} />
+                  Open Link
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
       </motion.div>
     </div>
   );

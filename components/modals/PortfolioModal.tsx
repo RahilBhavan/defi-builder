@@ -3,6 +3,7 @@ import { Activity, ArrowDownLeft, ArrowUpRight, PieChart, Wallet, X } from 'luci
 import type React from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { useMultiPriceFeed } from '../../hooks/usePriceFeed';
+import { portfolioTracker, type PortfolioTransaction } from '../../services/portfolioTracker';
 import { Button } from '../ui/Button';
 
 interface PortfolioModalProps {
@@ -16,12 +17,28 @@ interface Holding {
 }
 
 export const PortfolioModal: React.FC<PortfolioModalProps> = ({ isOpen, onClose }) => {
-  const [holdings] = useState<Holding[]>([
-    { asset: 'ETH', amount: 5.24 },
-    { asset: 'USDC', amount: 8450.0 },
-    { asset: 'AAVE', amount: 120.0 },
-    { asset: 'WBTC', amount: 0.15 },
-  ]);
+  const [holdings, setHoldings] = useState<Holding[]>([]);
+  const [transactions, setTransactions] = useState<PortfolioTransaction[]>([]);
+  const [activeStrategies, setActiveStrategies] = useState(0);
+
+  // Load portfolio data when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      const currentHoldings = portfolioTracker.getCurrentHoldings();
+      const holdingsArray: Holding[] = Array.from(currentHoldings.entries())
+        .filter(([, amount]) => amount > 0.0001) // Filter out dust
+        .map(([asset, amount]) => ({ asset, amount }));
+
+      setHoldings(holdingsArray);
+      setTransactions(portfolioTracker.getTransactions(10)); // Last 10 transactions
+
+      // Count unique strategies from transactions
+      const uniqueStrategies = new Set(
+        portfolioTracker.getTransactions().map((tx) => tx.strategyId).filter(Boolean)
+      );
+      setActiveStrategies(uniqueStrategies.size || 0);
+    }
+  }, [isOpen]);
 
   const tokens = useMemo(() => holdings.map((h) => h.asset), [holdings]);
   const prices = useMultiPriceFeed(tokens);
@@ -74,31 +91,18 @@ export const PortfolioModal: React.FC<PortfolioModalProps> = ({ isOpen, onClose 
     return totalPrevious > 0 ? ((totalEquity - totalPrevious) / totalPrevious) * 100 : 0;
   }, [holdingsWithPrices, totalEquity, previousPrices]);
 
-  if (!isOpen) return null;
+  const getTimeAgo = (timestamp: number): string => {
+    const seconds = Math.floor((Date.now() - timestamp) / 1000);
+    if (seconds < 60) return `${seconds}s ago`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ago`;
+  };
 
-  const transactions = [
-    {
-      type: 'SWAP',
-      desc: 'ETH → USDC',
-      amount: '1.2 ETH',
-      time: '2 mins ago',
-      status: 'Confirmed',
-    },
-    {
-      type: 'SUPPLY',
-      desc: 'Supply USDC to Aave',
-      amount: '5000 USDC',
-      time: '4 hours ago',
-      status: 'Confirmed',
-    },
-    {
-      type: 'HARVEST',
-      desc: 'Claim Aave Rewards',
-      amount: '12.5 AAVE',
-      time: '1 day ago',
-      status: 'Confirmed',
-    },
-  ];
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-12">
@@ -155,8 +159,10 @@ export const PortfolioModal: React.FC<PortfolioModalProps> = ({ isOpen, onClose 
               <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
                 Active Strategies
               </p>
-              <p className="text-4xl font-mono font-bold text-ink">3</p>
-              <p className="text-sm font-mono text-gray-500 mt-2">Running on Sepolia</p>
+              <p className="text-4xl font-mono font-bold text-ink">{activeStrategies}</p>
+              <p className="text-sm font-mono text-gray-500 mt-2">
+                {activeStrategies === 0 ? 'No active strategies' : 'From backtests'}
+              </p>
             </div>
             <div className="p-6 bg-white border border-gray-200 shadow-sm">
               <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
@@ -230,27 +236,39 @@ export const PortfolioModal: React.FC<PortfolioModalProps> = ({ isOpen, onClose 
             <div className="w-full md:w-1/3">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-bold uppercase text-gray-500">History</h3>
-                <button className="text-xs text-orange hover:underline">View All</button>
+                {transactions.length > 10 && (
+                  <button className="text-xs text-orange hover:underline">View All</button>
+                )}
               </div>
               <div className="bg-white border border-gray-200 divide-y divide-gray-100">
-                {transactions.map((tx, i) => (
-                  <div key={i} className="p-4 hover:bg-gray-50 transition-colors">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-bold bg-gray-100 px-2 py-0.5 rounded-none uppercase text-gray-600">
-                        {tx.type}
-                      </span>
-                      <span className="text-[10px] text-gray-400 font-mono">{tx.time}</span>
-                    </div>
-                    <p className="text-sm font-bold text-ink mb-1">{tx.desc}</p>
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs font-mono text-gray-500">{tx.amount}</p>
-                      <div className="flex items-center gap-1 text-[10px] text-success-green uppercase font-bold">
-                        <div className="w-1.5 h-1.5 bg-success-green rounded-full" />
-                        {tx.status}
-                      </div>
-                    </div>
+                {transactions.length === 0 ? (
+                  <div className="p-8 text-center text-gray-400">
+                    <p className="text-sm font-mono uppercase">No transactions yet</p>
+                    <p className="text-xs mt-2">Execute strategies to see transactions</p>
                   </div>
-                ))}
+                ) : (
+                  transactions.map((tx) => {
+                    const timeAgo = getTimeAgo(tx.timestamp);
+                    return (
+                      <div key={tx.id} className="p-4 hover:bg-gray-50 transition-colors">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-bold bg-gray-100 px-2 py-0.5 rounded-none uppercase text-gray-600">
+                            {tx.type}
+                          </span>
+                          <span className="text-[10px] text-gray-400 font-mono">{timeAgo}</span>
+                        </div>
+                        <p className="text-sm font-bold text-ink mb-1">{tx.description}</p>
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs font-mono text-gray-500">{tx.amount}</p>
+                          <div className="flex items-center gap-1 text-[10px] text-success-green uppercase font-bold">
+                            <div className="w-1.5 h-1.5 bg-success-green rounded-full" />
+                            {tx.status}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
               </div>
             </div>
           </div>

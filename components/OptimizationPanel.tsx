@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   Activity,
   BarChart3,
@@ -21,7 +21,6 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-  ZAxis,
 } from 'recharts';
 import { useToast } from '../hooks/useToast';
 import {
@@ -80,8 +79,8 @@ export const OptimizationPanel: React.FC<OptimizationPanelProps> = ({
   const paretoChartData = useMemo(() => {
     if (paretoFrontier.length === 0 || objectives.length < 2) return [];
 
-    const xObjective = objectives[0];
-    const yObjective = objectives[1];
+    const xObjective = objectives[0]!;
+    const yObjective = objectives[1]!;
 
     return paretoFrontier.map((solution, index) => {
       const xValue = solution.outOfSampleScores[xObjective] ?? 0;
@@ -201,15 +200,34 @@ export const OptimizationPanel: React.FC<OptimizationPanelProps> = ({
           }
 
           // Track iteration log
-          setIterationLog((prev) => [
-            ...prev,
-            {
-              iteration: progressUpdate.iteration,
-              timestamp: Date.now(),
-              bestScores: progressUpdate.bestSolution?.outOfSampleScores || {},
-              error: progressUpdate.lastError,
-            },
-          ]);
+          if (progressUpdate.bestSolution) {
+            const bestScores: Record<string, number> = {};
+            Object.entries(progressUpdate.bestSolution.outOfSampleScores).forEach(([key, value]) => {
+              if (value !== undefined && typeof value === 'number') {
+                bestScores[key] = value;
+              }
+            });
+            setIterationLog((prev) => [
+              ...prev,
+              {
+                iteration: progressUpdate.iteration,
+                timestamp: Date.now(),
+                bestScores,
+                error: progressUpdate.lastError,
+              },
+            ]);
+          } else if (progressUpdate.lastError) {
+            // Log error even without best solution
+            setIterationLog((prev) => [
+              ...prev,
+              {
+                iteration: progressUpdate.iteration,
+                timestamp: Date.now(),
+                bestScores: {},
+                error: progressUpdate.lastError,
+              },
+            ]);
+          }
 
           // Show errors from progress if any
           if (progressUpdate.lastError) {
@@ -315,6 +333,52 @@ export const OptimizationPanel: React.FC<OptimizationPanelProps> = ({
                     Evolutionary approach. Deep exploration. Best for complex strategies.
                   </p>
                 </label>
+              </div>
+            </div>
+
+            {/* Optimization Presets */}
+            <div>
+              <div className="flex items-center gap-2 mb-4 text-ink font-bold font-mono text-sm uppercase">
+                <Zap size={16} />
+                Presets
+              </div>
+              <div className="space-y-2">
+                <button
+                  onClick={() => {
+                    setObjectives(['sharpeRatio', 'maxDrawdown']);
+                    setAlgorithm('bayesian');
+                  }}
+                  className="w-full p-3 bg-white border border-gray-200 hover:border-orange text-left transition-all"
+                >
+                  <div className="font-bold text-sm mb-1">Conservative</div>
+                  <div className="text-xs text-gray-500">
+                    Focus: Sharpe Ratio, Max Drawdown | Bayesian
+                  </div>
+                </button>
+                <button
+                  onClick={() => {
+                    setObjectives(['totalReturn', 'sharpeRatio', 'maxDrawdown']);
+                    setAlgorithm('bayesian');
+                  }}
+                  className="w-full p-3 bg-white border border-gray-200 hover:border-orange text-left transition-all"
+                >
+                  <div className="font-bold text-sm mb-1">Balanced</div>
+                  <div className="text-xs text-gray-500">
+                    Focus: Return, Sharpe, Drawdown | Bayesian
+                  </div>
+                </button>
+                <button
+                  onClick={() => {
+                    setObjectives(['totalReturn', 'winRate']);
+                    setAlgorithm('genetic');
+                  }}
+                  className="w-full p-3 bg-white border border-gray-200 hover:border-orange text-left transition-all"
+                >
+                  <div className="font-bold text-sm mb-1">Aggressive</div>
+                  <div className="text-xs text-gray-500">
+                    Focus: Total Return, Win Rate | Genetic
+                  </div>
+                </button>
               </div>
             </div>
 
