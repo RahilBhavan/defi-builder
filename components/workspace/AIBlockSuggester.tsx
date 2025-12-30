@@ -139,7 +139,14 @@ export const AIBlockSuggester: React.FC<AIBlockSuggesterProps> = ({
 
   // Use backend suggestions if available, otherwise use fallback
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      // Cleanup: abort any pending requests when panel closes
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+      return;
+    }
 
     // Prefer backend suggestions (from tRPC query)
     if (backendQuery?.data && Array.isArray(backendQuery.data)) {
