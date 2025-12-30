@@ -35,55 +35,64 @@ export async function initDoppler(): Promise<void> {
   }
 
   try {
-    // Dynamic import to avoid requiring Doppler SDK as dependency if not used
-    // Note: For CLI usage (doppler run), secrets are already in process.env
-    // This is for programmatic access via service tokens
-    
     // Check if we're running under Doppler CLI (secrets already injected)
+    // When using `doppler run`, Doppler injects secrets as environment variables
+    // and sets DOPPLER_ENVIRONMENT to indicate it's active
     if (process.env.DOPPLER_ENVIRONMENT) {
       isDopplerInitialized = true;
       logger.info('Doppler CLI detected, secrets already available', 'Secrets');
       return;
     }
 
-    // If service token provided, use Doppler SDK
+    // If service token provided, fetch secrets via Doppler REST API
+    // Note: For production, prefer using Doppler CLI (doppler run) over service tokens
     if (dopplerToken && dopplerProject) {
       try {
-        const { Doppler } = await import('@dopplerhq/node');
-        
-        dopplerClient = new Doppler({
-          token: dopplerToken,
-        });
+        // Use Doppler REST API directly (no SDK dependency)
+        const dopplerApiUrl = process.env.DOPPLER_API_URL || 'https://api.doppler.com/v3';
+        const response = await fetch(
+          `${dopplerApiUrl}/configs/config/secrets/download?project=${encodeURIComponent(dopplerProject)}&config=${encodeURIComponent(dopplerConfig)}&format=json`,
+          {
+            headers: {
+              Authorization: `Bearer ${dopplerToken}`,
+            },
+          }
+        );
 
-        // Fetch secrets from Doppler
-        const response = await dopplerClient.getSecrets({
-          project: dopplerProject,
-          config: dopplerConfig,
-        });
+        if (response.ok) {
+          const data = (await response.json()) as { secrets?: Record<string, string> } | Record<string, string>;
+          const secrets = 'secrets' in data && data.secrets ? data.secrets : (data as Record<string, string>);
 
-        // Merge Doppler secrets into process.env (with existing env vars taking precedence)
-        if (response && typeof response === 'object') {
-          const secrets = response.secrets || response;
-          Object.entries(secrets).forEach(([key, value]) => {
-            if (!process.env[key] && value) {
-              process.env[key] = String(value);
-            }
-          });
+          // Merge Doppler secrets into process.env (with existing env vars taking precedence)
+          if (secrets && typeof secrets === 'object') {
+            Object.entries(secrets).forEach(([key, value]) => {
+              if (!process.env[key] && value) {
+                process.env[key] = String(value);
+              }
+            });
+          }
+
+          isDopplerInitialized = true;
+          logger.info('Doppler API initialized successfully', 'Secrets');
+        } else {
+          logger.warn('Failed to fetch secrets from Doppler API, using environment variables', 'Secrets');
         }
-
-        isDopplerInitialized = true;
-        logger.info('Doppler SDK initialized successfully', 'Secrets', {
-          project: dopplerProject,
-          config: dopplerConfig,
-        });
-      } catch (sdkError) {
-        // SDK not installed or error - that's okay, we'll use env vars
-        logger.debug('Doppler SDK not available, using environment variables', 'Secrets');
+      } catch (apiError) {
+        // API call failed - that's okay, we'll use env vars
+        if (apiError instanceof Error) {
+          logger.debug(`Doppler API error: ${apiError.message}`, 'Secrets');
+        } else {
+          logger.debug('Doppler API not available, using environment variables', 'Secrets');
+        }
       }
     }
   } catch (error) {
     logger.warn('Doppler initialization skipped, using environment variables', 'Secrets');
-    logger.debug('Doppler error', error instanceof Error ? error : new Error(String(error)), 'Secrets');
+    if (error instanceof Error) {
+      logger.debug(`Doppler error: ${error.message}`, 'Secrets');
+    } else {
+      logger.debug(`Doppler error: ${String(error)}`, 'Secrets');
+    }
   }
 }
 
