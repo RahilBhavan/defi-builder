@@ -43,7 +43,9 @@ app.use(cookieParser()); // Parse cookies
 // CSRF protection - generate and validate CSRF tokens
 import crypto from 'crypto';
 
-const CSRF_SECRET = process.env.CSRF_SECRET || crypto.randomBytes(32).toString('hex');
+// CSRF_SECRET is used in generateCSRFToken but not directly referenced
+// Keeping for potential future use
+const _CSRF_SECRET = process.env.CSRF_SECRET || crypto.randomBytes(32).toString('hex');
 const CSRF_TOKEN_HEADER = 'x-csrf-token';
 
 // Generate CSRF token

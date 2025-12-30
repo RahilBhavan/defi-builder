@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { signToken } from '../auth/jwt';
+import { signToken, verifyToken } from '../auth/jwt';
 import redis from '../cache/redis';
 import { getAISuggestions, getProtocolDocumentation } from '../services/ai';
 import { getTokenPrices } from '../services/priceFeed';
@@ -100,13 +100,19 @@ export const appRouter = router({
         throw new Error('No refresh token provided');
       }
 
-      const newAccessToken = refreshAccessToken(refreshToken);
-      if (!newAccessToken) {
+      const payload = verifyToken(refreshToken);
+      if (!payload || payload.type !== 'refresh') {
         // Invalid refresh token - clear cookies
         ctx.res.clearCookie('auth_token');
         ctx.res.clearCookie('refresh_token');
         throw new Error('Invalid or expired refresh token');
       }
+
+      // Generate new access token
+      const newAccessToken = signToken({
+        userId: payload.userId,
+        walletAddress: payload.walletAddress,
+      }, false);
 
       // Set new access token
       ctx.res.cookie('auth_token', newAccessToken, {

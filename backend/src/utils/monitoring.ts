@@ -3,6 +3,7 @@
  * Provides error tracking and performance monitoring for backend
  */
 
+import type express from 'express';
 import { logger } from './logger';
 
 // Sentry integration (optional)
@@ -67,7 +68,14 @@ export function captureMessage(message: string, level: 'info' | 'warning' | 'err
       },
     });
   }
-  logger[level](message, undefined, 'Monitoring', context);
+  // Use appropriate logger method
+  if (level === 'error') {
+    logger.error(message, undefined, 'Monitoring', context);
+  } else if (level === 'warning') {
+    logger.warn(message, undefined, 'Monitoring', context);
+  } else {
+    logger.info(message, undefined, 'Monitoring', context);
+  }
 }
 
 /**

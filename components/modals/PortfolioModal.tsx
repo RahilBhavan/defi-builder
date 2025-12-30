@@ -184,7 +184,7 @@ export const PortfolioModal: React.FC<PortfolioModalProps> = ({ isOpen, onClose 
               </div>
             </div>
           ) : (
-            <div>
+            <>
               {/* Top Stats */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
                 <div className="p-6 bg-white border border-gray-200 shadow-sm">
@@ -203,16 +203,16 @@ export const PortfolioModal: React.FC<PortfolioModalProps> = ({ isOpen, onClose 
                       maximumFractionDigits: 2,
                     })}
                   </p>
-              <p
-                className={`text-sm font-mono mt-2 flex items-center gap-1 ${
-                  totalChange24h >= 0 ? 'text-success-green' : 'text-alert-red'
-                }`}
-              >
-                {totalChange24h >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownLeft size={14} />}
-                {totalChange24h >= 0 ? '+' : ''}
-                {totalChange24h.toFixed(2)}% (24h)
-              </p>
-            </div>
+                  <p
+                    className={`text-sm font-mono mt-2 flex items-center gap-1 ${
+                      totalChange24h >= 0 ? 'text-success-green' : 'text-alert-red'
+                    }`}
+                  >
+                    {totalChange24h >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownLeft size={14} />}
+                    {totalChange24h >= 0 ? '+' : ''}
+                    {totalChange24h.toFixed(2)}% (24h)
+                  </p>
+                </div>
             <div className="p-6 bg-white border border-gray-200 shadow-sm">
               <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
                 Active Strategies
@@ -346,7 +346,8 @@ export const PortfolioModal: React.FC<PortfolioModalProps> = ({ isOpen, onClose 
                 )}
               </div>
             </div>
-            </div>
+          </div>
+            </>
           )}
         </div>
 
