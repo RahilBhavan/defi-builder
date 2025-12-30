@@ -684,13 +684,7 @@ export const BacktestModal: React.FC<BacktestModalProps> = ({ isOpen, onClose, r
                 </div>
               ) : (
                 <div className="border border-gray-300 bg-white">
-                  {/* Performance warning for large lists */}
-                  {filteredTrades.length > 100 && (
-                    <div className="p-3 bg-yellow-50 border-b border-yellow-200 text-xs text-yellow-800 font-mono">
-                      Showing first 100 of {filteredTrades.length} trades. Use filters to narrow results.
-                    </div>
-                  )}
-                  <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
+                  <div className="overflow-x-auto">
                     <table className="w-full text-xs font-mono">
                       <thead className="bg-gray-50 sticky top-0 border-b border-gray-300 z-10">
                         <tr>
@@ -714,40 +708,44 @@ export const BacktestModal: React.FC<BacktestModalProps> = ({ isOpen, onClose, r
                           <th className="px-4 py-3 text-right font-bold uppercase text-ink">Gas</th>
                         </tr>
                       </thead>
-                      <tbody>
-                        {filteredTrades.slice(0, 100).map((trade) => (
-                          <tr key={trade.id} className="border-b border-gray-200 hover:bg-gray-50">
-                            <td className="px-4 py-3 text-gray-600">
-                              {new Date(trade.timestamp).toLocaleString()}
-                            </td>
-                            <td className="px-4 py-3">
-                              <span className="px-2 py-1 bg-gray-100 text-ink uppercase text-[10px]">
-                                {trade.type}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3 text-gray-600">{trade.inputToken}</td>
-                            <td className="px-4 py-3 text-gray-600">{trade.outputToken || '-'}</td>
-                            <td className="px-4 py-3 text-right text-gray-600">
-                              {trade.inputAmount.toFixed(4)} {trade.inputToken}
-                              {trade.outputAmount && (
-                                <div className="text-gray-400">
-                                  → {trade.outputAmount.toFixed(4)} {trade.outputToken}
-                                </div>
-                              )}
-                            </td>
-                            <td className="px-4 py-3 text-right text-gray-600">
-                              ${trade.price.toFixed(2)}
-                            </td>
-                            <td className="px-4 py-3 text-right text-gray-600">
-                              ${trade.fees.toFixed(4)}
-                            </td>
-                            <td className="px-4 py-3 text-right text-gray-600">
-                              {trade.gasCost.toFixed(6)} ETH
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
                     </table>
+                    <div className="max-h-[500px] overflow-y-auto">
+                      <table className="w-full text-xs font-mono">
+                        <tbody>
+                          {filteredTrades.map((trade) => (
+                            <tr key={trade.id} className="border-b border-gray-200 hover:bg-gray-50">
+                              <td className="px-4 py-3 text-gray-600">
+                                {new Date(trade.timestamp).toLocaleString()}
+                              </td>
+                              <td className="px-4 py-3">
+                                <span className="px-2 py-1 bg-gray-100 text-ink uppercase text-[10px]">
+                                  {trade.type}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 text-gray-600">{trade.inputToken}</td>
+                              <td className="px-4 py-3 text-gray-600">{trade.outputToken || '-'}</td>
+                              <td className="px-4 py-3 text-right text-gray-600">
+                                {trade.inputAmount.toFixed(4)} {trade.inputToken}
+                                {trade.outputAmount && (
+                                  <div className="text-gray-400">
+                                    → {trade.outputAmount.toFixed(4)} {trade.outputToken}
+                                  </div>
+                                )}
+                              </td>
+                              <td className="px-4 py-3 text-right text-gray-600">
+                                ${trade.price.toFixed(2)}
+                              </td>
+                              <td className="px-4 py-3 text-right text-gray-600">
+                                ${trade.fees.toFixed(4)}
+                              </td>
+                              <td className="px-4 py-3 text-right text-gray-600">
+                                {trade.gasCost.toFixed(6)} ETH
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 </div>
               )}
