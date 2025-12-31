@@ -1,4 +1,5 @@
 import type { LegoBlock } from '../../types';
+import { logger } from '../../lib/monitoring/logger';
 import type { DeFiBacktestResult } from '../defiBacktestEngine';
 import { BayesianOptimizer } from './algorithms/bayesianOptimizer';
 import { GeneticOptimizer } from './algorithms/geneticOptimizer';
@@ -164,7 +165,7 @@ export class OptimizationEngine {
             error instanceof Error ? error.message : 'Unknown error in backtest window';
 
           // Log error but continue with other windows
-          console.warn(`Backtest window failed: ${errorMessage}`);
+          logger.warn(`Backtest window failed: ${errorMessage}`, 'OptimizationEngine');
 
           // Only track unique errors
           if (!this.errors.includes(errorMessage)) {

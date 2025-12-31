@@ -396,7 +396,8 @@ function validateBlockParameters(
 
     default:
       // Unknown block type - warn but don't fail
-      console.warn(`Unknown block type: ${block.type}`);
+      const { logger } = await import('../lib/monitoring/logger');
+      logger.warn(`Unknown block type: ${block.type}`, 'StrategyValidator');
       break;
   }
 }

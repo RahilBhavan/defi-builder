@@ -3,6 +3,8 @@
  * Provides consistent error handling across the application
  */
 
+import { logger } from '../lib/monitoring/logger';
+
 /**
  * Safely parse JSON string with error handling
  * @param jsonString - The JSON string to parse
@@ -13,7 +15,11 @@ export function safeJsonParse<T = unknown>(jsonString: string, fallback: T | nul
   try {
     return JSON.parse(jsonString) as T;
   } catch (error) {
-    console.error('JSON parse error:', error);
+    logger.error(
+      'JSON parse error',
+      error instanceof Error ? error : new Error(String(error)),
+      'JSON'
+    );
     return fallback;
   }
 }
@@ -28,7 +34,11 @@ export function safeJsonStringify(value: unknown, fallback = '{}'): string {
   try {
     return JSON.stringify(value);
   } catch (error) {
-    console.error('JSON stringify error:', error);
+    logger.error(
+      'JSON stringify error',
+      error instanceof Error ? error : new Error(String(error)),
+      'JSON'
+    );
     return fallback;
   }
 }
@@ -51,10 +61,14 @@ export function safeJsonParseWithSchema<T>(
     if (result.success && result.data) {
       return result.data;
     }
-    console.error('Schema validation failed:', result.error);
+    logger.error('Schema validation failed', result.error as Error, 'JSON');
     return fallback;
   } catch (error) {
-    console.error('JSON parse error:', error);
+    logger.error(
+      'JSON parse error',
+      error instanceof Error ? error : new Error(String(error)),
+      'JSON'
+    );
     return fallback;
   }
 }

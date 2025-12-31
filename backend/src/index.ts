@@ -7,6 +7,7 @@ import prisma from './db/client';
 import { rateLimiters } from './middleware/rateLimiter';
 import { createContext } from './trpc/context';
 import { appRouter } from './trpc/router';
+import { startSecretRotationJob } from './jobs/secretRotation';
 import { validateEnv } from './utils/envValidation';
 import { logger } from './utils/logger';
 import { initSentry, performanceMiddleware } from './utils/monitoring';

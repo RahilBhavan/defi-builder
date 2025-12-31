@@ -298,6 +298,9 @@ export const appRouter = router({
   // Webhook endpoints
   webhooks: webhooksRouter,
 
+  // Marketplace endpoints
+  marketplace: marketplaceRouter,
+
   // Strategy sharing endpoints
   sharing: router({
     generateShareToken: publicProcedure

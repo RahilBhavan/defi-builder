@@ -14,6 +14,7 @@
  * - Fallback: Environment variables (for local dev without Doppler)
  */
 
+import { auditApiKey, AuditEventType } from './auditLogger';
 import { logger } from './logger';
 
 let isDopplerInitialized = false;
@@ -98,16 +99,28 @@ export async function initDoppler(): Promise<void> {
 
 /**
  * Get secret value from Doppler or environment
+ * Audits API key access for security monitoring
  */
 export async function getSecret(key: string, defaultValue?: string): Promise<string | undefined> {
-  // If Doppler is initialized, secrets are already in process.env
-  // (either via CLI injection or API fetch)
-  if (isDopplerInitialized) {
-    return process.env[key] || defaultValue;
+  const value = isDopplerInitialized
+    ? process.env[key] || defaultValue
+    : process.env[key] || defaultValue;
+
+  // Audit API key access (only for sensitive keys)
+  if (value && (key.includes('API_KEY') || key.includes('SECRET') || key.includes('TOKEN'))) {
+    auditApiKey(AuditEventType.API_KEY_ACCESSED, {
+      keyName: key,
+      success: true,
+      metadata: {
+        hasValue: !!value,
+        source: isDopplerInitialized ? 'doppler' : 'environment',
+      },
+    }).catch(() => {
+      // Silently fail - audit logging should never break the application
+    });
   }
 
-  // Fallback to environment variable
-  return process.env[key] || defaultValue;
+  return value;
 }
 
 /**

@@ -1,8 +1,9 @@
 import { motion } from 'framer-motion';
-import { AlertCircle, BookOpen, Copy, ExternalLink, Loader2, Save, Search, Share2, Sparkles, Star, X } from 'lucide-react';
+import { AlertCircle, BookOpen, Copy, ExternalLink, Save, Search, Share2, Sparkles, Star, X } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { useToast } from '../../hooks/useToast';
+import { logger } from '../../lib/monitoring/logger';
 import {
   createStrategyFromBlocks,
   deleteStrategy,

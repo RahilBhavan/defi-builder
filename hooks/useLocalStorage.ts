@@ -57,7 +57,12 @@ export function useLocalStorage<T>(
 
       return parsed as T;
     } catch (error) {
-      console.error(`Error reading localStorage key "${key}":`, error);
+      const { logger } = await import('../lib/monitoring/logger');
+      logger.error(
+        `Error reading localStorage key "${key}"`,
+        error instanceof Error ? error : new Error(String(error)),
+        'useLocalStorage'
+      );
       return initialValue;
     }
   });

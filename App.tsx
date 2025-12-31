@@ -12,6 +12,7 @@ import type { ViewState } from './types';
 import { trpcClient } from './utils/api-client';
 import { initSentry } from './utils/monitoring';
 import { trpc } from './utils/trpc';
+import { useTheme } from './hooks/useTheme';
 
 // Create a query client for React Query
 const queryClient = new QueryClient({
@@ -25,6 +26,7 @@ const queryClient = new QueryClient({
 
 const App: React.FC = () => {
   const [view, setView] = useState<ViewState>('landing');
+  const { effectiveTheme } = useTheme();
 
   // Initialize monitoring
   useEffect(() => {

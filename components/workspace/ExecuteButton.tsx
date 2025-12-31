@@ -10,6 +10,7 @@ interface ExecuteButtonProps {
 export const ExecuteButton: React.FC<ExecuteButtonProps> = ({ isValid, isExecuting, onClick }) => {
   return (
     <motion.button
+      data-onboarding="execute"
       onClick={onClick}
       disabled={!isValid || isExecuting}
       animate={isValid && !isExecuting ? { opacity: [1, 0.9, 1] } : {}}

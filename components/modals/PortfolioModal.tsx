@@ -21,6 +21,7 @@ export const PortfolioModal: React.FC<PortfolioModalProps> = ({ isOpen, onClose 
   const [holdings, setHoldings] = useState<Holding[]>([]);
   const [transactions, setTransactions] = useState<PortfolioTransaction[]>([]);
   const [activeStrategies, setActiveStrategies] = useState(0);
+  const [isLoadingData, setIsLoadingData] = useState(false);
 
   // Load portfolio data when modal opens
   useEffect(() => {

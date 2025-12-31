@@ -135,7 +135,12 @@ export function saveVersionMetadata(metadata: VersionMetadata): void {
   try {
     localStorage.setItem(VERSION_METADATA_KEY, JSON.stringify(metadata));
   } catch (error) {
-    console.error('Failed to save version metadata:', error);
+    const { logger } = await import('../../lib/monitoring/logger');
+    logger.error(
+      'Failed to save version metadata',
+      error instanceof Error ? error : new Error(String(error)),
+      'Versioning'
+    );
   }
 }
 

@@ -10,6 +10,9 @@ import { NetworkBadge } from './workspace/NetworkBadge';
 import { SecondaryMenu } from './workspace/SecondaryMenu';
 import { ValidationStatus } from './workspace/ValidationStatus';
 import { ZoomControls } from './workspace/ZoomControls';
+import { MobileNavigation } from './workspace/MobileNavigation';
+import { useBreakpoint } from '../hooks/useTouchGestures';
+import { OnboardingTour } from './onboarding/OnboardingTour';
 
 // Lazy load modals and heavy components
 const BacktestModal = lazy(() =>
@@ -20,6 +23,9 @@ const PortfolioModal = lazy(() =>
 );
 const StrategyLibraryModal = lazy(() =>
   import('./modals/StrategyLibraryModal').then((m) => ({ default: m.StrategyLibraryModal }))
+);
+const MarketplaceModal = lazy(() =>
+  import('./marketplace/MarketplaceModal').then((m) => ({ default: m.MarketplaceModal }))
 );
 const SettingsModal = lazy(() =>
   import('./modals/SettingsModal').then((m) => ({ default: m.SettingsModal }))
@@ -152,7 +158,8 @@ const Workspace: React.FC = () => {
       setSimulationResult(simulation);
       setShowSimulation(true);
     } catch (error) {
-      console.error('Simulation failed:', error);
+      const { logger } = await import('../lib/monitoring/logger');
+      logger.error('Simulation failed', error instanceof Error ? error : new Error(String(error)), 'Workspace');
       const { getUserFriendlyErrorMessage } = await import('../utils/errorHandler');
       showError(getUserFriendlyErrorMessage(error, 'simulation'));
     }
@@ -242,6 +249,9 @@ const Workspace: React.FC = () => {
           />
         </div>
       </main>
+
+      {/* Mobile bottom padding to account for navigation */}
+      {breakpoint === 'mobile' && <div className="h-16" />}
 
       {/* 2. Persistent UI Layer */}
       <NetworkBadge />

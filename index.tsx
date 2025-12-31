@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
+import { logger } from './lib/monitoring/logger';
 import './index.css';
 
 // Register service worker for PWA
@@ -9,10 +10,14 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
     navigator.serviceWorker
       .register('/sw.js')
       .then((registration) => {
-        console.log('Service Worker registered:', registration.scope);
+        logger.info(`Service Worker registered: ${registration.scope}`, 'ServiceWorker');
       })
       .catch((error) => {
-        console.log('Service Worker registration failed:', error);
+        logger.error(
+          'Service Worker registration failed',
+          error instanceof Error ? error : new Error(String(error)),
+          'ServiceWorker'
+        );
       });
   });
 }

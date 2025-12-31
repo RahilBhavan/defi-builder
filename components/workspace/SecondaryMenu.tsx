@@ -1,6 +1,8 @@
 import { Menu } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
+import { ThemeToggle } from '../ui/ThemeToggle';
+import { VersionInfo } from '../ui/VersionInfo';
 
 interface SecondaryMenuProps {
   onOpenBacktest: () => void;
@@ -69,6 +71,10 @@ export const SecondaryMenu: React.FC<SecondaryMenuProps> = ({
                 {item.label !== '---' && item.label}
               </button>
             ))}
+            <div className="border-t border-gray-200 px-4 py-3 flex items-center justify-between bg-gray-50">
+              <VersionInfo />
+              <ThemeToggle />
+            </div>
           </div>
         </>
       )}

@@ -5,6 +5,7 @@ export interface AppSettings {
   appearance: {
     showAdvancedTooltips: boolean;
     highContrastMode: boolean;
+    theme: 'light' | 'dark' | 'system';
   };
   notifications: {
     strategyExecutionAlerts: boolean;
@@ -26,6 +27,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   appearance: {
     showAdvancedTooltips: true,
     highContrastMode: false,
+    theme: 'system',
   },
   notifications: {
     strategyExecutionAlerts: true,
@@ -62,7 +64,12 @@ export function getSettings(): AppSettings {
       apiKeys: { ...DEFAULT_SETTINGS.apiKeys, ...parsed.apiKeys },
     };
   } catch (error) {
-    console.error('Error loading settings:', error);
+    const { logger } = await import('../lib/monitoring/logger');
+    logger.error(
+      'Error loading settings',
+      error instanceof Error ? error : new Error(String(error)),
+      'SettingsStorage'
+    );
     return DEFAULT_SETTINGS;
   }
 }
@@ -74,7 +81,12 @@ export function saveSettings(settings: AppSettings): void {
   try {
     localStorage.setItem('defi-builder-settings', safeJsonStringify(settings));
   } catch (error) {
-    console.error('Error saving settings:', error);
+    const { logger } = await import('../lib/monitoring/logger');
+    logger.error(
+      'Error saving settings',
+      error instanceof Error ? error : new Error(String(error)),
+      'SettingsStorage'
+    );
     throw new Error('Failed to save settings');
   }
 }

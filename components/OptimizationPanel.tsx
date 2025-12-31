@@ -23,6 +23,7 @@ import {
   YAxis,
 } from 'recharts';
 import { useToast } from '../hooks/useToast';
+import { logger } from '../lib/monitoring/logger';
 import { getUserFriendlyErrorMessage } from '../utils/errorHandler';
 import {
   type OptimizationAlgorithm,
@@ -243,7 +244,11 @@ export const OptimizationPanel: React.FC<OptimizationPanelProps> = ({
         `Optimization complete! Found ${optimizationResult.paretoFrontier.length} Pareto-optimal solutions.`
       );
     } catch (error) {
-      console.error('Optimization failed:', error);
+      logger.error(
+        'Optimization failed',
+        error instanceof Error ? error : new Error(String(error)),
+        'OptimizationPanel'
+      );
       // getUserFriendlyErrorMessage is already imported at the top
       showError(getUserFriendlyErrorMessage(error, 'optimization'));
     } finally {

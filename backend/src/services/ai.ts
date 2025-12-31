@@ -5,6 +5,7 @@
  */
 
 import { GoogleGenAI, Type } from '@google/genai';
+import { auditApiKey, AuditEventType } from '../utils/auditLogger';
 import { logger } from '../utils/logger';
 
 interface AISuggestion {
@@ -58,11 +59,36 @@ export async function getAISuggestions(
   // If Gemini API is available, enhance with AI suggestions
   if (ai && apiKey) {
     try {
+      // Audit API key usage
+      auditApiKey(AuditEventType.API_KEY_ACCESSED, {
+        keyName: 'GEMINI_API_KEY',
+        success: true,
+        metadata: {
+          operation: 'getAISuggestions',
+          blockCount: Array.isArray(currentBlocks) ? currentBlocks.length : 0,
+        },
+      }).catch(() => {
+        // Silently fail
+      });
+
       const aiSuggestions = await getGeminiSuggestions(currentBlocks, userQuery);
       // Merge AI suggestions with rule-based ones
       return [...suggestions, ...aiSuggestions];
     } catch (error) {
       logger.error('Gemini API error (falling back to rule-based)', error instanceof Error ? error : new Error(String(error)), 'AI');
+      
+      // Audit failed API key usage
+      auditApiKey(AuditEventType.API_KEY_ACCESSED, {
+        keyName: 'GEMINI_API_KEY',
+        success: false,
+        metadata: {
+          operation: 'getAISuggestions',
+          error: error instanceof Error ? error.message : String(error),
+        },
+      }).catch(() => {
+        // Silently fail
+      });
+
       // Return rule-based suggestions on error
       return suggestions;
     }

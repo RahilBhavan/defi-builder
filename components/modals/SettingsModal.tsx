@@ -3,7 +3,10 @@ import { Key, Network, Settings, Shield, X } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useState } from 'react';
 import { useToast } from '../../hooks/useToast';
+import { logger } from '../../lib/monitoring/logger';
 import { type AppSettings, useSettings } from '../../services/settingsStorage';
+import { useTheme } from '../../hooks/useTheme';
+import { ThemeToggle } from '../ui/ThemeToggle';
 import { Button } from '../ui/Button';
 import { ConfirmationDialog } from '../ui/ConfirmationDialog';
 
@@ -17,6 +20,7 @@ type Tab = 'general' | 'network' | 'api';
 export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   const { settings, updateSection, resetSettings } = useSettings();
   const { success: showSuccess, error: showError } = useToast();
+  const { theme, effectiveTheme } = useTheme();
   const [activeTab, setActiveTab] = useState<Tab>('general');
   const [localSettings, setLocalSettings] = useState(settings);
   const [hasChanges, setHasChanges] = useState(false);
@@ -121,6 +125,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                     Appearance
                   </h3>
                   <div className="space-y-4">
+                    {/* Theme Toggle */}
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm text-gray-700">Theme</label>
+                      <ThemeToggle />
+                    </div>
+                    <p className="text-xs text-gray-500 font-mono">
+                      Current: {theme === 'system' ? 'System' : theme === 'dark' ? 'Dark' : 'Light'} mode
+                      {theme === 'system' && ` (${effectiveTheme})`}
+                    </p>
                     <label className="flex items-center gap-3 cursor-pointer">
                       <input
                         type="checkbox"

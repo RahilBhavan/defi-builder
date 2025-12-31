@@ -73,6 +73,10 @@ class RateLimiter {
       if (this.requestHistory.length >= this.config.maxRequests) {
         // Wait until we can make more requests
         const oldestRequest = this.requestHistory[0];
+        if (oldestRequest === undefined) {
+          // Should not happen, but handle gracefully
+          break;
+        }
         const waitTime = this.config.windowMs - (now - oldestRequest);
         if (waitTime > 0) {
           await this.sleep(waitTime);

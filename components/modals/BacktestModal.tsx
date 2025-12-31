@@ -14,6 +14,7 @@ import {
   YAxis,
 } from 'recharts';
 import { useToast } from '../../hooks/useToast';
+import { logger } from '../../lib/monitoring/logger';
 import type { DeFiBacktestResult } from '../../services/defiBacktestEngine';
 import { type AdvancedMetrics, calculateAdvancedMetrics } from '../../utils/advancedMetrics';
 import { VirtualTable, VirtualTableContainer } from '../ui/VirtualTable';
@@ -161,7 +162,7 @@ export const BacktestModal: React.FC<BacktestModalProps> = ({ isOpen, onClose, r
       showSuccess('Equity curve exported to CSV');
     } catch (error) {
       showError('Failed to export equity curve');
-      console.error('CSV export error:', error);
+      logger.error('CSV export error', error instanceof Error ? error : new Error(String(error)), 'BacktestModal');
     }
   };
 
@@ -176,7 +177,7 @@ export const BacktestModal: React.FC<BacktestModalProps> = ({ isOpen, onClose, r
       showSuccess('Trades exported to CSV');
     } catch (error) {
       showError('Failed to export trades');
-      console.error('CSV export error:', error);
+      logger.error('CSV export error', error instanceof Error ? error : new Error(String(error)), 'BacktestModal');
     }
   };
 
@@ -191,7 +192,7 @@ export const BacktestModal: React.FC<BacktestModalProps> = ({ isOpen, onClose, r
       showSuccess('Metrics exported to CSV');
     } catch (error) {
       showError('Failed to export metrics');
-      console.error('CSV export error:', error);
+      logger.error('CSV export error', error instanceof Error ? error : new Error(String(error)), 'BacktestModal');
     }
   };
 

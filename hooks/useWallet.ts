@@ -58,7 +58,12 @@ export function useWallet(): WalletState {
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to connect wallet';
         showError(message);
-        console.error('Wallet connection error:', error);
+        const { logger } = await import('../lib/monitoring/logger');
+        logger.error(
+          'Wallet connection error',
+          error instanceof Error ? error : new Error(String(error)),
+          'useWallet'
+        );
       }
     },
     [wagmiConnect, connectors, showError, showSuccess]

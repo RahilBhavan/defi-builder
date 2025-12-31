@@ -232,7 +232,11 @@ export async function fetchMultipleTokenPrices(
       const prices = await fetchHistoricalPrices(token, startDate, endDate, interval);
       priceMap.set(token, prices);
     } catch (error) {
-      console.error(`Failed to fetch prices for ${token}:`, error);
+      logger.error(
+        `Failed to fetch prices for ${token}`,
+        error instanceof Error ? error : new Error(String(error)),
+        'DataFetcher'
+      );
       // Continue with other tokens
     }
   });

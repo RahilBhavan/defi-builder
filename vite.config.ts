@@ -5,7 +5,8 @@ import { visualizer } from 'rollup-plugin-visualizer';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, '.', '');
+  // Load env vars (used by plugins)
+  loadEnv(mode, '.', '');
   return {
     server: {
       port: 3000,
@@ -61,7 +62,20 @@ export default defineConfig(({ mode }) => {
                 },
               },
             },
+            {
+              urlPattern: /^https:\/\/.*\/trpc\/.*/i,
+              handler: 'NetworkFirst',
+              options: {
+                cacheName: 'trpc-api-cache',
+                expiration: {
+                  maxEntries: 100,
+                  maxAgeSeconds: 5 * 60, // 5 minutes
+                },
+              },
+            },
           ],
+          skipWaiting: true,
+          clientsClaim: true,
         },
       }),
     ],
@@ -114,6 +128,8 @@ export default defineConfig(({ mode }) => {
             if (id.includes('/services/backtest/')) {
               return 'backtest-engine';
             }
+            // Return undefined for files that don't need special chunking
+            return undefined;
           },
           // Optimize chunk names
           chunkFileNames: (chunkInfo) => {

@@ -19,9 +19,12 @@ export function initSentry(dsn?: string): void {
     return;
   }
 
-  try {
-    // Dynamic import to avoid bundling Sentry in production if not needed
-    import('@sentry/react').then((sentryModule) => {
+  // Use a function that Vite won't statically analyze
+  const loadSentry = async () => {
+    try {
+      // Dynamic import to avoid bundling Sentry in production if not needed
+      // Note: @sentry/react is optional - gracefully handle if not installed
+      const sentryModule = await import(/* @vite-ignore */ '@sentry/react');
       Sentry = sentryModule;
       Sentry.init({
         dsn,
@@ -36,12 +39,18 @@ export function initSentry(dsn?: string): void {
       });
       isSentryInitialized = true;
       logger.info('Sentry initialized successfully', 'Monitoring');
-    }).catch((error) => {
-      logger.error('Failed to initialize Sentry', error instanceof Error ? error : new Error(String(error)), 'Monitoring');
-    });
-  } catch (error) {
-    logger.error('Error loading Sentry', error instanceof Error ? error : new Error(String(error)), 'Monitoring');
-  }
+    } catch (error) {
+      // Sentry is optional - fail silently if not installed
+      const err = error instanceof Error ? error : new Error(String(error));
+      if (!err.message.includes('Cannot find module') && !err.message.includes('Failed to fetch')) {
+        logger.warn('Failed to initialize Sentry', 'Monitoring');
+      }
+    }
+  };
+
+  loadSentry().catch(() => {
+    // Ignore - Sentry is optional
+  });
 }
 
 /**
@@ -71,7 +80,14 @@ export function captureMessage(message: string, level: 'info' | 'warning' | 'err
       },
     });
   }
-  logger[level](message, undefined, 'Monitoring', context);
+  // Log based on level
+  if (level === 'error') {
+    logger.error(message, undefined, 'Monitoring', context);
+  } else if (level === 'warning') {
+    logger.warn(message, 'Monitoring', context);
+  } else {
+    logger.info(message, 'Monitoring', context);
+  }
 }
 
 /**
@@ -102,7 +118,7 @@ export function clearUserContext(): void {
  */
 export function trackEvent(eventName: string, properties?: Record<string, any>): void {
   // Log event for now (can be extended to PostHog, Mixpanel, etc.)
-  logger.info(`Event: ${eventName}`, undefined, 'Analytics', properties);
+  logger.info(`Event: ${eventName}`, 'Analytics', properties);
 
   // Example: PostHog integration
   // if (window.posthog) {
@@ -127,7 +143,7 @@ export function startPerformanceMeasurement(name: string): () => void {
   const startTime = performance.now();
   return () => {
     const duration = performance.now() - startTime;
-    logger.info(`Performance: ${name} took ${duration.toFixed(2)}ms`, undefined, 'Performance');
+    logger.info(`Performance: ${name} took ${duration.toFixed(2)}ms`, 'Performance');
     trackEvent('performance_measurement', {
       name,
       duration,

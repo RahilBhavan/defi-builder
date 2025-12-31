@@ -4,6 +4,7 @@
  */
 
 import type { LegoBlock } from '../types';
+import { logger } from '../lib/monitoring/logger';
 import { type ExecutionContext, executeBlockSequence } from './backtest/blockExecutor';
 import {
   type PriceDataPoint,
@@ -116,12 +117,12 @@ export async function runDeFiBacktest(config: BacktestConfig): Promise<DeFiBackt
     // Check if we have sufficient data points
     for (const [token, prices] of tokenPrices.entries()) {
       if (prices.length === 0) {
-        console.warn(`Warning: No price data for ${token}`);
+        logger.warn(`No price data for ${token}`, 'BacktestEngine');
       }
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error('Price data fetch error:', errorMessage);
+    logger.error('Price data fetch error', error instanceof Error ? error : new Error(errorMessage), 'BacktestEngine');
     throw new Error(
       `Failed to fetch price data: ${errorMessage}. Please check your internet connection and try again.`
     );
@@ -176,20 +177,22 @@ export async function runDeFiBacktest(config: BacktestConfig): Promise<DeFiBackt
           if (lastPrice && lastPrice.price > 0) {
             currentPrices.set(token, lastPrice.price);
           } else {
-            console.warn(
-              `Warning: No valid price data for ${token} at ${currentDate.toISOString()}`
+            logger.warn(
+              `No valid price data for ${token} at ${currentDate.toISOString()}`,
+              'BacktestEngine'
             );
           }
         }
       } else {
-        console.warn(`Warning: No price data available for ${token}`);
+        logger.warn(`No price data available for ${token}`, 'BacktestEngine');
       }
     }
 
     // Skip this iteration if we don't have prices for required tokens
     if (currentPrices.size === 0) {
-      console.warn(
-        `Skipping backtest iteration at ${currentDate.toISOString()}: No price data available`
+      logger.warn(
+        `Skipping backtest iteration at ${currentDate.toISOString()}: No price data available`,
+        'BacktestEngine'
       );
       continue;
     }
@@ -212,7 +215,11 @@ export async function runDeFiBacktest(config: BacktestConfig): Promise<DeFiBackt
     try {
       executeBlockSequence(blocks, context);
     } catch (error) {
-      console.warn(`Error executing blocks at ${currentDate.toISOString()}:`, error);
+      logger.warn(
+        `Error executing blocks at ${currentDate.toISOString()}`,
+        error instanceof Error ? error : new Error(String(error)),
+        'BacktestEngine'
+      );
       // Continue with backtest
     }
 

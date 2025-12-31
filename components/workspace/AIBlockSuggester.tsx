@@ -296,6 +296,7 @@ export const AIBlockSuggester: React.FC<AIBlockSuggesterProps> = ({
 
           {/* Panel */}
           <motion.div
+            data-onboarding="block-palette"
             initial={{ x: -320 }}
             animate={{ x: 0 }}
             role="dialog"

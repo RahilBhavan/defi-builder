@@ -53,7 +53,12 @@ export function getStrategies(): Strategy[] {
     // Old unversioned data
     return Array.isArray(parsed) ? parsed : [];
   } catch (error) {
-    console.error('Error loading strategies:', error);
+    const { logger } = await import('../lib/monitoring/logger');
+    logger.error(
+      'Error loading strategies',
+      error instanceof Error ? error : new Error(String(error)),
+      'StrategyStorage'
+    );
     return [];
   }
 }

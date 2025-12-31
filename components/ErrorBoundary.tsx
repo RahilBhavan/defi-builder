@@ -1,11 +1,13 @@
 import { AlertTriangle, FileText, RefreshCw } from 'lucide-react';
 import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { logger } from '../lib/monitoring/logger';
 import { Button } from './ui/Button';
 
 interface Props {
   children: ReactNode;
   fallback?: ReactNode;
   onError?: (error: Error, errorInfo: ErrorInfo) => void;
+  onReset?: () => void;
 }
 
 interface ErrorHistoryEntry {
@@ -53,19 +55,19 @@ export class ErrorBoundary extends Component<Props, State> {
     });
 
     // Enhanced logging with context
-    console.error('ErrorBoundary caught an error:', {
-      error: {
-        name: error.name,
-        message: error.message,
-        stack: error.stack,
-      },
-      errorInfo: {
-        componentStack: errorInfo.componentStack,
-      },
-      timestamp: errorEntry.timestamp,
-      userAgent: navigator.userAgent,
-      url: window.location.href,
-    });
+    logger.error(
+      'ErrorBoundary caught an error',
+      error,
+      'ErrorBoundary',
+      {
+        errorInfo: {
+          componentStack: errorInfo.componentStack,
+        },
+        timestamp: errorEntry.timestamp,
+        userAgent: navigator.userAgent,
+        url: window.location.href,
+      }
+    );
 
     // Call optional error callback
     if (this.props.onError) {
@@ -92,7 +94,7 @@ export class ErrorBoundary extends Component<Props, State> {
       url: window.location.href,
     };
 
-    console.log('Error report data (would be sent to error reporting service):', errorData);
+    logger.info('Error report data (would be sent to error reporting service)', 'ErrorBoundary', errorData);
 
     // In a real implementation, this would send to an error reporting service
     // For now, we'll just log it

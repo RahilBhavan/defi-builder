@@ -81,6 +81,7 @@ export const Spine: React.FC<SpineProps> = ({
 
   return (
     <div
+      data-onboarding="spine"
       className="w-full min-h-screen flex flex-col items-center py-8 sm:py-20 px-4 sm:px-6"
       onClick={() => onSelectBlock(null)}
       aria-label="Clear selection"
