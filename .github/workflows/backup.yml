@@ -32,7 +32,7 @@ jobs:
           RETENTION_DAYS: 30
       
       - name: Upload Backup Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: success()
         with:
           name: database-backup-${{ github.run_number }}
