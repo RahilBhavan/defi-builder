@@ -1,8 +1,8 @@
-import { describe, expect, it, beforeEach } from 'vitest';
-import { BlockCategory, Protocol } from '../../types';
-import type { LegoBlock } from '../../types';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { runDeFiBacktest } from '../../services/defiBacktestEngine';
 import type { BacktestConfig } from '../../services/defiBacktestEngine';
+import { BlockCategory, Protocol } from '../../types';
+import type { LegoBlock } from '../../types';
 
 describe('Backtest Execution Flow', () => {
   let mockBlocks: LegoBlock[];
@@ -52,7 +52,7 @@ describe('Backtest Execution Flow', () => {
 
   it('should run backtest with valid configuration', async () => {
     const result = await runDeFiBacktest(backtestConfig);
-    
+
     expect(result).toBeDefined();
     expect(result.metrics).toBeDefined();
     expect(result.equityCurve).toBeDefined();
@@ -64,7 +64,7 @@ describe('Backtest Execution Flow', () => {
 
   it('should calculate metrics correctly', async () => {
     const result = await runDeFiBacktest(backtestConfig);
-    
+
     expect(result.metrics.sharpeRatio).toBeDefined();
     expect(result.metrics.totalReturn).toBeDefined();
     expect(result.metrics.maxDrawdown).toBeDefined();
@@ -73,7 +73,7 @@ describe('Backtest Execution Flow', () => {
 
   it('should generate equity curve', async () => {
     const result = await runDeFiBacktest(backtestConfig);
-    
+
     expect(result.equityCurve.length).toBeGreaterThan(0);
     expect(result.equityCurve[0]).toHaveProperty('date');
     expect(result.equityCurve[0]).toHaveProperty('equity');
@@ -84,15 +84,14 @@ describe('Backtest Execution Flow', () => {
       ...backtestConfig,
       blocks: [],
     };
-    
+
     await expect(runDeFiBacktest(invalidConfig)).rejects.toThrow();
   });
 
   it('should handle date range correctly', async () => {
     const result = await runDeFiBacktest(backtestConfig);
-    
+
     expect(result.startDate.getTime()).toBeLessThanOrEqual(result.endDate.getTime());
     expect(result.equityCurve.length).toBeGreaterThan(0);
   });
 });
-

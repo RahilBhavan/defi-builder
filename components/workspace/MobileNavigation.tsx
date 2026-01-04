@@ -33,14 +33,15 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
     { id: 'portfolio', icon: Wallet, label: 'Portfolio', action: onOpenPortfolio },
     { id: 'backtest', icon: TrendingUp, label: 'Backtest', action: onOpenBacktest },
     { id: 'library', icon: Home, label: 'Library', action: onOpenLibrary },
-    ...(onOpenMarketplace ? [{ id: 'marketplace', icon: Menu, label: 'Market', action: onOpenMarketplace }] : []),
+    ...(onOpenMarketplace
+      ? [{ id: 'marketplace', icon: Menu, label: 'Market', action: onOpenMarketplace }]
+      : []),
     { id: 'settings', icon: Settings, label: 'Settings', action: onOpenSettings },
   ];
 
   return (
     <nav
       className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t-2 border-gray-300 safe-area-bottom"
-      role="navigation"
       aria-label="Main navigation"
     >
       <div className="flex items-center justify-around h-16">
@@ -67,4 +68,3 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
     </nav>
   );
 };
-

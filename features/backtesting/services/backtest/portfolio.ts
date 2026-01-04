@@ -10,7 +10,7 @@ export interface Portfolio {
 
 export interface Position {
   id: string;
-  type: 'supply' | 'borrow' | 'liquidity' | 'swap';
+  type: 'supply' | 'borrow' | 'liquidity' | 'swap' | 'staking';
   asset: string;
   amount: number;
   entryPrice: number;
@@ -21,7 +21,17 @@ export interface Position {
 export interface Trade {
   id: string;
   timestamp: number;
-  type: 'entry' | 'exit' | 'swap' | 'supply' | 'withdraw';
+  type:
+    | 'entry'
+    | 'exit'
+    | 'swap'
+    | 'supply'
+    | 'withdraw'
+    | 'staking'
+    | 'borrow'
+    | 'repay'
+    | 'liquidity'
+    | 'flash_loan';
   inputToken: string;
   outputToken?: string;
   inputAmount: number;
@@ -30,6 +40,8 @@ export interface Trade {
   slippage?: number;
   fees: number;
   gasCost: number;
+  token?: string;
+  amount?: number;
 }
 
 export class PortfolioManager {

@@ -1,8 +1,8 @@
-import { describe, expect, it, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { exportBlocks, importBlocks } from '../../services/strategyStorage';
+import { validateStrategy } from '../../services/strategyValidator';
 import { BlockCategory, Protocol } from '../../types';
 import type { LegoBlock } from '../../types';
-import { validateStrategy } from '../../services/strategyValidator';
-import { exportBlocks, importBlocks } from '../../services/strategyStorage';
 
 describe('Strategy Creation Flow', () => {
   let mockBlocks: LegoBlock[];
@@ -71,7 +71,7 @@ describe('Strategy Creation Flow', () => {
     const json = exportBlocks(mockBlocks);
     const imported = importBlocks(json);
     // Check types are preserved (order maintained)
-    const types = imported.map(b => b.type);
+    const types = imported.map((b) => b.type);
     expect(types).toContain('price_trigger');
     expect(types).toContain('uniswap_swap');
   });
@@ -100,10 +100,9 @@ describe('Strategy Creation Flow', () => {
         },
       },
     ];
-    
+
     const result = validateStrategy(invalidBlocks);
     expect(result.valid).toBe(false);
     expect(result.errors.length).toBeGreaterThan(0);
   });
 });
-

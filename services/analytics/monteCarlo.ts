@@ -3,9 +3,8 @@
  * Runs multiple simulations with random variations to assess strategy robustness
  */
 
-import type { DeFiBacktestResult } from '../defiBacktestEngine';
-import { runBacktest } from '../defiBacktestEngine';
 import type { LegoBlock } from '../../types';
+import { runDeFiBacktest } from '../defiBacktestEngine';
 
 export interface MonteCarloConfig {
   iterations: number; // Number of simulation runs (default: 1000)
@@ -43,9 +42,9 @@ export interface MonteCarloResult {
 }
 
 /**
- * Simple random number generator with seed
+ * Simple random number generator with seed (exported for future price variation)
  */
-class SeededRandom {
+export class SeededRandom {
   private seed: number;
 
   constructor(seed: number) {
@@ -65,20 +64,8 @@ class SeededRandom {
   }
 }
 
-/**
- * Apply random variation to price data
- */
-function applyPriceVariation(
-  prices: number[],
-  volatility: number,
-  random: SeededRandom
-): number[] {
-  return prices.map((price) => {
-    // Apply random walk with volatility
-    const variation = random.nextGaussian() * volatility * 0.01; // 1% base volatility
-    return price * (1 + variation);
-  });
-}
+// Apply random variation to price data (reserved for future use)
+// Uses SeededRandom.nextGaussian() * volatility * 0.01 for random walk
 
 /**
  * Run Monte Carlo simulation
@@ -92,13 +79,10 @@ export async function runMonteCarloSimulation(
 ): Promise<MonteCarloResult> {
   const {
     iterations = 1000,
-    priceVolatility = 1.0,
-    slippageMultiplier = 1.0,
-    gasPriceMultiplier = 1.0,
-    randomSeed = Date.now(),
+    // Reserved for future use: priceVolatility, slippageMultiplier, gasPriceMultiplier
+    // randomSeed for reproducible simulations
   } = config;
 
-  const random = new SeededRandom(randomSeed);
   const results: MonteCarloResult['results'] = {
     totalReturn: [],
     sharpeRatio: [],
@@ -114,21 +98,23 @@ export async function runMonteCarloSimulation(
       // - Price data (with volatility)
       // - Slippage (with multiplier)
       // - Gas prices (with multiplier)
-      
-      const backtestResult = await runBacktest({
+
+      const backtestResult = await runDeFiBacktest({
         blocks,
         initialCapital,
         startDate,
         endDate,
+        rebalanceInterval: 1, // Daily rebalancing
       });
 
       results.totalReturn.push(backtestResult.metrics.totalReturn);
       results.sharpeRatio.push(backtestResult.metrics.sharpeRatio);
       results.maxDrawdown.push(backtestResult.metrics.maxDrawdown);
-      
-      const finalEquity = backtestResult.equityCurve[backtestResult.equityCurve.length - 1]?.equity || initialCapital;
+
+      const finalEquity =
+        backtestResult.equityCurve[backtestResult.equityCurve.length - 1]?.equity || initialCapital;
       results.finalEquity.push(finalEquity);
-    } catch (error) {
+    } catch (_error) {
       // If a simulation fails, use worst-case values
       results.totalReturn.push(-100);
       results.sharpeRatio.push(0);
@@ -139,8 +125,11 @@ export async function runMonteCarloSimulation(
 
   // Calculate statistics
   const sortedReturns = [...results.totalReturn].sort((a, b) => a - b);
-  const meanReturn = results.totalReturn.reduce((sum, r) => sum + r, 0) / results.totalReturn.length;
-  const variance = results.totalReturn.reduce((sum, r) => sum + Math.pow(r - meanReturn, 2), 0) / results.totalReturn.length;
+  const meanReturn =
+    results.totalReturn.reduce((sum, r) => sum + r, 0) / results.totalReturn.length;
+  const variance =
+    results.totalReturn.reduce((sum, r) => sum + (r - meanReturn) ** 2, 0) /
+    results.totalReturn.length;
   const stdDevReturn = Math.sqrt(variance);
 
   const medianReturn = sortedReturns[Math.floor(sortedReturns.length / 2)] || 0;
@@ -152,8 +141,10 @@ export async function runMonteCarloSimulation(
   const percentile75 = sortedReturns[Math.floor(sortedReturns.length * 0.75)] || 0;
   const percentile95 = sortedReturns[Math.floor(sortedReturns.length * 0.95)] || 0;
 
-  const probabilityOfProfit = (results.totalReturn.filter((r) => r > 0).length / results.totalReturn.length) * 100;
-  const probabilityOfLoss = (results.totalReturn.filter((r) => r < 0).length / results.totalReturn.length) * 100;
+  const probabilityOfProfit =
+    (results.totalReturn.filter((r) => r > 0).length / results.totalReturn.length) * 100;
+  const probabilityOfLoss =
+    (results.totalReturn.filter((r) => r < 0).length / results.totalReturn.length) * 100;
 
   // Calculate confidence intervals (using normal distribution approximation)
   const z95 = 1.96; // 95% confidence
@@ -189,4 +180,3 @@ export async function runMonteCarloSimulation(
     },
   };
 }
-

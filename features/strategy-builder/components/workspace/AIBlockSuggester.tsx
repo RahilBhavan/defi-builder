@@ -14,12 +14,12 @@ import {
 } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AVAILABLE_BLOCKS } from '../../constants';
-import { useDebounce } from '../../hooks/useDebounce';
-import { useToast } from '../../hooks/useToast';
-import { suggestNextBlocks } from '../../services/geminiService';
-import type { LegoBlock } from '../../types';
-import { trpc } from '../../utils/trpc';
+import { AVAILABLE_BLOCKS } from '../../../../constants';
+import { useDebounce } from '../../../../hooks/useDebounce';
+import { useToast } from '../../../../hooks/useToast';
+import type { LegoBlock } from '../../../../types';
+import { trpc } from '../../../../lib/api/trpc';
+import { suggestNextBlocks } from '../../../ai/services/gemini';
 
 interface AIBlockSuggesterProps {
   isOpen: boolean;
@@ -179,7 +179,7 @@ export const AIBlockSuggester: React.FC<AIBlockSuggesterProps> = ({
     setIsLoadingAI(true);
     setAiError(null);
 
-    suggestNextBlocks(currentBlocks, searchQuery || undefined, signal)
+    suggestNextBlocks(currentBlocks, searchQuery || undefined)
       .then((suggestions) => {
         if (!signal.aborted) {
           setAiSuggestions(suggestions);
@@ -366,7 +366,11 @@ export const AIBlockSuggester: React.FC<AIBlockSuggesterProps> = ({
                               </p>
                             </div>
                             {aiSuggestions.length > 0 && aiSuggestions.includes(block) && (
-                              <Sparkles size={10} className="text-orange flex-shrink-0" aria-label="AI suggested" />
+                              <Sparkles
+                                size={10}
+                                className="text-orange flex-shrink-0"
+                                aria-label="AI suggested"
+                              />
                             )}
                           </div>
                         </button>

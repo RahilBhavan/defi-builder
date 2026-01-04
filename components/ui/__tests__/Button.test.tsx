@@ -1,6 +1,6 @@
-import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { describe, expect, it, vi } from 'vitest';
 import { Button } from '../Button';
 
 describe('Button', () => {
@@ -13,7 +13,7 @@ describe('Button', () => {
     const handleClick = vi.fn();
     const user = userEvent.setup();
     render(<Button onClick={handleClick}>Click me</Button>);
-    
+
     await user.click(screen.getByRole('button'));
     expect(handleClick).toHaveBeenCalledTimes(1);
   });
@@ -56,9 +56,12 @@ describe('Button', () => {
   });
 
   it('passes through additional props', () => {
-    render(<Button data-testid="custom-button" aria-label="Custom label">Button</Button>);
+    render(
+      <Button data-testid="custom-button" aria-label="Custom label">
+        Button
+      </Button>
+    );
     const button = screen.getByTestId('custom-button');
     expect(button).toHaveAttribute('aria-label', 'Custom label');
   });
 });
-

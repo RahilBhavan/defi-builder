@@ -8,10 +8,11 @@ interface Individual {
 export class GeneticOptimizer {
   private population: Individual[] = [];
   private generation = 0;
+  // objectives reserved for multi-objective optimization
 
   constructor(
     private parameters: ParameterDefinition[],
-    private objectives: OptimizationObjective[],
+    _objectives: OptimizationObjective[],
     private populationSize = 30
   ) {
     this.initializePopulation();
@@ -35,14 +36,17 @@ export class GeneticOptimizer {
         params[param.blockId] = {};
       }
 
+      const blockParams = params[param.blockId];
+      if (!blockParams) continue;
+
       if (param.type === 'discrete') {
         const values = param.values || [];
         const randomIndex = Math.floor(Math.random() * values.length);
-        params[param.blockId][param.paramName] = values[randomIndex];
+        blockParams[param.paramName] = values[randomIndex] ?? values[0] ?? 0;
       } else {
-        const min = param.min || 0;
-        const max = param.max || 100;
-        params[param.blockId][param.paramName] = min + Math.random() * (max - min);
+        const min = param.min ?? 0;
+        const max = param.max ?? 100;
+        blockParams[param.paramName] = min + Math.random() * (max - min);
       }
     }
 
@@ -62,11 +66,15 @@ export class GeneticOptimizer {
 
       if (value1 === undefined || value2 === undefined) continue;
 
+      const childBlockParams = child[param.blockId];
+      if (!childBlockParams) continue;
+
       if (param.type === 'discrete') {
-        child[param.blockId][param.paramName] = Math.random() < 0.5 ? value1 : value2;
+        childBlockParams[param.paramName] = Math.random() < 0.5 ? value1 : value2;
       } else {
         const alpha = Math.random();
-        child[param.blockId][param.paramName] = value1 * alpha + value2 * (1 - alpha);
+        childBlockParams[param.paramName] =
+          (value1 as number) * alpha + (value2 as number) * (1 - alpha);
       }
     }
 
@@ -79,20 +87,25 @@ export class GeneticOptimizer {
     for (const param of this.parameters) {
       if (Math.random() > mutationRate) continue;
 
+      const blockParams = mutated[param.blockId];
+      if (!blockParams) continue;
+
       if (param.type === 'discrete') {
         const values = param.values || [];
+        if (values.length === 0) continue;
         const randomIndex = Math.floor(Math.random() * values.length);
-        mutated[param.blockId][param.paramName] = values[randomIndex];
+        blockParams[param.paramName] = values[randomIndex] ?? values[0] ?? 0;
       } else {
-        const min = param.min || 0;
-        const max = param.max || 100;
+        const min = param.min ?? 0;
+        const max = param.max ?? 100;
         const range = max - min;
 
-        const current = mutated[param.blockId][param.paramName];
+        const current = blockParams[param.paramName];
+        if (typeof current !== 'number') continue;
         const noise = (Math.random() - 0.5) * range * 0.2;
         const newValue = Math.max(min, Math.min(max, current + noise));
 
-        mutated[param.blockId][param.paramName] = newValue;
+        blockParams[param.paramName] = newValue;
       }
     }
 
@@ -126,6 +139,8 @@ export class GeneticOptimizer {
     for (let i = 0; i < this.populationSize - parentCount; i++) {
       const parent1 = parents[Math.floor(Math.random() * parents.length)];
       const parent2 = parents[Math.floor(Math.random() * parents.length)];
+
+      if (!parent1 || !parent2) continue;
 
       let child = this.crossover(parent1, parent2);
       child = this.mutate(child);

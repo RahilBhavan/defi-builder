@@ -1,6 +1,6 @@
-import type { LegoBlock } from '../../types';
 import { logger } from '../../../../lib/monitoring/logger';
-import type { DeFiBacktestResult } from '../defiBacktestEngine';
+import type { DeFiBacktestResult } from '../../../../services/defiBacktestEngine';
+import type { LegoBlock } from '../../../../types';
 import { BayesianOptimizer } from './algorithms/bayesianOptimizer';
 import { GeneticOptimizer } from './algorithms/geneticOptimizer';
 import { ParetoFrontier } from './algorithms/paretoFrontier';
@@ -26,7 +26,7 @@ export class OptimizationEngine {
   private isRunning = false;
   private errors: string[] = [];
   private lastError: string | undefined;
-  private abortController: AbortController | null = null;
+  // private abortController: AbortController | null = null; // Reserved for future use
 
   constructor() {
     // Set up error callback for worker pool
@@ -60,17 +60,16 @@ export class OptimizationEngine {
     this.errors = [];
     this.lastError = undefined;
     this.startTime = Date.now();
-    this.abortController = new AbortController();
+    // this.abortController = new AbortController(); // Reserved for future use
 
     try {
       if (config.algorithm === 'bayesian') {
         return await this.runBayesianOptimization(blocks, config, onProgress);
-      } else {
-        return await this.runGeneticOptimization(blocks, config, onProgress);
       }
+      return await this.runGeneticOptimization(blocks, config, onProgress);
     } finally {
       this.isRunning = false;
-      this.abortController = null;
+      // this.abortController = null; // Reserved for future use
     }
   }
 
@@ -105,7 +104,7 @@ export class OptimizationEngine {
     config: OptimizationConfig,
     onProgress?: (progress: OptimizationProgress) => void
   ): Promise<OptimizationResult> {
-    const optimizer = new GeneticOptimizer(config.parameters, config.objectives, 30);
+    const optimizer = new GeneticOptimizer(config.parameters, 30);
     const maxGenerations = Math.ceil(config.maxIterations / 30);
 
     for (let gen = 0; gen < maxGenerations && this.isRunning; gen++) {
@@ -114,7 +113,10 @@ export class OptimizationEngine {
       for (const parameters of population) {
         const solution = await this.evaluateSolution(blocks, parameters, config);
         const primaryObjective = config.objectives[0];
-        const fitness = solution.outOfSampleScores[primaryObjective] || 0;
+        if (!primaryObjective) {
+          throw new Error('No objectives defined');
+        }
+        const fitness = solution.outOfSampleScores[primaryObjective] ?? 0;
         optimizer.setFitness(parameters, fitness);
         this.currentIteration++;
         if (onProgress) onProgress(this.getProgress(config.maxIterations));
@@ -290,9 +292,13 @@ export class OptimizationEngine {
 
   private getCurrentObjectives(): OptimizationObjective[] {
     // Default to sharpe/drawdown if we can't infer yet
-    return this.solutions.length > 0
-      ? (Object.keys(this.solutions[0].inSampleScores) as OptimizationObjective[])
-      : ['sharpeRatio', 'maxDrawdown'];
+    if (this.solutions.length > 0) {
+      const firstSolution = this.solutions[0];
+      if (firstSolution) {
+        return Object.keys(firstSolution.inSampleScores) as OptimizationObjective[];
+      }
+    }
+    return ['sharpeRatio', 'maxDrawdown'];
   }
 
   stop(): void {

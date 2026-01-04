@@ -32,12 +32,20 @@ class Logger {
     const levelName = LogLevel[entry.level];
     const context = entry.context ? `[${entry.context}] ` : '';
     const data = entry.data ? ` ${JSON.stringify(entry.data)}` : '';
-    const error = entry.error ? ` Error: ${entry.error.message}${entry.error.stack ? `\n${entry.error.stack}` : ''}` : '';
-    
+    const error = entry.error
+      ? ` Error: ${entry.error.message}${entry.error.stack ? `\n${entry.error.stack}` : ''}`
+      : '';
+
     return `${entry.timestamp} ${levelName} ${context}${entry.message}${data}${error}`;
   }
 
-  private log(level: LogLevel, message: string, context?: string, data?: unknown, error?: Error): void {
+  private log(
+    level: LogLevel,
+    message: string,
+    context?: string,
+    data?: unknown,
+    error?: Error
+  ): void {
     if (level < this.minLevel) {
       return;
     }
@@ -99,4 +107,3 @@ class Logger {
 
 // Singleton instance
 export const logger = new Logger();
-

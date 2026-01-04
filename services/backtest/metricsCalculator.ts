@@ -28,8 +28,7 @@ function calculateSharpeRatio(returns: number[], riskFreeRate = 0): number {
   const meanReturn = returns.reduce((sum, r) => sum + r, 0) / returns.length;
 
   // Calculate standard deviation
-  const variance =
-    returns.reduce((sum, r) => sum + Math.pow(r - meanReturn, 2), 0) / returns.length;
+  const variance = returns.reduce((sum, r) => sum + (r - meanReturn) ** 2, 0) / returns.length;
   const stdDev = Math.sqrt(variance);
 
   if (stdDev === 0) return 0;
@@ -48,14 +47,14 @@ function calculateMaxDrawdown(equityCurve: number[]): number {
   if (equityCurve.length === 0) return 0;
 
   let maxDrawdown = 0;
-  let peak = equityCurve[0];
+  let peak = equityCurve[0] ?? 0;
 
   for (let i = 1; i < equityCurve.length; i++) {
     const current = equityCurve[i];
 
-    if (current > peak) {
+    if (current !== undefined && current > peak) {
       peak = current;
-    } else {
+    } else if (current !== undefined && peak > 0) {
       const drawdown = ((peak - current) / peak) * 100;
       if (drawdown > maxDrawdown) {
         maxDrawdown = drawdown;
@@ -86,6 +85,8 @@ function calculateWinRate(trades: Trade[]): { winTrades: number; totalTrades: nu
   for (let i = 0; i < swapTrades.length - 1; i++) {
     const entry = swapTrades[i];
     const exit = swapTrades[i + 1];
+
+    if (!entry || !exit) continue;
 
     if (entry.type === 'entry' || entry.type === 'swap') {
       if (exit.type === 'exit' || exit.type === 'swap') {
@@ -127,7 +128,7 @@ export function calculateMetrics(
   for (let i = 1; i < equityCurve.length; i++) {
     const prevEquity = equityCurve[i - 1];
     const currentEquity = equityCurve[i];
-    if (prevEquity > 0) {
+    if (prevEquity !== undefined && currentEquity !== undefined && prevEquity > 0) {
       const dailyReturn = (currentEquity - prevEquity) / prevEquity;
       returns.push(dailyReturn);
     }
@@ -147,7 +148,7 @@ export function calculateMetrics(
 
   const variance =
     returns.length > 0
-      ? returns.reduce((sum, r) => sum + Math.pow(r - averageReturn, 2), 0) / returns.length
+      ? returns.reduce((sum, r) => sum + (r - averageReturn) ** 2, 0) / returns.length
       : 0;
   const volatility = Math.sqrt(variance) * Math.sqrt(365) * 100; // Annualized volatility in %
 

@@ -20,6 +20,7 @@ model User {
   ratings       Rating[]
   reviews       Review[]
   forks         StrategyFork[]
+  collections   Collection[]
 
   @@index([walletAddress])
   @@index([username])
@@ -46,6 +47,7 @@ model Strategy {
   reviews     Review[]
   originalForks StrategyFork[] @relation("OriginalStrategy")
   forkedFrom   StrategyFork[]  @relation("ForkedStrategy")
+  collections  CollectionStrategy[]
 
   @@index([userId])
   @@index([isPublic])
@@ -99,6 +101,37 @@ model StrategyFork {
   @@index([originalId])
   @@index([forkedId])
   @@index([userId])
+}
+
+model Collection {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  description String?
+  isPublic    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  strategies  CollectionStrategy[]
+
+  @@index([userId])
+  @@index([isPublic])
+}
+
+model CollectionStrategy {
+  id           String     @id @default(cuid())
+  collectionId String
+  strategyId   String
+  order        Int        @default(0)
+  createdAt    DateTime   @default(now())
+
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  strategy     Strategy   @relation(fields: [strategyId], references: [id], onDelete: Cascade)
+
+  @@unique([collectionId, strategyId])
+  @@index([collectionId])
+  @@index([strategyId])
 }
 
 model BacktestResult {

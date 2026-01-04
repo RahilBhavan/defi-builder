@@ -38,6 +38,15 @@ export function useWorkspaceState() {
     LegoBlock[]
   >(blocksFromStorage, 50);
 
+  // Wrapper that updates both undo/redo history and triggers localStorage sync
+  // Define setBlocks early so it can be used in other callbacks
+  const setBlocks = useCallback(
+    (newBlocks: LegoBlock[] | ((prev: LegoBlock[]) => LegoBlock[])) => {
+      setBlocksWithHistory(newBlocks);
+    },
+    [setBlocksWithHistory]
+  );
+
   // Track previous blocks to avoid unnecessary localStorage writes
   const prevBlocksRef = useRef<LegoBlock[]>(blocks);
 
@@ -51,20 +60,18 @@ export function useWorkspaceState() {
   }, [blocks, setBlocksFromStorage]);
 
   // Sync with backend (auto-save)
-  useStrategySync(blocks, (loadedBlocks) => {
-    // When strategy is loaded from backend, update blocks
-    if (loadedBlocks.length > 0) {
-      setBlocks(loadedBlocks);
-    }
-  });
-
-  // Wrapper that updates both undo/redo history and triggers localStorage sync
-  const setBlocks = useCallback(
-    (newBlocks: LegoBlock[] | ((prev: LegoBlock[]) => LegoBlock[])) => {
-      setBlocksWithHistory(newBlocks);
+  // Memoize the callback to prevent infinite loops
+  const handleStrategyLoad = useCallback(
+    (loadedBlocks: LegoBlock[]) => {
+      // When strategy is loaded from backend, update blocks
+      if (loadedBlocks.length > 0) {
+        setBlocks(loadedBlocks);
+      }
     },
-    [setBlocksWithHistory]
+    [setBlocks]
   );
+
+  useStrategySync(blocks, handleStrategyLoad);
 
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [showLeftPanel, setShowLeftPanel] = useState(false);

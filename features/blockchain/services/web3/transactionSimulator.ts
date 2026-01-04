@@ -4,7 +4,7 @@
  */
 
 import { type Address, formatUnits } from 'viem';
-import type { LegoBlock } from '../../types';
+import type { LegoBlock } from '../../../../types';
 
 export interface ApprovalRequirement {
   token: string;
@@ -104,6 +104,9 @@ export async function simulateStrategyExecution(
   for (const block of blocks) {
     // Estimate gas for this block
     const blockGas = GAS_ESTIMATES[block.type] ?? GAS_ESTIMATES.default;
+    if (blockGas === undefined) {
+      continue; // Skip if gas estimate not available
+    }
     totalGas += blockGas;
 
     // Estimate cost (assuming 20 gwei gas price)

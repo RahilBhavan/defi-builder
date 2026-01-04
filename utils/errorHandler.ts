@@ -21,7 +21,11 @@ export function getUserFriendlyErrorMessage(error: unknown, context?: string): s
     const message = error.message.toLowerCase();
 
     // Network errors
-    if (message.includes('network') || message.includes('fetch') || message.includes('failed to fetch')) {
+    if (
+      message.includes('network') ||
+      message.includes('fetch') ||
+      message.includes('failed to fetch')
+    ) {
       return context === 'save'
         ? 'Unable to save your strategy. Please check your internet connection and try again.'
         : context === 'load'
@@ -39,7 +43,11 @@ export function getUserFriendlyErrorMessage(error: unknown, context?: string): s
     }
 
     // Rate limiting
-    if (message.includes('rate limit') || message.includes('429') || message.includes('too many requests')) {
+    if (
+      message.includes('rate limit') ||
+      message.includes('429') ||
+      message.includes('too many requests')
+    ) {
       return 'Too many requests. Please wait a moment before trying again.';
     }
 
@@ -67,7 +75,7 @@ export function getUserFriendlyErrorMessage(error: unknown, context?: string): s
 
     // File/Import errors
     if (message.includes('file') || message.includes('import') || message.includes('parse')) {
-      return 'Unable to import the file. Please ensure it\'s a valid strategy file and try again.';
+      return "Unable to import the file. Please ensure it's a valid strategy file and try again.";
     }
 
     // Export errors
@@ -76,7 +84,11 @@ export function getUserFriendlyErrorMessage(error: unknown, context?: string): s
     }
 
     // Strategy execution errors
-    if (message.includes('execution') || message.includes('execute') || message.includes('simulation')) {
+    if (
+      message.includes('execution') ||
+      message.includes('execute') ||
+      message.includes('simulation')
+    ) {
       return 'Strategy execution failed. Please verify your strategy is valid and all required parameters are set.';
     }
 
@@ -115,12 +127,7 @@ export async function retryWithBackoff<T>(
   fn: () => Promise<T>,
   options: RetryOptions = {}
 ): Promise<T> {
-  const {
-    maxRetries = 3,
-    retryDelay = 1000,
-    exponentialBackoff = true,
-    onRetry,
-  } = options;
+  const { maxRetries = 3, retryDelay = 1000, exponentialBackoff = true, onRetry } = options;
 
   let lastError: Error | unknown;
 
@@ -136,9 +143,7 @@ export async function retryWithBackoff<T>(
       }
 
       // Calculate delay with exponential backoff
-      const delay = exponentialBackoff
-        ? retryDelay * Math.pow(2, attempt)
-        : retryDelay;
+      const delay = exponentialBackoff ? retryDelay * 2 ** attempt : retryDelay;
 
       // Call onRetry callback if provided
       if (onRetry && error instanceof Error) {

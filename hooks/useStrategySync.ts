@@ -13,9 +13,8 @@ export function useStrategySync(blocks: LegoBlock[], onLoad?: (blocks: LegoBlock
     // - Load from backend on mount
     // - Handle conflicts when multiple tabs are open
 
-    if (onLoad) {
-      // For now, this is a no-op
-      // In the future, this could load from backend
-    }
-  }, [blocks, onLoad]);
+    // Note: onLoad is intentionally not in dependencies to avoid infinite loops
+    // It should be memoized with useCallback by the caller if needed
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [blocks]);
 }

@@ -57,9 +57,7 @@ export function validateEnv(): void {
 
   // Throw error if required variables are missing
   if (missing.length > 0) {
-    const error = new Error(
-      `Missing required environment variables: ${missing.join(', ')}`
-    );
+    const error = new Error(`Missing required environment variables: ${missing.join(', ')}`);
     logger.error('Environment validation failed', error, 'EnvValidation');
     throw error;
   }
@@ -95,11 +93,15 @@ export function getEnvNumber(key: string, defaultValue?: number): number {
   if (!value && defaultValue === undefined) {
     throw new Error(`Environment variable ${key} is required but not set`);
   }
-  if (!value) return defaultValue!;
+  if (!value) {
+    if (defaultValue !== undefined) {
+      return defaultValue;
+    }
+    throw new Error(`Environment variable ${key} is required but not set`);
+  }
   const num = Number.parseInt(value, 10);
   if (Number.isNaN(num)) {
     throw new Error(`Environment variable ${key} must be a number, got: ${value}`);
   }
   return num;
 }
-

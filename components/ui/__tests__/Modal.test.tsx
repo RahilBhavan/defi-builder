@@ -1,6 +1,6 @@
-import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { describe, expect, it, vi } from 'vitest';
 import { Modal } from '../Modal';
 
 describe('Modal', () => {
@@ -32,10 +32,10 @@ describe('Modal', () => {
         <p>Modal content</p>
       </Modal>
     );
-    
+
     const closeButton = screen.getByRole('button', { name: /close/i });
     await user.click(closeButton);
-    
+
     expect(mockOnClose).toHaveBeenCalledTimes(1);
   });
 
@@ -46,7 +46,7 @@ describe('Modal', () => {
         <p>Modal content</p>
       </Modal>
     );
-    
+
     const overlay = screen.getByRole('dialog').parentElement;
     if (overlay) {
       await user.click(overlay);
@@ -61,7 +61,7 @@ describe('Modal', () => {
         <p>Modal content</p>
       </Modal>
     );
-    
+
     const overlay = screen.getByRole('dialog').parentElement;
     if (overlay) {
       await user.click(overlay);
@@ -106,4 +106,3 @@ describe('Modal', () => {
     expect(dialog).toHaveAttribute('aria-labelledby', 'custom-title');
   });
 });
-

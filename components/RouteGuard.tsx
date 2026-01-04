@@ -7,7 +7,7 @@ import type React from 'react';
 import { useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
-import { logger } from '../utils/logger';
+import { logger } from '../lib/monitoring/logger';
 
 interface RouteGuardProps {
   children: React.ReactNode;
@@ -36,4 +36,3 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({
 
   return <>{children}</>;
 };
-

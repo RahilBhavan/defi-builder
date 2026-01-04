@@ -13,18 +13,18 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { useToast } from '../../hooks/useToast';
-import type { DeFiBacktestResult } from '../../services/defiBacktestEngine';
-import { type AdvancedMetrics, calculateAdvancedMetrics } from '../../utils/advancedMetrics';
-import { logger } from '../../lib/monitoring/logger';
-import { VirtualTable, VirtualTableContainer } from '../ui/VirtualTable';
+import { Button } from '../../../components/ui/Button';
+import { VirtualTable, VirtualTableContainer } from '../../../components/ui/VirtualTable';
+import { useToast } from '../../../hooks/useToast';
+import { logger } from '../../../lib/monitoring/logger';
+import type { DeFiBacktestResult } from '../../../services/defiBacktestEngine';
+import { type AdvancedMetrics, calculateAdvancedMetrics } from '../../../utils/advancedMetrics';
 import {
   downloadCSV,
   exportEquityCurveToCSV,
   exportMetricsToCSV,
   exportTradesToCSV,
-} from '../../utils/csvExport';
-import { Button } from '../ui/Button';
+} from '../../../utils/csvExport';
 
 interface BacktestModalProps {
   isOpen: boolean;
@@ -64,7 +64,7 @@ export const BacktestModal: React.FC<BacktestModalProps> = ({ isOpen, onClose, r
       if (!customDateRange.start || !customDateRange.end) {
         return result.equityCurve;
       }
-      return result.equityCurve.filter((point) => {
+      return result.equityCurve.filter((point: { date: string; equity: number }) => {
         const pointDate = new Date(point.date);
         return pointDate >= customDateRange.start! && pointDate <= customDateRange.end!;
       });
@@ -90,14 +90,16 @@ export const BacktestModal: React.FC<BacktestModalProps> = ({ isOpen, onClose, r
         return result.equityCurve;
     }
 
-    return result.equityCurve.filter((point) => new Date(point.date) >= cutoffDate);
+    return result.equityCurve.filter(
+      (point: { date: string; equity: number }) => new Date(point.date) >= cutoffDate
+    );
   }, [result, timePeriod, customDateRange]);
 
   const chartData = useMemo(() => {
     if (!filteredEquityCurve || filteredEquityCurve.length === 0) {
       return [];
     }
-    return filteredEquityCurve.map((point) => ({
+    return filteredEquityCurve.map((point: { date: string; equity: number }) => ({
       date: point.date,
       name: new Date(point.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
       equity: point.equity,
@@ -112,7 +114,7 @@ export const BacktestModal: React.FC<BacktestModalProps> = ({ isOpen, onClose, r
     const lastPrice = chartData[chartData.length - 1]?.equity || result.initialCapital;
 
     // Generate HODL equity curve (linear growth assumption)
-    return chartData.map((point, index) => {
+    return chartData.map((point: { date: string; equity: number; name: string }, index: number) => {
       const progress = index / (chartData.length - 1);
       const hodlValue = firstPrice + (lastPrice - firstPrice) * progress;
       return {
@@ -123,10 +125,12 @@ export const BacktestModal: React.FC<BacktestModalProps> = ({ isOpen, onClose, r
   }, [result, chartData]);
 
   const combinedChartData = useMemo(() => {
-    return benchmarkData.map((point) => ({
-      ...point,
-      strategy: point.equity,
-    }));
+    return benchmarkData.map(
+      (point: { date: string; equity: number; hodl: number; name: string }) => ({
+        ...point,
+        strategy: point.equity,
+      })
+    );
   }, [benchmarkData]);
 
   const metrics = result?.metrics || {
@@ -162,7 +166,11 @@ export const BacktestModal: React.FC<BacktestModalProps> = ({ isOpen, onClose, r
       showSuccess('Equity curve exported to CSV');
     } catch (error) {
       showError('Failed to export equity curve');
-      logger.error('CSV export error', error instanceof Error ? error : new Error(String(error)), 'BacktestModal');
+      logger.error(
+        'CSV export error',
+        error instanceof Error ? error : new Error(String(error)),
+        'BacktestModal'
+      );
     }
   };
 
@@ -177,7 +185,11 @@ export const BacktestModal: React.FC<BacktestModalProps> = ({ isOpen, onClose, r
       showSuccess('Trades exported to CSV');
     } catch (error) {
       showError('Failed to export trades');
-      logger.error('CSV export error', error instanceof Error ? error : new Error(String(error)), 'BacktestModal');
+      logger.error(
+        'CSV export error',
+        error instanceof Error ? error : new Error(String(error)),
+        'BacktestModal'
+      );
     }
   };
 
@@ -192,7 +204,11 @@ export const BacktestModal: React.FC<BacktestModalProps> = ({ isOpen, onClose, r
       showSuccess('Metrics exported to CSV');
     } catch (error) {
       showError('Failed to export metrics');
-      logger.error('CSV export error', error instanceof Error ? error : new Error(String(error)), 'BacktestModal');
+      logger.error(
+        'CSV export error',
+        error instanceof Error ? error : new Error(String(error)),
+        'BacktestModal'
+      );
     }
   };
 
@@ -205,7 +221,16 @@ export const BacktestModal: React.FC<BacktestModalProps> = ({ isOpen, onClose, r
   // Calculate advanced metrics
   const advancedMetrics = useMemo<AdvancedMetrics | null>(() => {
     if (!result) return null;
-    return calculateAdvancedMetrics(result);
+    try {
+      return calculateAdvancedMetrics(result);
+    } catch (error) {
+      logger.error(
+        'Failed to calculate advanced metrics',
+        error instanceof Error ? error : new Error(String(error)),
+        'BacktestModal'
+      );
+      return null;
+    }
   }, [result]);
 
   // Filter trades
@@ -227,10 +252,12 @@ export const BacktestModal: React.FC<BacktestModalProps> = ({ isOpen, onClose, r
 
     // Filter by date range
     if (tradeFilter.dateRange.start) {
-      trades = trades.filter((t) => t.timestamp >= tradeFilter.dateRange.start!.getTime());
+      const startTime = tradeFilter.dateRange.start.getTime();
+      trades = trades.filter((t) => t.timestamp >= startTime);
     }
     if (tradeFilter.dateRange.end) {
-      trades = trades.filter((t) => t.timestamp <= tradeFilter.dateRange.end!.getTime());
+      const endTime = tradeFilter.dateRange.end.getTime();
+      trades = trades.filter((t) => t.timestamp <= endTime);
     }
 
     return trades;
@@ -245,10 +272,10 @@ export const BacktestModal: React.FC<BacktestModalProps> = ({ isOpen, onClose, r
   const tradeTokens = useMemo(() => {
     if (!result?.trades) return [];
     const tokens = new Set<string>();
-    result.trades.forEach((t) => {
+    for (const t of result.trades) {
       tokens.add(t.inputToken);
       if (t.outputToken) tokens.add(t.outputToken);
-    });
+    }
     return Array.from(tokens).sort();
   }, [result]);
 
@@ -286,7 +313,11 @@ export const BacktestModal: React.FC<BacktestModalProps> = ({ isOpen, onClose, r
 
         {/* Tabs */}
         {result && (
-          <div className="flex border-b border-gray-300 bg-white" role="tablist" aria-label="Backtest result tabs">
+          <div
+            className="flex border-b border-gray-300 bg-white"
+            role="tablist"
+            aria-label="Backtest result tabs"
+          >
             <button
               onClick={() => setActiveTab('overview')}
               role="tab"
@@ -722,7 +753,10 @@ export const BacktestModal: React.FC<BacktestModalProps> = ({ isOpen, onClose, r
                               overscan={5}
                               aria-label="Trade history table"
                               renderRow={(trade) => (
-                                <tr key={trade.id} className="border-b border-gray-200 hover:bg-gray-50">
+                                <tr
+                                  key={trade.id}
+                                  className="border-b border-gray-200 hover:bg-gray-50"
+                                >
                                   <td className="px-4 py-3 text-gray-600">
                                     {new Date(trade.timestamp).toLocaleString()}
                                   </td>
@@ -732,7 +766,9 @@ export const BacktestModal: React.FC<BacktestModalProps> = ({ isOpen, onClose, r
                                     </span>
                                   </td>
                                   <td className="px-4 py-3 text-gray-600">{trade.inputToken}</td>
-                                  <td className="px-4 py-3 text-gray-600">{trade.outputToken || '-'}</td>
+                                  <td className="px-4 py-3 text-gray-600">
+                                    {trade.outputToken || '-'}
+                                  </td>
                                   <td className="px-4 py-3 text-right text-gray-600">
                                     {trade.inputAmount.toFixed(4)} {trade.inputToken}
                                     {trade.outputAmount && (
@@ -755,7 +791,10 @@ export const BacktestModal: React.FC<BacktestModalProps> = ({ isOpen, onClose, r
                             />
                           ) : (
                             filteredTrades.map((trade) => (
-                              <tr key={trade.id} className="border-b border-gray-200 hover:bg-gray-50">
+                              <tr
+                                key={trade.id}
+                                className="border-b border-gray-200 hover:bg-gray-50"
+                              >
                                 <td className="px-4 py-3 text-gray-600">
                                   {new Date(trade.timestamp).toLocaleString()}
                                 </td>
@@ -765,7 +804,9 @@ export const BacktestModal: React.FC<BacktestModalProps> = ({ isOpen, onClose, r
                                   </span>
                                 </td>
                                 <td className="px-4 py-3 text-gray-600">{trade.inputToken}</td>
-                                <td className="px-4 py-3 text-gray-600">{trade.outputToken || '-'}</td>
+                                <td className="px-4 py-3 text-gray-600">
+                                  {trade.outputToken || '-'}
+                                </td>
                                 <td className="px-4 py-3 text-right text-gray-600">
                                   {trade.inputAmount.toFixed(4)} {trade.inputToken}
                                   {trade.outputAmount && (

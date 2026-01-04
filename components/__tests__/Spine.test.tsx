@@ -1,9 +1,9 @@
-import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { describe, expect, it, vi } from 'vitest';
 import { BlockCategory, Protocol } from '../../types';
-import { Spine } from '../Spine';
 import type { LegoBlock } from '../../types';
+import { Spine } from '../Spine';
 
 describe('Spine', () => {
   const mockBlocks: LegoBlock[] = [
@@ -84,10 +84,10 @@ describe('Spine', () => {
         onReorderBlocks={mockOnReorderBlocks}
       />
     );
-    
+
     const addButton = screen.getByRole('button', { name: /add block/i });
     await user.click(addButton);
-    
+
     expect(mockOnOpenSuggester).toHaveBeenCalledTimes(1);
   });
 
@@ -102,7 +102,7 @@ describe('Spine', () => {
         onReorderBlocks={mockOnReorderBlocks}
       />
     );
-    
+
     const firstBlock = screen.getByText('PRICE TRIGGER').closest('[aria-pressed]');
     expect(firstBlock).toHaveAttribute('aria-pressed', 'true');
   });
@@ -118,10 +118,9 @@ describe('Spine', () => {
         onReorderBlocks={mockOnReorderBlocks}
       />
     );
-    
+
     // Should have at least one connector (arrow) between blocks
     const connectors = screen.getAllByRole('img', { hidden: true });
     expect(connectors.length).toBeGreaterThan(0);
   });
 });
-

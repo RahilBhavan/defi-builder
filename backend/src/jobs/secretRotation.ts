@@ -1,16 +1,16 @@
 /**
  * Secret Rotation Job
  * Periodically syncs secrets from Doppler to ensure API keys are up-to-date
- * 
+ *
  * This job runs on a schedule to:
  * - Sync secrets from Doppler (in case webhook fails)
  * - Rotate API keys proactively
  * - Ensure secrets are always fresh
  */
 
-import { syncSecrets } from '../utils/secrets';
-import { auditApiKey, AuditEventType } from '../utils/auditLogger';
+import { AuditEventType, auditApiKey } from '../utils/auditLogger';
 import { logger } from '../utils/logger';
+import { syncSecrets } from '../utils/secrets';
 
 const ROTATION_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 let rotationInterval: NodeJS.Timeout | null = null;
@@ -31,13 +31,21 @@ export function startSecretRotationJob(): void {
 
   // Initial sync
   performSecretRotation().catch((error) => {
-    logger.error('Initial secret rotation failed', error instanceof Error ? error : new Error(String(error)), 'SecretRotation');
+    logger.error(
+      'Initial secret rotation failed',
+      error instanceof Error ? error : new Error(String(error)),
+      'SecretRotation'
+    );
   });
 
   // Schedule periodic rotation
   rotationInterval = setInterval(() => {
     performSecretRotation().catch((error) => {
-      logger.error('Scheduled secret rotation failed', error instanceof Error ? error : new Error(String(error)), 'SecretRotation');
+      logger.error(
+        'Scheduled secret rotation failed',
+        error instanceof Error ? error : new Error(String(error)),
+        'SecretRotation'
+      );
     });
   }, ROTATION_INTERVAL_MS);
 }
@@ -60,7 +68,7 @@ export function stopSecretRotationJob(): void {
 async function performSecretRotation(): Promise<void> {
   try {
     logger.debug('Performing secret rotation', 'SecretRotation');
-    
+
     await syncSecrets();
 
     auditApiKey(AuditEventType.SECRET_SYNCED, {
@@ -73,8 +81,12 @@ async function performSecretRotation(): Promise<void> {
 
     logger.info('Secret rotation completed successfully', 'SecretRotation');
   } catch (error) {
-    logger.error('Secret rotation failed', error instanceof Error ? error : new Error(String(error)), 'SecretRotation');
-    
+    logger.error(
+      'Secret rotation failed',
+      error instanceof Error ? error : new Error(String(error)),
+      'SecretRotation'
+    );
+
     auditApiKey(AuditEventType.SECRET_SYNCED, {
       keyName: 'all',
       success: false,
@@ -87,4 +99,3 @@ async function performSecretRotation(): Promise<void> {
     throw error;
   }
 }
-

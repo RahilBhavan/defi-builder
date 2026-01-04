@@ -1,7 +1,7 @@
 import type React from 'react';
 import { Suspense, lazy, useCallback, useState } from 'react';
-import { ErrorBoundary } from './ErrorBoundary';
-import { getUserFriendlyErrorMessage } from '../utils/errorHandler';
+import { ErrorBoundary } from '../../../components/ErrorBoundary';
+import { getUserFriendlyErrorMessage } from '../../../lib/error/handler';
 import { Spine } from './Spine';
 import { AIBlockSuggester } from './workspace/AIBlockSuggester';
 import { BlockConfigPanel } from './workspace/BlockConfigPanel';
@@ -13,34 +13,39 @@ import { ZoomControls } from './workspace/ZoomControls';
 
 // Lazy load modals and heavy components
 const BacktestModal = lazy(() =>
-  import('./modals/BacktestModal').then((m) => ({ default: m.BacktestModal }))
+  import('../../../components/modals/BacktestModal').then((m) => ({ default: m.BacktestModal }))
 );
 const PortfolioModal = lazy(() =>
-  import('./modals/PortfolioModal').then((m) => ({ default: m.PortfolioModal }))
+  import('../../../components/modals/PortfolioModal').then((m) => ({ default: m.PortfolioModal }))
 );
 const StrategyLibraryModal = lazy(() =>
-  import('./modals/StrategyLibraryModal').then((m) => ({ default: m.StrategyLibraryModal }))
+  import('../../../components/modals/StrategyLibraryModal').then((m) => ({
+    default: m.StrategyLibraryModal,
+  }))
 );
 const SettingsModal = lazy(() =>
-  import('./modals/SettingsModal').then((m) => ({ default: m.SettingsModal }))
+  import('../../../components/modals/SettingsModal').then((m) => ({ default: m.SettingsModal }))
 );
 const OptimizationPanel = lazy(() =>
-  import('./OptimizationPanel').then((m) => ({ default: m.OptimizationPanel }))
+  import('../../../features/optimization/components/OptimizationPanel').then((m) => ({
+    default: m.OptimizationPanel,
+  }))
 );
 const SimulationModal = lazy(() =>
-  import('./modals/SimulationModal').then((m) => ({ default: m.SimulationModal }))
+  import('../../../components/modals/SimulationModal').then((m) => ({ default: m.SimulationModal }))
 );
-import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
-import { useModalState } from '../hooks/useModalState';
-import { useToast } from '../hooks/useToast';
-import { useWallet } from '../hooks/useWallet';
+import { simulateStrategyExecution } from '../../../features/blockchain/services/web3/transactionSimulator';
+import { useKeyboardShortcuts } from '../../../hooks/useKeyboardShortcuts';
+import { useModalState } from '../../../hooks/useModalState';
+import { useToast } from '../../../hooks/useToast';
+import { logger } from '../../../lib/monitoring/logger';
+// import { RouteGuard } from '../../../components/RouteGuard'; // Reserved for future use
+import type { DeFiBacktestResult } from '../../../services/defiBacktestEngine';
+import { BacktestExecutionError, executeStrategy } from '../../../services/executionEngine';
+import { portfolioTracker } from '../../../services/portfolioTracker';
+import { exportBlocks, importBlocks } from '../../../services/strategyStorage';
+import { useWallet } from '../../blockchain/hooks/useWallet';
 import { useWorkspaceState } from '../hooks/useWorkspaceState';
-import { RouteGuard } from './RouteGuard';
-import type { DeFiBacktestResult } from '../services/defiBacktestEngine';
-import { BacktestExecutionError, executeStrategy } from '../services/executionEngine';
-import { portfolioTracker } from '../services/portfolioTracker';
-import { exportBlocks, importBlocks } from '../services/strategyStorage';
-import { simulateStrategyExecution } from '../services/web3/transactionSimulator';
 
 const Workspace: React.FC = () => {
   const { error: showError, success: showSuccess } = useToast();
@@ -75,7 +80,8 @@ const Workspace: React.FC = () => {
   const [backtestResult, setBacktestResult] = useState<DeFiBacktestResult | null>(null);
   const [showSimulation, setShowSimulation] = useState(false);
   const [simulationResult, setSimulationResult] = useState<
-    import('../services/web3/transactionSimulator').SimulationResult | null
+    | import('../../../features/blockchain/services/web3/transactionSimulator').SimulationResult
+    | null
   >(null);
 
   // Wallet connection
@@ -106,7 +112,11 @@ const Workspace: React.FC = () => {
       URL.revokeObjectURL(url);
       showSuccess('Strategy exported successfully');
     } catch (error) {
-      logger.error('Export failed', error instanceof Error ? error : new Error(String(error)), 'Workspace');
+      logger.error(
+        'Export failed',
+        error instanceof Error ? error : new Error(String(error)),
+        'Workspace'
+      );
       showError('Failed to export strategy. Please ensure your strategy is valid and try again.');
     }
   }, [blocks, showError, showSuccess]);
@@ -127,7 +137,11 @@ const Workspace: React.FC = () => {
           setBlocks(importedBlocks);
           showSuccess('Strategy imported successfully');
         } catch (error) {
-          logger.error('Import failed', error instanceof Error ? error : new Error(String(error)), 'Workspace');
+          logger.error(
+            'Import failed',
+            error instanceof Error ? error : new Error(String(error)),
+            'Workspace'
+          );
           showError(getUserFriendlyErrorMessage(error, 'import'));
         }
       };
@@ -152,9 +166,11 @@ const Workspace: React.FC = () => {
       setSimulationResult(simulation);
       setShowSimulation(true);
     } catch (error) {
-      const { logger } = await import('../../lib/monitoring/logger');
-      logger.error('Simulation failed', error instanceof Error ? error : new Error(String(error)), 'Workspace');
-      const { getUserFriendlyErrorMessage } = await import('../utils/errorHandler');
+      logger.error(
+        'Simulation failed',
+        error instanceof Error ? error : new Error(String(error)),
+        'Workspace'
+      );
       showError(getUserFriendlyErrorMessage(error, 'simulation'));
     }
   };
@@ -180,7 +196,7 @@ const Workspace: React.FC = () => {
         const message = error.actionable ? `${error.message}. ${error.actionable}` : error.message;
         showError(message);
       } else {
-        const { getUserFriendlyErrorMessage } = await import('../utils/errorHandler');
+        const { getUserFriendlyErrorMessage } = await import('../../../lib/error/handler');
         showError(getUserFriendlyErrorMessage(error, 'execution'));
       }
     } finally {

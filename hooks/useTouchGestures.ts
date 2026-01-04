@@ -27,10 +27,7 @@ const MIN_SWIPE_DISTANCE = 50; // px
 /**
  * Hook for touch gestures on mobile devices
  */
-export function useTouchGestures(
-  callbacks: TouchGestureCallbacks,
-  enabled: boolean = true
-) {
+export function useTouchGestures(callbacks: TouchGestureCallbacks, enabled = true) {
   const elementRef = useRef<HTMLElement | null>(null);
   const stateRef = useRef<TouchState>({
     touches: [],
@@ -63,7 +60,7 @@ export function useTouchGestures(
       }
 
       // Pinch detection
-      if (touches.length === 2) {
+      if (touches.length === 2 && touches[0] && touches[1]) {
         stateRef.current.initialDistance = getDistance(touches[0], touches[1]);
         stateRef.current.initialScale = 1;
       }
@@ -92,7 +89,13 @@ export function useTouchGestures(
       }
 
       // Pinch zoom
-      if (touches.length === 2 && stateRef.current.initialDistance !== null && callbacks.onPinch) {
+      if (
+        touches.length === 2 &&
+        touches[0] &&
+        touches[1] &&
+        stateRef.current.initialDistance !== null &&
+        callbacks.onPinch
+      ) {
         const currentDistance = getDistance(touches[0], touches[1]);
         const scale = currentDistance / stateRef.current.initialDistance;
         callbacks.onPinch(scale);
@@ -107,9 +110,15 @@ export function useTouchGestures(
       }
 
       // Swipe detection
-      if (stateRef.current.touches.length === 1 && e.changedTouches.length === 1 && callbacks.onSwipe) {
+      if (
+        stateRef.current.touches.length === 1 &&
+        e.changedTouches.length === 1 &&
+        callbacks.onSwipe
+      ) {
         const startTouch = stateRef.current.touches[0];
         const endTouch = e.changedTouches[0];
+
+        if (!startTouch || !endTouch) return;
 
         const dx = endTouch.clientX - startTouch.clientX;
         const dy = endTouch.clientY - startTouch.clientY;
@@ -198,4 +207,3 @@ export function useBreakpoint(): 'mobile' | 'tablet' | 'desktop' {
 
   return breakpoint;
 }
-

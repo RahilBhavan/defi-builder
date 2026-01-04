@@ -1,4 +1,4 @@
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import type React from 'react';
 import { useEffect } from 'react';
@@ -85,7 +85,10 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
             )}
 
             {/* Content */}
-            <div className="overflow-y-auto" style={{ maxHeight: `calc(${maxHeight} - ${title ? '80px' : '40px'})` }}>
+            <div
+              className="overflow-y-auto"
+              style={{ maxHeight: `calc(${maxHeight} - ${title ? '80px' : '40px'})` }}
+            >
               {children}
             </div>
           </motion.div>
@@ -94,4 +97,3 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
     </AnimatePresence>
   );
 };
-

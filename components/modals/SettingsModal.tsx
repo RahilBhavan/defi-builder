@@ -2,13 +2,13 @@ import { motion } from 'framer-motion';
 import { Key, Network, Settings, Shield, X } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useState } from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import { useToast } from '../../hooks/useToast';
 import { logger } from '../../lib/monitoring/logger';
 import { type AppSettings, useSettings } from '../../services/settingsStorage';
-import { useTheme } from '../../hooks/useTheme';
-import { ThemeToggle } from '../ui/ThemeToggle';
 import { Button } from '../ui/Button';
 import { ConfirmationDialog } from '../ui/ConfirmationDialog';
+import { ThemeToggle } from '../ui/ThemeToggle';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -49,16 +49,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
       }
 
       // Save all settings
-      (Object.keys(localSettings) as Array<keyof AppSettings>).forEach((key) => {
+      for (const key of Object.keys(localSettings) as Array<keyof AppSettings>) {
         updateSection(key, localSettings[key]);
-      });
+      }
 
       showSuccess('Settings saved successfully');
       setHasChanges(false);
       onClose();
     } catch (error) {
       showError('Failed to save settings. Please try again.');
-      logger.error('Error saving settings', error instanceof Error ? error : new Error(String(error)), 'SettingsModal');
+      logger.error(
+        'Error saving settings',
+        error instanceof Error ? error : new Error(String(error)),
+        'SettingsModal'
+      );
     }
   };
 
@@ -88,7 +92,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
         {/* Header */}
         <div className="h-16 flex items-center justify-between px-6 border-b border-gray-300 bg-white">
           <h2 className="text-lg font-bold font-mono uppercase">Settings</h2>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 text-ink transition-colors">
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 text-ink transition-colors"
+          >
             <X size={24} />
           </button>
         </div>
@@ -131,7 +139,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                       <ThemeToggle />
                     </div>
                     <p className="text-xs text-gray-500 font-mono">
-                      Current: {theme === 'system' ? 'System' : theme === 'dark' ? 'Dark' : 'Light'} mode
+                      Current: {theme === 'system' ? 'System' : theme === 'dark' ? 'Dark' : 'Light'}{' '}
+                      mode
                       {theme === 'system' && ` (${effectiveTheme})`}
                     </p>
                     <label className="flex items-center gap-3 cursor-pointer">
@@ -326,8 +335,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                         🔒 API Key Security
                       </p>
                       <p className="text-xs text-blue-700">
-                        Gemini API keys are now managed server-side for security. 
-                        Contact your administrator to configure API keys on the backend.
+                        Gemini API keys are now managed server-side for security. Contact your
+                        administrator to configure API keys on the backend.
                       </p>
                     </div>
                     <div className="p-4 bg-orange/10 border border-orange/20 flex gap-3 items-start">

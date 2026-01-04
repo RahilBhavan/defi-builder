@@ -1,9 +1,9 @@
 import { ChevronDown, Wallet } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
-import { useNetwork } from '../../hooks/useNetwork';
-import { useWallet } from '../../hooks/useWallet';
-import { Button } from '../ui/Button';
+import { Button } from '../../../../components/ui/Button';
+import { useNetwork } from '../../../blockchain/hooks/useNetwork';
+import { useWallet } from '../../../blockchain/hooks/useWallet';
 
 export const NetworkBadge: React.FC = () => {
   const { address, isConnected, connect, disconnect, chainName } = useWallet();
@@ -64,7 +64,7 @@ export const NetworkBadge: React.FC = () => {
               <div className="p-3 text-[10px] font-bold uppercase text-gray-500 border-b border-gray-200 bg-gray-50">
                 Switch Network
               </div>
-              {getSupportedChains().map((chain) => (
+              {getSupportedChains().map((chain: { id: number; name: string }) => (
                 <button
                   key={chain.id}
                   type="button"

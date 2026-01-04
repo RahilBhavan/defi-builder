@@ -104,10 +104,7 @@ export function validateEnum<T extends string>(
 /**
  * Validate a required field
  */
-export function validateRequired(
-  value: unknown,
-  fieldName = 'Field'
-): string | null {
+export function validateRequired(value: unknown, fieldName = 'Field'): string | null {
   if (value === null || value === undefined || value === '') {
     return `${fieldName} is required`;
   }
@@ -137,21 +134,28 @@ export function sanitizeString(input: string, maxLength: number): string {
 /**
  * Validate and sanitize strategy name
  */
-export function validateAndSanitizeStrategyName(name: string): { valid: boolean; sanitized: string; error?: string } {
+export function validateAndSanitizeStrategyName(name: string): {
+  valid: boolean;
+  sanitized: string;
+  error?: string;
+} {
   if (!name || name.trim().length === 0) {
     return { valid: false, sanitized: '', error: 'Strategy name is required' };
   }
 
   const sanitized = sanitizeString(name, 100);
-  
+
   if (sanitized.length < 1) {
     return { valid: false, sanitized: '', error: 'Strategy name must be at least 1 character' };
   }
 
   if (sanitized.length > 100) {
-    return { valid: false, sanitized: sanitized.slice(0, 100), error: 'Strategy name must be at most 100 characters' };
+    return {
+      valid: false,
+      sanitized: sanitized.slice(0, 100),
+      error: 'Strategy name must be at most 100 characters',
+    };
   }
 
   return { valid: true, sanitized };
 }
-

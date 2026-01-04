@@ -4,13 +4,13 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import express from 'express';
 import prisma from './db/client';
+import { startSecretRotationJob } from './jobs/secretRotation';
 import { rateLimiters } from './middleware/rateLimiter';
 import { createContext } from './trpc/context';
 import { appRouter } from './trpc/router';
-import { startSecretRotationJob } from './jobs/secretRotation';
 import { validateEnv } from './utils/envValidation';
 import { logger } from './utils/logger';
-import { initSentry, performanceMiddleware } from './utils/monitoring';
+import { initSentry } from './utils/monitoring';
 import { initDoppler } from './utils/secrets';
 
 dotenv.config();
@@ -20,7 +20,7 @@ dotenv.config();
 // This initialization is for programmatic access or fallback scenarios
 initDoppler().catch((error) => {
   logger.warn('Doppler initialization failed, continuing with environment variables', 'Secrets');
-  logger.debug('Doppler error', error instanceof Error ? error : new Error(String(error)), 'Secrets');
+  logger.debug('Doppler error', String(error), 'Secrets');
 });
 
 // Initialize monitoring (Sentry)
@@ -34,7 +34,11 @@ if (sentryDsn) {
 try {
   validateEnv();
 } catch (error) {
-  logger.error('Failed to start server due to environment validation errors', error instanceof Error ? error : new Error(String(error)), 'Server');
+  logger.error(
+    'Failed to start server due to environment validation errors',
+    error instanceof Error ? error : new Error(String(error)),
+    'Server'
+  );
   process.exit(1);
 }
 
@@ -52,11 +56,12 @@ app.use(express.json());
 app.use(cookieParser()); // Parse cookies
 
 // CSRF protection - generate and validate CSRF tokens
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 
 // CSRF_SECRET is used in generateCSRFToken but not directly referenced
 // Keeping for potential future use
-const _CSRF_SECRET = process.env.CSRF_SECRET || crypto.randomBytes(32).toString('hex');
+// CSRF_SECRET is used in generateCSRFToken but not directly referenced
+// Keeping for potential future use
 const CSRF_TOKEN_HEADER = 'x-csrf-token';
 
 // Generate CSRF token
@@ -69,9 +74,12 @@ const csrfTokens = new Set<string>();
 const CSRF_TOKEN_TTL = 60 * 60 * 1000; // 1 hour
 
 // Clean up expired tokens
-setInterval(() => {
-  // In production, use Redis TTL instead
-}, 5 * 60 * 1000);
+setInterval(
+  () => {
+    // In production, use Redis TTL instead
+  },
+  5 * 60 * 1000
+);
 
 // Security headers (CSP, etc.) and CSRF protection
 app.use((req, res, next) => {
@@ -127,7 +135,7 @@ app.get('/health', (_req, res) => {
 });
 
 // Test DB connection
-app.get('/db-test', async (_req, res) => {
+app.get('/db-test', async (_req: express.Request, res: express.Response) => {
   try {
     const userCount = await prisma.user.count();
     res.json({ success: true, userCount });
@@ -148,7 +156,7 @@ app.use(
 app.listen(PORT, () => {
   logger.info(`Backend server running on http://localhost:${PORT}`, 'Server');
   logger.info(`tRPC endpoint: http://localhost:${PORT}/trpc`, 'Server');
-  
+
   // Start secret rotation job (if Doppler is configured)
   if (process.env.DOPPLER_TOKEN) {
     startSecretRotationJob();

@@ -13,10 +13,6 @@ const meta: Meta<typeof Button> = {
       control: 'select',
       options: ['primary', 'secondary', 'danger'],
     },
-    size: {
-      control: 'select',
-      options: ['sm', 'md', 'lg'],
-    },
     fullWidth: {
       control: 'boolean',
     },
@@ -53,14 +49,14 @@ export const Danger: Story = {
 export const Small: Story = {
   args: {
     children: 'Small Button',
-    size: 'sm',
+    className: 'text-xs px-3 py-1.5',
   },
 };
 
 export const Large: Story = {
   args: {
     children: 'Large Button',
-    size: 'lg',
+    className: 'text-base px-8 py-3',
   },
 };
 
@@ -77,4 +73,3 @@ export const Disabled: Story = {
     disabled: true,
   },
 };
-

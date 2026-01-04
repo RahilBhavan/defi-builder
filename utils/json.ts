@@ -11,7 +11,10 @@ import { logger } from '../lib/monitoring/logger';
  * @param fallback - Value to return if parsing fails (default: null)
  * @returns Parsed object or fallback value
  */
-export function safeJsonParse<T = unknown>(jsonString: string, fallback: T | null = null): T | null {
+export function safeJsonParse<T = unknown>(
+  jsonString: string,
+  fallback: T | null = null
+): T | null {
   try {
     return JSON.parse(jsonString) as T;
   } catch (error) {
@@ -52,7 +55,10 @@ export function safeJsonStringify(value: unknown, fallback = '{}'): string {
  */
 export function safeJsonParseWithSchema<T>(
   jsonString: string,
-  schema: { parse: (data: unknown) => T; safeParse: (data: unknown) => { success: boolean; data?: T; error?: unknown } },
+  schema: {
+    parse: (data: unknown) => T;
+    safeParse: (data: unknown) => { success: boolean; data?: T; error?: unknown };
+  },
   fallback: T | null = null
 ): T | null {
   try {
@@ -72,4 +78,3 @@ export function safeJsonParseWithSchema<T>(
     return fallback;
   }
 }
-

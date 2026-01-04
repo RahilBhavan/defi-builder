@@ -104,7 +104,7 @@ class RateLimiter {
         if (isRateLimit && request.retries < (this.config.maxRetries || 3)) {
           // Exponential backoff for rate limit errors
           request.retries++;
-          const delay = (this.config.retryDelay || 1000) * Math.pow(2, request.retries - 1);
+          const delay = (this.config.retryDelay || 1000) * 2 ** (request.retries - 1);
           await this.sleep(delay);
           this.queue.unshift(request); // Add back to front of queue
         } else {
@@ -127,9 +127,9 @@ class RateLimiter {
    * Clear queue
    */
   clear(): void {
-    this.queue.forEach((req) => {
+    for (const req of this.queue) {
       req.reject(new Error('Rate limiter cleared'));
-    });
+    }
     this.queue = [];
     this.requestHistory = [];
   }
@@ -194,4 +194,3 @@ class RequestDeduplicator {
 }
 
 export const requestDeduplicator = new RequestDeduplicator();
-

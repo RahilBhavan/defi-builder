@@ -82,7 +82,7 @@ export function validateAndSanitizeStrategy(strategy: Strategy): StrategyShareDa
  * Generate a shareable token for strategy using backend JWT signing
  * Uses backend endpoint for secure token generation
  */
-import { logger } from '../utils/logger';
+import { logger } from '../lib/monitoring/logger';
 
 /**
  * Generate share token via backend (secure JWT signing)
@@ -90,7 +90,7 @@ import { logger } from '../utils/logger';
 export async function generateShareToken(strategy: Strategy): Promise<string> {
   try {
     const sanitized = validateAndSanitizeStrategy(strategy);
-    
+
     // Call backend to generate signed JWT token
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
     const response = await fetch(`${API_URL}/trpc/sharing.generateShareToken`, {
@@ -116,7 +116,11 @@ export async function generateShareToken(strategy: Strategy): Promise<string> {
 
     throw new Error('Invalid response from backend');
   } catch (error) {
-    logger.error('Failed to generate share token', error instanceof Error ? error : new Error(String(error)), 'StrategySharing');
+    logger.error(
+      'Failed to generate share token',
+      error instanceof Error ? error : new Error(String(error)),
+      'StrategySharing'
+    );
     throw new Error('Failed to generate share token: Invalid strategy data or backend unavailable');
   }
 }
@@ -129,13 +133,16 @@ export async function parseShareToken(token: string): Promise<StrategyShareData 
   try {
     // Call backend to verify and parse JWT token
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-    const response = await fetch(`${API_URL}/trpc/sharing.parseShareToken?input=${encodeURIComponent(JSON.stringify({ token }))}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-    });
+    const response = await fetch(
+      `${API_URL}/trpc/sharing.parseShareToken?input=${encodeURIComponent(JSON.stringify({ token }))}`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      }
+    );
 
     if (!response.ok) {
       return null;
@@ -151,7 +158,11 @@ export async function parseShareToken(token: string): Promise<StrategyShareData 
 
     return null;
   } catch (error) {
-    logger.error('Invalid share token', error instanceof Error ? error : new Error(String(error)), 'StrategySharing');
+    logger.error(
+      'Invalid share token',
+      error instanceof Error ? error : new Error(String(error)),
+      'StrategySharing'
+    );
     return null;
   }
 }
@@ -163,4 +174,3 @@ export async function generateShareLink(strategy: Strategy): Promise<string> {
   const token = await generateShareToken(strategy);
   return `${window.location.origin}${window.location.pathname}?share=${encodeURIComponent(token)}`;
 }
-

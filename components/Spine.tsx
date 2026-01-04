@@ -1,8 +1,8 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowDown } from 'lucide-react';
 import React, { useState } from 'react';
-import { safeJsonParse } from '../utils/json';
 import type { LegoBlock } from '../types';
+import { safeJsonParse } from '../lib/storage/json';
 import { Block } from './Block';
 
 interface SpineProps {
@@ -64,7 +64,7 @@ export const Spine: React.FC<SpineProps> = ({
     setDragOverIndex(null);
   };
 
-  const handleDropFromExternal = (e: React.DragEvent<HTMLDivElement>, targetIndex?: number) => {
+  const handleDropFromExternal = (e: React.DragEvent<HTMLElement>, targetIndex?: number) => {
     e.preventDefault();
     e.stopPropagation();
 
@@ -80,12 +80,10 @@ export const Spine: React.FC<SpineProps> = ({
   };
 
   return (
-    <div
+    <main
       data-onboarding="spine"
       className="w-full min-h-screen flex flex-col items-center py-8 sm:py-20 px-4 sm:px-6"
       onClick={() => onSelectBlock(null)}
-      aria-label="Clear selection"
-      tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
@@ -99,7 +97,6 @@ export const Spine: React.FC<SpineProps> = ({
         e.dataTransfer.dropEffect = 'copy';
       }}
       onDrop={(e) => handleDropFromExternal(e)}
-      role="main"
       aria-label="Strategy builder workspace"
     >
       <div className="w-full max-w-[750px] flex flex-col gap-4 sm:gap-8 items-center">
@@ -302,6 +299,6 @@ export const Spine: React.FC<SpineProps> = ({
 
       {/* Bottom padding for scrolling */}
       <div className="h-64 flex-shrink-0" />
-    </div>
+    </main>
   );
 };

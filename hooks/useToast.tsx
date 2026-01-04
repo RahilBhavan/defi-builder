@@ -1,4 +1,12 @@
-import { type ReactNode, createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import {
+  type ReactNode,
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
@@ -80,7 +88,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         const timeoutId = setTimeout(() => {
           dismissToast(id);
         }, duration);
-        
+
         // Store timeout ID for cleanup
         timeoutRefs.current.set(id, timeoutId);
       }

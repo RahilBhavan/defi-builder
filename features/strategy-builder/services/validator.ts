@@ -1,5 +1,5 @@
-import { BlockCategory, type LegoBlock, type ValidationResult } from '../types';
-import { validateNumberRange, validateRequired, validateEnum } from '../utils/validation';
+import { BlockCategory, type LegoBlock, type ValidationResult } from '../../../types';
+import { validateEnum } from '../../../utils/validation';
 
 /**
  * Validates a DeFi strategy by checking all blocks for required parameters and constraints.
@@ -15,10 +15,10 @@ export const validateStrategy = (blocks: LegoBlock[]): ValidationResult => {
   }
 
   // 1. Validate individual block parameters
-  blocks.forEach((block, index) => {
+  for (const block of blocks) {
     validateBlockParameters(block, errors);
     validateParameterRanges(block, errors);
-  });
+  }
 
   // 2. Validate flow structure (ENTRY → PROTOCOL → EXIT)
   validateFlowStructure(blocks, errors);
@@ -322,7 +322,7 @@ function validateBlockParameters(
       }
       break;
 
-    case 'time_exit':
+    case 'time_exit': {
       if (!block.params.duration || Number(block.params.duration) <= 0) {
         errors.push({ blockId: block.id, message: 'Duration must be greater than 0' });
       }
@@ -332,9 +332,13 @@ function validateBlockParameters(
         'From'
       );
       if (fromError) {
-        errors.push({ blockId: block.id, message: `From must be "entry" or "position": ${fromError}` });
+        errors.push({
+          blockId: block.id,
+          message: `From must be "entry" or "position": ${fromError}`,
+        });
       }
       break;
+    }
 
     case 'conditional_exit':
       if (!block.params.condition || typeof block.params.condition !== 'string') {
@@ -342,7 +346,7 @@ function validateBlockParameters(
       }
       break;
 
-    case 'position_sizing':
+    case 'position_sizing': {
       const methodError = validateEnum(
         String(block.params.method || ''),
         ['fixed', 'percentage', 'kelly', 'risk_based'] as const,
@@ -358,6 +362,7 @@ function validateBlockParameters(
         errors.push({ blockId: block.id, message: 'Position sizing value must be greater than 0' });
       }
       break;
+    }
 
     case 'risk_limits':
       if (!block.params.maxDrawdown || Number(block.params.maxDrawdown) <= 0) {
@@ -374,7 +379,7 @@ function validateBlockParameters(
       }
       break;
 
-    case 'rebalancing':
+    case 'rebalancing': {
       if (!block.params.targetAllocation || typeof block.params.targetAllocation !== 'object') {
         errors.push({ blockId: block.id, message: 'Target allocation is required' });
       }
@@ -393,11 +398,16 @@ function validateBlockParameters(
         });
       }
       break;
+    }
 
     default:
       // Unknown block type - warn but don't fail
-      const { logger } = await import('../../../lib/monitoring/logger');
-      logger.warn(`Unknown block type: ${block.type}`, 'StrategyValidator');
+      (async () => {
+        const { logger } = await import('../../../lib/monitoring/logger');
+        logger.warn(`Unknown block type: ${block.type}`, 'StrategyValidator');
+      })().catch(() => {
+        // Silently fail if logger import fails
+      });
       break;
   }
 }
@@ -412,7 +422,7 @@ function validateParameterRanges(
   // Validate slippage for swap operations
   if (block.params.slippage !== undefined) {
     const slippage = Number(block.params.slippage);
-    if (isNaN(slippage)) {
+    if (Number.isNaN(slippage)) {
       errors.push({ blockId: block.id, message: 'Slippage must be a valid number' });
     } else if (slippage < 0) {
       errors.push({ blockId: block.id, message: 'Slippage cannot be negative' });
@@ -424,7 +434,7 @@ function validateParameterRanges(
   // Validate percentage-based parameters
   if (block.params.percentage !== undefined) {
     const percentage = Number(block.params.percentage);
-    if (isNaN(percentage)) {
+    if (Number.isNaN(percentage)) {
       errors.push({ blockId: block.id, message: 'Percentage must be a valid number' });
     } else if (percentage < 0 || percentage > 100) {
       errors.push({ blockId: block.id, message: 'Percentage must be between 0 and 100' });
@@ -434,7 +444,7 @@ function validateParameterRanges(
   // Validate amount parameters
   if (block.params.amount !== undefined) {
     const amount = Number(block.params.amount);
-    if (isNaN(amount)) {
+    if (Number.isNaN(amount)) {
       errors.push({ blockId: block.id, message: 'Amount must be a valid number' });
     } else if (amount < 0) {
       errors.push({ blockId: block.id, message: 'Amount cannot be negative' });
@@ -444,7 +454,7 @@ function validateParameterRanges(
   // Validate amount0 and amount1 for liquidity blocks
   if (block.params.amount0 !== undefined) {
     const amount = Number(block.params.amount0);
-    if (isNaN(amount)) {
+    if (Number.isNaN(amount)) {
       errors.push({ blockId: block.id, message: 'Amount0 must be a valid number' });
     } else if (amount < 0) {
       errors.push({ blockId: block.id, message: 'Amount0 cannot be negative' });
@@ -453,7 +463,7 @@ function validateParameterRanges(
 
   if (block.params.amount1 !== undefined) {
     const amount = Number(block.params.amount1);
-    if (isNaN(amount)) {
+    if (Number.isNaN(amount)) {
       errors.push({ blockId: block.id, message: 'Amount1 must be a valid number' });
     } else if (amount < 0) {
       errors.push({ blockId: block.id, message: 'Amount1 cannot be negative' });
@@ -463,7 +473,7 @@ function validateParameterRanges(
   // Validate duration for time-based blocks
   if (block.params.duration !== undefined) {
     const duration = Number(block.params.duration);
-    if (isNaN(duration)) {
+    if (Number.isNaN(duration)) {
       errors.push({ blockId: block.id, message: 'Duration must be a valid number' });
     } else if (duration < 0) {
       errors.push({ blockId: block.id, message: 'Duration cannot be negative' });
@@ -473,7 +483,7 @@ function validateParameterRanges(
   // Validate minVolume for volume trigger
   if (block.params.minVolume !== undefined) {
     const volume = Number(block.params.minVolume);
-    if (isNaN(volume)) {
+    if (Number.isNaN(volume)) {
       errors.push({ blockId: block.id, message: 'Minimum volume must be a valid number' });
     } else if (volume < 0) {
       errors.push({ blockId: block.id, message: 'Minimum volume cannot be negative' });
@@ -495,24 +505,30 @@ function validateFlowStructure(
   // Check if strategy has at least one ENTRY block
   const hasEntry = categories.some((c) => c === BlockCategory.ENTRY);
   if (!hasEntry) {
-    errors.push({
-      blockId: blocks[0].id,
-      message: 'Strategy must start with at least one ENTRY block',
-    });
+    const firstBlock = blocks[0];
+    if (firstBlock) {
+      errors.push({
+        blockId: firstBlock.id,
+        message: 'Strategy must start with at least one ENTRY block',
+      });
+    }
   }
 
   // Check if strategy has at least one PROTOCOL block
   const hasProtocol = categories.some((c) => c === BlockCategory.PROTOCOL);
   if (!hasProtocol) {
-    errors.push({
-      blockId: blocks[0].id,
-      message: 'Strategy must include at least one PROTOCOL block',
-    });
+    const firstBlock = blocks[0];
+    if (firstBlock) {
+      errors.push({
+        blockId: firstBlock.id,
+        message: 'Strategy must include at least one PROTOCOL block',
+      });
+    }
   }
 
   // Validate flow order: ENTRY should come before PROTOCOL, PROTOCOL before EXIT
   let lastCategory: BlockCategory | null = null;
-  blocks.forEach((block, index) => {
+  for (const block of blocks) {
     const currentCategory = block.category;
 
     // ENTRY blocks should come first
@@ -544,7 +560,7 @@ function validateFlowStructure(
     }
 
     lastCategory = currentCategory;
-  });
+  }
 }
 
 /**
@@ -554,17 +570,21 @@ function validateTokenCompatibility(
   blocks: LegoBlock[],
   errors: { blockId: string; message: string }[]
 ): void {
-  const tokenFlow: string[] = [];
+  // const tokenFlow: string[] = []; // Reserved for future token flow validation
 
-  blocks.forEach((block, index) => {
+  for (let index = 0; index < blocks.length; index++) {
+    const block = blocks[index];
+    if (!block) continue;
     // Track output tokens from previous blocks
     let previousOutputToken: string | null = null;
     if (index > 0) {
       const prevBlock = blocks[index - 1];
-      if (prevBlock.type === 'uniswap_swap' && prevBlock.params.outputToken) {
-        previousOutputToken = String(prevBlock.params.outputToken);
-      } else if (prevBlock.type === 'aave_supply' && prevBlock.params.asset) {
-        previousOutputToken = String(prevBlock.params.asset);
+      if (prevBlock) {
+        if (prevBlock.type === 'uniswap_swap' && prevBlock.params.outputToken) {
+          previousOutputToken = String(prevBlock.params.outputToken);
+        } else if (prevBlock.type === 'aave_supply' && prevBlock.params.asset) {
+          previousOutputToken = String(prevBlock.params.asset);
+        }
       }
     }
 
@@ -580,7 +600,11 @@ function validateTokenCompatibility(
         if (index > 0) {
           // Only warn if it's clearly incompatible
           const prevBlock = blocks[index - 1];
-          if (prevBlock.type === 'uniswap_swap' && prevBlock.params.outputToken !== inputToken) {
+          if (
+            prevBlock &&
+            prevBlock.type === 'uniswap_swap' &&
+            prevBlock.params.outputToken !== inputToken
+          ) {
             // This is acceptable - user might be doing multi-hop swaps
           }
         }
@@ -603,7 +627,7 @@ function validateTokenCompatibility(
         // This might be intentional, so we'll just log it
       }
     }
-  });
+  }
 }
 
 /**
@@ -613,7 +637,9 @@ function validateDependencies(
   blocks: LegoBlock[],
   errors: { blockId: string; message: string }[]
 ): void {
-  blocks.forEach((block, index) => {
+  for (let index = 0; index < blocks.length; index++) {
+    const block = blocks[index];
+    if (!block) continue;
     // Stop loss requires a position (PROTOCOL block before it)
     if (block.type === 'stop_loss') {
       const hasPositionBefore = blocks
@@ -735,5 +761,5 @@ function validateDependencies(
       // Position sizing affects subsequent blocks, so it's fine anywhere
       // But ideally should come before protocol blocks
     }
-  });
+  }
 }

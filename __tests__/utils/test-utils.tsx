@@ -1,13 +1,13 @@
-import type { ReactElement } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render } from '@testing-library/react';
+import type { ReactElement } from 'react';
 import { vi } from 'vitest';
 import { WagmiProvider } from 'wagmi';
-import { wagmiConfig } from '../../services/web3/config';
-import { httpBatchLink } from '@trpc/client';
-import { trpc } from '../../utils/trpc';
-import { trpcClient } from '../../utils/api-client';
 import { ToastProvider } from '../../hooks/useToast';
+import { wagmiConfig } from '../../services/web3/config';
+import { trpcClient } from '../../utils/api-client';
+// httpBatchLink - not used in test utils
+import { trpc } from '../../utils/trpc';
 
 /**
  * Test utilities for React component testing
@@ -96,4 +96,3 @@ export const mockModalState = {
 
 // Re-export everything from React Testing Library
 export * from '@testing-library/react';
-

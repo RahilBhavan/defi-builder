@@ -1,5 +1,5 @@
-import type { LegoBlock } from '../../types';
-import { runDeFiBacktest } from '../defiBacktestEngine';
+import { runDeFiBacktest } from '../../../../services/defiBacktestEngine';
+import type { LegoBlock } from '../../../../types';
 import type { BacktestWorkerRequest, BacktestWorkerResponse } from './types';
 
 function applyParametersToBlocks(

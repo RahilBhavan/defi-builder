@@ -4,8 +4,18 @@
  */
 
 export * from './config';
-export * from './gasEstimator';
+export {
+  getGasPrices,
+  estimateGas,
+  formatGasPrice,
+  type GasPriceData,
+  type GasEstimate,
+} from './gasEstimator';
 export * from './transactionExecutor';
 export * from './transactionHistory';
-export * from './transactionSimulator';
-
+export {
+  simulateStrategyExecution,
+  type SimulationResult,
+  type ApprovalRequirement,
+  type BalanceCheck,
+} from './transactionSimulator';

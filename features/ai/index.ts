@@ -1,6 +1,6 @@
 /**
  * AI Feature
- * 
+ *
  * All components, services, and types related to AI-powered features
  */
 
@@ -9,4 +9,3 @@ export { AIBlockSuggester } from './components/AIBlockSuggester';
 
 // Services
 export * from './services/gemini';
-

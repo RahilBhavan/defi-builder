@@ -1,5 +1,5 @@
 import { useLocalStorage } from '../hooks/useLocalStorage';
-import { safeJsonParse, safeJsonStringify } from '../utils/json';
+import { safeJsonParse, safeJsonStringify } from '../lib/storage/json';
 
 export interface AppSettings {
   appearance: {
@@ -54,6 +54,9 @@ export function getSettings(): AppSettings {
     if (!stored) return DEFAULT_SETTINGS;
 
     const parsed = safeJsonParse<AppSettings>(stored);
+    if (!parsed) {
+      return DEFAULT_SETTINGS;
+    }
     // Merge with defaults to handle missing properties
     return {
       ...DEFAULT_SETTINGS,
@@ -64,12 +67,7 @@ export function getSettings(): AppSettings {
       apiKeys: { ...DEFAULT_SETTINGS.apiKeys, ...parsed.apiKeys },
     };
   } catch (error) {
-    const { logger } = await import('../lib/monitoring/logger');
-    logger.error(
-      'Error loading settings',
-      error instanceof Error ? error : new Error(String(error)),
-      'SettingsStorage'
-    );
+    console.error('[SettingsStorage] Error loading settings:', error);
     return DEFAULT_SETTINGS;
   }
 }
@@ -81,12 +79,7 @@ export function saveSettings(settings: AppSettings): void {
   try {
     localStorage.setItem('defi-builder-settings', safeJsonStringify(settings));
   } catch (error) {
-    const { logger } = await import('../lib/monitoring/logger');
-    logger.error(
-      'Error saving settings',
-      error instanceof Error ? error : new Error(String(error)),
-      'SettingsStorage'
-    );
+    console.error('[SettingsStorage] Error saving settings:', error);
     throw new Error('Failed to save settings');
   }
 }

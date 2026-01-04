@@ -80,20 +80,14 @@ export function migrateData<T>(
   for (const migrationKey of migrationPath) {
     const migrationFn = migrations[migrationKey];
     if (!migrationFn) {
-      const { logger } = await import('../../lib/monitoring/logger');
-      logger.warn(`No migration found for ${migrationKey}, skipping`, 'Migrations');
+      console.warn(`[Migrations] No migration found for ${migrationKey}, skipping`);
       continue;
     }
 
     try {
       migratedData = migrationFn(migratedData);
     } catch (error) {
-      const { logger } = await import('../../lib/monitoring/logger');
-      logger.error(
-        `Migration ${migrationKey} failed`,
-        error instanceof Error ? error : new Error(String(error)),
-        'Migrations'
-      );
+      console.error(`[Migrations] Migration ${migrationKey} failed:`, error);
       throw new Error(`Migration failed: ${migrationKey}`);
     }
   }

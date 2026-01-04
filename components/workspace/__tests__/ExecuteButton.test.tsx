@@ -1,6 +1,6 @@
-import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { describe, expect, it, vi } from 'vitest';
 import { ExecuteButton } from '../ExecuteButton';
 
 describe('ExecuteButton', () => {
@@ -14,10 +14,10 @@ describe('ExecuteButton', () => {
   it('calls onClick when clicked and valid', async () => {
     const user = userEvent.setup();
     render(<ExecuteButton isValid={true} isExecuting={false} onClick={mockOnClick} />);
-    
+
     const button = screen.getByRole('button');
     await user.click(button);
-    
+
     expect(mockOnClick).toHaveBeenCalledTimes(1);
   });
 
@@ -52,4 +52,3 @@ describe('ExecuteButton', () => {
     expect(button).toHaveAttribute('aria-busy', 'false');
   });
 });
-

@@ -1,5 +1,5 @@
-import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, Check, X } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { ArrowRight, Check } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useState } from 'react';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
@@ -24,14 +24,16 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
   {
     id: 'blocks',
     title: 'Strategy Blocks',
-    description: 'Drag blocks from the left panel to build your strategy. Each block represents a DeFi action.',
+    description:
+      'Drag blocks from the left panel to build your strategy. Each block represents a DeFi action.',
     target: '[data-onboarding="block-palette"]',
     position: 'right',
   },
   {
     id: 'spine',
     title: 'Strategy Spine',
-    description: 'Your strategy flows from top to bottom. Connect blocks to create complex strategies.',
+    description:
+      'Your strategy flows from top to bottom. Connect blocks to create complex strategies.',
     target: '[data-onboarding="spine"]',
     position: 'center',
   },
@@ -145,47 +147,49 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({ onComplete, onSk
             exit={{ opacity: 0, scale: 0.9 }}
             className="fixed z-[9999] bg-white border-2 border-orange shadow-2xl p-6 max-w-sm"
             style={{
-              ...(currentStepData.target
+              ...(currentStepData?.target
                 ? (() => {
                     const element = document.querySelector(currentStepData.target || '');
                     if (element) {
                       const rect = element.getBoundingClientRect();
-                      const position = currentStepData.position || 'bottom';
+                      const position = currentStepData?.position || 'bottom';
                       const offset = 20;
-
-                      switch (position) {
-                        case 'top':
-                          return {
-                            top: `${rect.top - 200}px`,
-                            left: `${rect.left + rect.width / 2}px`,
-                            transform: 'translateX(-50%)',
-                          };
-                        case 'bottom':
-                          return {
-                            top: `${rect.bottom + offset}px`,
-                            left: `${rect.left + rect.width / 2}px`,
-                            transform: 'translateX(-50%)',
-                          };
-                        case 'left':
-                          return {
-                            top: `${rect.top + rect.height / 2}px`,
-                            left: `${rect.left - 250}px`,
-                            transform: 'translateY(-50%)',
-                          };
-                        case 'right':
-                          return {
-                            top: `${rect.top + rect.height / 2}px`,
-                            left: `${rect.right + offset}px`,
-                            transform: 'translateY(-50%)',
-                          };
-                        default:
-                          return {
-                            top: '50%',
-                            left: '50%',
-                            transform: 'translate(-50%, -50%)',
-                          };
-                      }
+                      return (() => {
+                        switch (position) {
+                          case 'top':
+                            return {
+                              top: `${rect.top - 200}px`,
+                              left: `${rect.left + rect.width / 2}px`,
+                              transform: 'translateX(-50%)',
+                            };
+                          case 'bottom':
+                            return {
+                              top: `${rect.bottom + offset}px`,
+                              left: `${rect.left + rect.width / 2}px`,
+                              transform: 'translateX(-50%)',
+                            };
+                          case 'left':
+                            return {
+                              top: `${rect.top + rect.height / 2}px`,
+                              left: `${rect.left - 250}px`,
+                              transform: 'translateY(-50%)',
+                            };
+                          case 'right':
+                            return {
+                              top: `${rect.top + rect.height / 2}px`,
+                              left: `${rect.right + offset}px`,
+                              transform: 'translateY(-50%)',
+                            };
+                          default:
+                            return {
+                              top: '50%',
+                              left: '50%',
+                              transform: 'translate(-50%, -50%)',
+                            };
+                        }
+                      })();
                     }
+                    return undefined;
                   })()
                 : {
                     top: '50%',
@@ -199,20 +203,18 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({ onComplete, onSk
           >
             {/* Progress indicator */}
             <div className="flex items-center gap-2 mb-4">
-              {ONBOARDING_STEPS.map((_, index) => (
+              {ONBOARDING_STEPS.map((step, index) => (
                 <div
-                  key={index}
-                  className={`h-1 flex-1 ${
-                    index <= currentStep ? 'bg-orange' : 'bg-gray-300'
-                  }`}
+                  key={`step-${index}-${step.id || step.title}`}
+                  className={`h-1 flex-1 ${index <= currentStep ? 'bg-orange' : 'bg-gray-300'}`}
                 />
               ))}
             </div>
 
             <h3 id="onboarding-title" className="text-lg font-bold font-mono uppercase mb-2">
-              {currentStepData.title}
+              {currentStepData?.title || ''}
             </h3>
-            <p className="text-sm text-gray-600 mb-6">{currentStepData.description}</p>
+            <p className="text-sm text-gray-600 mb-6">{currentStepData?.description || ''}</p>
 
             {/* Actions */}
             <div className="flex items-center justify-between gap-3">
@@ -225,11 +227,15 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({ onComplete, onSk
 
               <div className="flex gap-2">
                 {currentStep > 0 && (
-                  <Button variant="secondary" size="sm" onClick={handlePrevious}>
+                  <Button
+                    variant="secondary"
+                    onClick={handlePrevious}
+                    className="text-xs px-3 py-1.5"
+                  >
                     Previous
                   </Button>
                 )}
-                <Button variant="primary" size="sm" onClick={handleNext}>
+                <Button variant="primary" onClick={handleNext} className="text-xs px-3 py-1.5">
                   {isLastStep ? (
                     <>
                       <Check size={16} className="mr-1" />
@@ -269,4 +275,3 @@ export function useOnboarding() {
     startOnboarding,
   };
 }
-

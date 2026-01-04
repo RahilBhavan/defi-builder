@@ -17,7 +17,6 @@ import { useToast } from '../../hooks/useToast';
 import { logger } from '../../lib/monitoring/logger';
 import type { DeFiBacktestResult } from '../../services/defiBacktestEngine';
 import { type AdvancedMetrics, calculateAdvancedMetrics } from '../../utils/advancedMetrics';
-import { VirtualTable, VirtualTableContainer } from '../ui/VirtualTable';
 import {
   downloadCSV,
   exportEquityCurveToCSV,
@@ -25,6 +24,7 @@ import {
   exportTradesToCSV,
 } from '../../utils/csvExport';
 import { Button } from '../ui/Button';
+import { VirtualTable, VirtualTableContainer } from '../ui/VirtualTable';
 
 interface BacktestModalProps {
   isOpen: boolean;
@@ -56,15 +56,28 @@ export const BacktestModal: React.FC<BacktestModalProps> = ({ isOpen, onClose, r
 
   if (!isOpen) return null;
 
-  // Filter equity curve by time period
+  // Filter equity curve by time period with validation
   const filteredEquityCurve = useMemo(() => {
     if (!result?.equityCurve) return [];
-    if (timePeriod === 'ALL') return result.equityCurve;
+    
+    // Validate and filter out invalid data points
+    const validEquityCurve = result.equityCurve.filter(
+      (point) => 
+        point.date && 
+        point.equity !== undefined && 
+        !isNaN(point.equity) && 
+        isFinite(point.equity) &&
+        !isNaN(new Date(point.date).getTime())
+    );
+    
+    if (validEquityCurve.length === 0) return [];
+    
+    if (timePeriod === 'ALL') return validEquityCurve;
     if (timePeriod === 'CUSTOM') {
       if (!customDateRange.start || !customDateRange.end) {
-        return result.equityCurve;
+        return validEquityCurve;
       }
-      return result.equityCurve.filter((point) => {
+      return validEquityCurve.filter((point) => {
         const pointDate = new Date(point.date);
         return pointDate >= customDateRange.start! && pointDate <= customDateRange.end!;
       });
@@ -87,21 +100,40 @@ export const BacktestModal: React.FC<BacktestModalProps> = ({ isOpen, onClose, r
         cutoffDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
         break;
       default:
-        return result.equityCurve;
+        return validEquityCurve;
     }
 
-    return result.equityCurve.filter((point) => new Date(point.date) >= cutoffDate);
+    return validEquityCurve.filter((point) => new Date(point.date) >= cutoffDate);
   }, [result, timePeriod, customDateRange]);
 
   const chartData = useMemo(() => {
     if (!filteredEquityCurve || filteredEquityCurve.length === 0) {
       return [];
     }
-    return filteredEquityCurve.map((point) => ({
-      date: point.date,
-      name: new Date(point.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      equity: point.equity,
-    }));
+    
+    // Sample data if too large (>1000 points) for better performance
+    const shouldSample = filteredEquityCurve.length > 1000;
+    const dataToProcess = shouldSample
+      ? filteredEquityCurve.filter((_, index) => index % Math.ceil(filteredEquityCurve.length / 1000) === 0)
+      : filteredEquityCurve;
+    
+    return dataToProcess
+      .map((point) => {
+        try {
+          const date = new Date(point.date);
+          if (isNaN(date.getTime())) {
+            return null;
+          }
+          return {
+            date: point.date,
+            name: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            equity: Number(point.equity),
+          };
+        } catch {
+          return null;
+        }
+      })
+      .filter((point): point is NonNullable<typeof point> => point !== null);
   }, [filteredEquityCurve]);
 
   // Calculate HODL benchmark
@@ -162,7 +194,11 @@ export const BacktestModal: React.FC<BacktestModalProps> = ({ isOpen, onClose, r
       showSuccess('Equity curve exported to CSV');
     } catch (error) {
       showError('Failed to export equity curve');
-      logger.error('CSV export error', error instanceof Error ? error : new Error(String(error)), 'BacktestModal');
+      logger.error(
+        'CSV export error',
+        error instanceof Error ? error : new Error(String(error)),
+        'BacktestModal'
+      );
     }
   };
 
@@ -177,7 +213,11 @@ export const BacktestModal: React.FC<BacktestModalProps> = ({ isOpen, onClose, r
       showSuccess('Trades exported to CSV');
     } catch (error) {
       showError('Failed to export trades');
-      logger.error('CSV export error', error instanceof Error ? error : new Error(String(error)), 'BacktestModal');
+      logger.error(
+        'CSV export error',
+        error instanceof Error ? error : new Error(String(error)),
+        'BacktestModal'
+      );
     }
   };
 
@@ -192,7 +232,11 @@ export const BacktestModal: React.FC<BacktestModalProps> = ({ isOpen, onClose, r
       showSuccess('Metrics exported to CSV');
     } catch (error) {
       showError('Failed to export metrics');
-      logger.error('CSV export error', error instanceof Error ? error : new Error(String(error)), 'BacktestModal');
+      logger.error(
+        'CSV export error',
+        error instanceof Error ? error : new Error(String(error)),
+        'BacktestModal'
+      );
     }
   };
 
@@ -227,10 +271,12 @@ export const BacktestModal: React.FC<BacktestModalProps> = ({ isOpen, onClose, r
 
     // Filter by date range
     if (tradeFilter.dateRange.start) {
-      trades = trades.filter((t) => t.timestamp >= tradeFilter.dateRange.start!.getTime());
+      const startTime = tradeFilter.dateRange.start.getTime();
+      trades = trades.filter((t) => t.timestamp >= startTime);
     }
     if (tradeFilter.dateRange.end) {
-      trades = trades.filter((t) => t.timestamp <= tradeFilter.dateRange.end!.getTime());
+      const endTime = tradeFilter.dateRange.end.getTime();
+      trades = trades.filter((t) => t.timestamp <= endTime);
     }
 
     return trades;
@@ -245,10 +291,10 @@ export const BacktestModal: React.FC<BacktestModalProps> = ({ isOpen, onClose, r
   const tradeTokens = useMemo(() => {
     if (!result?.trades) return [];
     const tokens = new Set<string>();
-    result.trades.forEach((t) => {
+    for (const t of result.trades) {
       tokens.add(t.inputToken);
       if (t.outputToken) tokens.add(t.outputToken);
-    });
+    }
     return Array.from(tokens).sort();
   }, [result]);
 
@@ -286,7 +332,11 @@ export const BacktestModal: React.FC<BacktestModalProps> = ({ isOpen, onClose, r
 
         {/* Tabs */}
         {result && (
-          <div className="flex border-b border-gray-300 bg-white" role="tablist" aria-label="Backtest result tabs">
+          <div
+            className="flex border-b border-gray-300 bg-white"
+            role="tablist"
+            aria-label="Backtest result tabs"
+          >
             <button
               onClick={() => setActiveTab('overview')}
               role="tab"
@@ -722,7 +772,10 @@ export const BacktestModal: React.FC<BacktestModalProps> = ({ isOpen, onClose, r
                               overscan={5}
                               aria-label="Trade history table"
                               renderRow={(trade) => (
-                                <tr key={trade.id} className="border-b border-gray-200 hover:bg-gray-50">
+                                <tr
+                                  key={trade.id}
+                                  className="border-b border-gray-200 hover:bg-gray-50"
+                                >
                                   <td className="px-4 py-3 text-gray-600">
                                     {new Date(trade.timestamp).toLocaleString()}
                                   </td>
@@ -732,7 +785,9 @@ export const BacktestModal: React.FC<BacktestModalProps> = ({ isOpen, onClose, r
                                     </span>
                                   </td>
                                   <td className="px-4 py-3 text-gray-600">{trade.inputToken}</td>
-                                  <td className="px-4 py-3 text-gray-600">{trade.outputToken || '-'}</td>
+                                  <td className="px-4 py-3 text-gray-600">
+                                    {trade.outputToken || '-'}
+                                  </td>
                                   <td className="px-4 py-3 text-right text-gray-600">
                                     {trade.inputAmount.toFixed(4)} {trade.inputToken}
                                     {trade.outputAmount && (
@@ -755,7 +810,10 @@ export const BacktestModal: React.FC<BacktestModalProps> = ({ isOpen, onClose, r
                             />
                           ) : (
                             filteredTrades.map((trade) => (
-                              <tr key={trade.id} className="border-b border-gray-200 hover:bg-gray-50">
+                              <tr
+                                key={trade.id}
+                                className="border-b border-gray-200 hover:bg-gray-50"
+                              >
                                 <td className="px-4 py-3 text-gray-600">
                                   {new Date(trade.timestamp).toLocaleString()}
                                 </td>
@@ -765,7 +823,9 @@ export const BacktestModal: React.FC<BacktestModalProps> = ({ isOpen, onClose, r
                                   </span>
                                 </td>
                                 <td className="px-4 py-3 text-gray-600">{trade.inputToken}</td>
-                                <td className="px-4 py-3 text-gray-600">{trade.outputToken || '-'}</td>
+                                <td className="px-4 py-3 text-gray-600">
+                                  {trade.outputToken || '-'}
+                                </td>
                                 <td className="px-4 py-3 text-right text-gray-600">
                                   {trade.inputAmount.toFixed(4)} {trade.inputToken}
                                   {trade.outputAmount && (

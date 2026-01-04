@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { Skeleton, TableRowSkeleton, CardSkeleton, ChartSkeleton } from '../Skeleton';
+import { describe, expect, it } from 'vitest';
+import { CardSkeleton, ChartSkeleton, Skeleton, TableRowSkeleton } from '../Skeleton';
 
 describe('Skeleton', () => {
   it('renders skeleton with default props', () => {
@@ -75,4 +75,3 @@ describe('ChartSkeleton', () => {
     expect(chart).toBeInTheDocument();
   });
 });
-

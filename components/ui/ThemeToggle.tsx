@@ -1,4 +1,4 @@
-import { Moon, Sun, Monitor } from 'lucide-react';
+import { Monitor, Moon, Sun } from 'lucide-react';
 import type React from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import { Button } from './Button';
@@ -8,7 +8,7 @@ import { Button } from './Button';
  * Cycles through: light -> dark -> system -> light
  */
 export const ThemeToggle: React.FC<{ className?: string }> = ({ className = '' }) => {
-  const { theme, toggleTheme, isDark } = useTheme();
+  const { theme, toggleTheme } = useTheme();
 
   const getIcon = () => {
     switch (theme) {
@@ -45,4 +45,3 @@ export const ThemeToggle: React.FC<{ className?: string }> = ({ className = '' }
     </Button>
   );
 };
-

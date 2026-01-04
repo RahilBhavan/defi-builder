@@ -3,10 +3,16 @@
  */
 
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { useAccount, useChainId, useWalletClient } from 'wagmi';
-import { executeTransaction, getTransactionStatus, waitForTransaction, type TransactionRequest, type TransactionResult } from '../services/web3/transactionExecutor';
-import { useToast } from './useToast';
 import type { Hash } from 'viem';
+import { useAccount, useChainId, useWalletClient } from 'wagmi';
+import {
+  type TransactionRequest,
+  type TransactionResult,
+  executeTransaction,
+  getTransactionStatus,
+  waitForTransaction,
+} from '../services/web3/transactionExecutor';
+import { useToast } from './useToast';
 
 /**
  * Hook to execute a transaction
@@ -80,7 +86,7 @@ export function useTransactionStatus(hash: Hash | undefined) {
 /**
  * Hook to wait for transaction confirmation
  */
-export function useWaitForTransaction(hash: Hash | undefined, confirmations: number = 1) {
+export function useWaitForTransaction(hash: Hash | undefined, confirmations = 1) {
   const chainId = useChainId();
   const { success: showSuccess, error: showError } = useToast();
 
@@ -103,4 +109,3 @@ export function useWaitForTransaction(hash: Hash | undefined, confirmations: num
     },
   });
 }
-

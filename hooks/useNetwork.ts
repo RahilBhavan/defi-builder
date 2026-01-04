@@ -74,7 +74,7 @@ export function useNetwork(): NetworkState {
   };
 
   const getSupportedChains = () => {
-    return Object.entries(SUPPORTED_CHAINS).map(([name, id]) => ({
+    return Object.entries(SUPPORTED_CHAINS).map(([, id]) => ({
       id,
       name: getChainName(id),
     }));

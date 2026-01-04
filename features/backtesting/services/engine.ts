@@ -3,12 +3,11 @@
  * Fetches historical data, executes blocks, and calculates metrics
  */
 
-import type { LegoBlock } from '../types';
 import { logger } from '../../../lib/monitoring/logger';
+import type { LegoBlock } from '../../../types';
 import { type ExecutionContext, executeBlockSequence } from './backtest/blockExecutor';
 import {
   type PriceDataPoint,
-  fetchHistoricalPrices,
   fetchMultipleTokenPrices,
   getPriceAtTimestamp,
 } from './backtest/dataFetcher';
@@ -66,7 +65,7 @@ function extractTokens(blocks: LegoBlock[]): string[] {
  */
 function applyAaveInterest(
   portfolio: PortfolioManager,
-  prices: Map<string, number>,
+  _prices: Map<string, number>,
   daysElapsed: number
 ): void {
   const positions = portfolio.getPositions();
@@ -122,7 +121,11 @@ export async function runDeFiBacktest(config: BacktestConfig): Promise<DeFiBackt
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error('Price data fetch error', error instanceof Error ? error : new Error(errorMessage), 'BacktestEngine');
+    logger.error(
+      'Price data fetch error',
+      error instanceof Error ? error : new Error(errorMessage),
+      'BacktestEngine'
+    );
     throw new Error(
       `Failed to fetch price data: ${errorMessage}. Please check your internet connection and try again.`
     );
@@ -153,6 +156,7 @@ export async function runDeFiBacktest(config: BacktestConfig): Promise<DeFiBackt
 
   for (let i = 0; i < timePoints.length; i++) {
     const timestamp = timePoints[i];
+    if (timestamp === undefined) continue;
     const currentDate = new Date(timestamp);
 
     // Get current prices for all tokens
@@ -171,7 +175,7 @@ export async function runDeFiBacktest(config: BacktestConfig): Promise<DeFiBackt
               currentPrices.set(token, lastPrice.price);
             }
           }
-        } catch (error) {
+        } catch (_error) {
           // Use last known price if interpolation fails
           const lastPrice = prices[prices.length - 1];
           if (lastPrice && lastPrice.price > 0) {
@@ -216,9 +220,9 @@ export async function runDeFiBacktest(config: BacktestConfig): Promise<DeFiBackt
       executeBlockSequence(blocks, context);
     } catch (error) {
       logger.warn(
-        `Error executing blocks at ${currentDate.toISOString()}`,
-        error instanceof Error ? error : new Error(String(error)),
-        'BacktestEngine'
+        `Error executing blocks at ${currentDate.toISOString()}: ${error instanceof Error ? error.message : String(error)}`,
+        'BacktestEngine',
+        { error: error instanceof Error ? error : new Error(String(error)) }
       );
       // Continue with backtest
     }

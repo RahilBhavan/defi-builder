@@ -40,7 +40,11 @@ export const SimulationModal: React.FC<SimulationModalProps> = ({
             <Zap className="text-orange" size={20} />
             <h2 className="text-lg font-bold font-mono uppercase">Transaction Simulation</h2>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 text-ink transition-colors">
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 text-ink transition-colors"
+          >
             <X size={24} />
           </button>
         </div>
@@ -73,8 +77,8 @@ export const SimulationModal: React.FC<SimulationModalProps> = ({
                 <h3 className="text-sm font-bold uppercase text-alert-red">Errors</h3>
               </div>
               <ul className="space-y-2">
-                {result.errors.map((error, index) => (
-                  <li key={index} className="text-xs text-gray-700">
+                {result.errors.map((error) => (
+                  <li key={error} className="text-xs text-gray-700">
                     • {error}
                   </li>
                 ))}
@@ -90,8 +94,8 @@ export const SimulationModal: React.FC<SimulationModalProps> = ({
                 <h3 className="text-sm font-bold uppercase text-orange">Warnings</h3>
               </div>
               <ul className="space-y-2">
-                {result.warnings.map((warning, index) => (
-                  <li key={index} className="text-xs text-gray-700">
+                {result.warnings.map((warning) => (
+                  <li key={warning} className="text-xs text-gray-700">
                     • {warning}
                   </li>
                 ))}
@@ -105,9 +109,9 @@ export const SimulationModal: React.FC<SimulationModalProps> = ({
               Gas Estimates by Block
             </h3>
             <div className="space-y-2">
-              {result.gasEstimates.map((estimate, index) => (
+              {result.gasEstimates.map((estimate) => (
                 <div
-                  key={index}
+                  key={`${estimate.blockType}-${estimate.estimatedCostETH}`}
                   className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200"
                 >
                   <span className="text-xs font-mono text-gray-700">{estimate.blockType}</span>
@@ -131,8 +135,11 @@ export const SimulationModal: React.FC<SimulationModalProps> = ({
                 Token Approvals Required
               </h3>
               <div className="space-y-2">
-                {result.approvalsNeeded.map((approval, index) => (
-                  <div key={index} className="p-3 bg-gray-50 border border-gray-200">
+                {result.approvalsNeeded.map((approval) => (
+                  <div
+                    key={`${approval.token}-${approval.spender}`}
+                    className="p-3 bg-gray-50 border border-gray-200"
+                  >
                     <div className="text-xs font-mono text-gray-700 mb-1">{approval.token}</div>
                     <div className="text-[10px] text-gray-500">
                       Approve {approval.amount} to {approval.spender.slice(0, 10)}...
@@ -150,9 +157,9 @@ export const SimulationModal: React.FC<SimulationModalProps> = ({
                 Balance Checks
               </h3>
               <div className="space-y-2">
-                {result.balanceChecks.map((check, index) => (
+                {result.balanceChecks.map((check) => (
                   <div
-                    key={index}
+                    key={`${check.token}-${check.required}-${check.current}`}
                     className={`p-3 border ${
                       check.sufficient ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
                     }`}

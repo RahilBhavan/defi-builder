@@ -14,12 +14,16 @@ import {
 } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AVAILABLE_BLOCKS } from '../../constants';
-import { useDebounce } from '../../hooks/useDebounce';
-import { useToast } from '../../hooks/useToast';
-import { suggestNextBlocks } from '../../services/geminiService';
-import type { LegoBlock } from '../../types';
-import { trpc } from '../../utils/trpc';
+import { AVAILABLE_BLOCKS } from '../../../constants';
+import { useDebounce } from '../../../hooks/useDebounce';
+import { useToast } from '../../../hooks/useToast';
+import { trpc } from '../../../lib/api/trpc';
+import type { LegoBlock } from '../../../types';
+import { suggestNextBlocks } from '../services/gemini';
+
+// Type assertion to work around TypeScript inference issue with nested routers
+// This is a known issue with tRPC v11 type inference
+const typedTrpc = trpc as any;
 
 interface AIBlockSuggesterProps {
   isOpen: boolean;
@@ -118,7 +122,7 @@ export const AIBlockSuggester: React.FC<AIBlockSuggesterProps> = ({
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Fetch AI suggestions from backend (preferred method - API keys are server-side)
-  const backendQuery = trpc.ai.getSuggestions.useQuery(
+  const backendQuery = typedTrpc.ai.getSuggestions.useQuery(
     { currentBlocks, query: searchQuery || undefined },
     {
       enabled: isOpen, // Enable when panel is open
@@ -179,8 +183,8 @@ export const AIBlockSuggester: React.FC<AIBlockSuggesterProps> = ({
     setIsLoadingAI(true);
     setAiError(null);
 
-    suggestNextBlocks(currentBlocks, searchQuery || undefined, signal)
-      .then((suggestions) => {
+    suggestNextBlocks(currentBlocks, searchQuery || undefined)
+      .then((suggestions: LegoBlock[]) => {
         if (!signal.aborted) {
           setAiSuggestions(suggestions);
           setAiError(null);
@@ -192,7 +196,7 @@ export const AIBlockSuggester: React.FC<AIBlockSuggesterProps> = ({
           });
         }
       })
-      .catch((error) => {
+      .catch((error: unknown) => {
         if (!signal.aborted) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
           setAiError(errorMessage);
@@ -366,7 +370,11 @@ export const AIBlockSuggester: React.FC<AIBlockSuggesterProps> = ({
                               </p>
                             </div>
                             {aiSuggestions.length > 0 && aiSuggestions.includes(block) && (
-                              <Sparkles size={10} className="text-orange flex-shrink-0" aria-label="AI suggested" />
+                              <Sparkles
+                                size={10}
+                                className="text-orange flex-shrink-0"
+                                aria-label="AI suggested"
+                              />
                             )}
                           </div>
                         </button>

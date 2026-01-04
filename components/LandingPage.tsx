@@ -105,7 +105,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
         intervalRef.current = null;
       }
     };
-  }, [isHolding, isAuthenticated, isConnected, onEnter]);
+  }, [isHolding, isConnected, onEnter]);
 
   return (
     <motion.div
@@ -117,7 +117,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
       {/* Corner Indicators */}
       <div className="fixed top-6 left-6 text-xs font-mono text-gray-600">[BETA]</div>
       <div className="fixed top-6 right-6 text-xs font-mono text-gray-600 flex items-center gap-2">
-        <div className="w-2 h-2 bg-success-green"></div>
+        <div className="w-2 h-2 bg-success-green" />
         SEPOLIA TESTNET
       </div>
 
@@ -131,7 +131,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
         </p>
 
         {/* Hold Button */}
-        <div
+        <button
+          type="button"
           className="relative w-60 h-14 md:w-64 md:h-16 mx-auto cursor-pointer select-none"
           onMouseDown={startHold}
           onMouseUp={endHold}
@@ -139,8 +140,6 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
           onTouchStart={startHold}
           onTouchEnd={endHold}
           onTouchCancel={endHold}
-          role="button"
-          tabIndex={0}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
               e.preventDefault();
@@ -173,7 +172,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
                   : 'Hold to Execute'}
             </span>
           </div>
-        </div>
+        </button>
       </div>
 
       {/* Disclaimer */}

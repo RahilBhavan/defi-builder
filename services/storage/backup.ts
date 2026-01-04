@@ -5,7 +5,7 @@
 
 import type { Strategy } from '../../types';
 import type { LegoBlock } from '../../types';
-import { CURRENT_VERSION, VersionedData, wrapWithVersion } from './versioning';
+import { CURRENT_VERSION } from './versioning';
 
 /**
  * Backup data structure
@@ -22,14 +22,8 @@ export interface BackupData {
   };
 }
 
-/**
- * Storage keys to backup
- */
-const BACKUP_KEYS = [
-  'defi-builder-strategies',
-  'defi-builder-blocks',
-  'defi-builder-current-strategy',
-] as const;
+// Storage keys to backup (reserved for future use):
+// 'defi-builder-strategies', 'defi-builder-blocks', 'defi-builder-current-strategy'
 
 /**
  * In-memory backup cache (last 5 backups)
@@ -45,7 +39,7 @@ function getAllStorageData(): Record<string, unknown> {
 
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
-    if (key && key.startsWith('defi-builder-')) {
+    if (key?.startsWith('defi-builder-')) {
       try {
         const value = localStorage.getItem(key);
         if (value) {
@@ -73,7 +67,7 @@ export function getStorageStats(): {
 
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
-    if (key && key.startsWith('defi-builder-')) {
+    if (key?.startsWith('defi-builder-')) {
       keys.push(key);
       const value = localStorage.getItem(key) || '';
       totalSize += key.length + value.length;
@@ -285,7 +279,7 @@ export function clearAllData(createBackupFirst = true): {
     const keys: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && key.startsWith('defi-builder-')) {
+      if (key?.startsWith('defi-builder-')) {
         keys.push(key);
       }
     }

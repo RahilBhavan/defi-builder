@@ -4,7 +4,7 @@
  */
 
 import type { Hash } from 'viem';
-import { getTransactionStatus, type TransactionStatus } from './transactionExecutor';
+import { type TransactionStatus, getTransactionStatus } from './transactionExecutor';
 
 export interface TransactionRecord {
   hash: Hash;
@@ -45,25 +45,20 @@ export function getTransactionHistory(): TransactionRecord[] {
 export function saveTransaction(transaction: TransactionRecord): void {
   try {
     const history = getTransactionHistory();
-    
+
     // Remove duplicate if exists
     const filtered = history.filter((t) => t.hash !== transaction.hash);
-    
+
     // Add new transaction at the beginning
     const updated = [transaction, ...filtered];
-    
+
     // Limit history size
     const limited = updated.slice(0, MAX_HISTORY_SIZE);
-    
+
     localStorage.setItem(STORAGE_KEY, JSON.stringify(limited));
   } catch (error) {
     // Silently fail - transaction history is not critical
-    const { logger } = await import('../../lib/monitoring/logger');
-    logger.error(
-      'Failed to save transaction to history',
-      error instanceof Error ? error : new Error(String(error)),
-      'TransactionHistory'
-    );
+    console.error('[TransactionHistory] Failed to save transaction to history:', error);
   }
 }
 
@@ -77,13 +72,13 @@ export async function updateTransactionStatus(
   try {
     const history = getTransactionHistory();
     const transaction = history.find((t) => t.hash === hash && t.chainId === chainId);
-    
+
     if (!transaction) {
       return null;
     }
 
     const status = await getTransactionStatus(chainId, hash);
-    
+
     const updated: TransactionRecord = {
       ...transaction,
       status: status.status,
@@ -93,12 +88,12 @@ export async function updateTransactionStatus(
     };
 
     // Update in history
-    const updatedHistory = history.map((t) => 
+    const updatedHistory = history.map((t) =>
       t.hash === hash && t.chainId === chainId ? updated : t
     );
-    
+
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedHistory));
-    
+
     return updated;
   } catch {
     return null;
@@ -131,4 +126,3 @@ export function clearTransactionHistory(): void {
     // Silently fail
   }
 }
-

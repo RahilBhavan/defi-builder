@@ -1,8 +1,8 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowDown } from 'lucide-react';
 import React, { useState } from 'react';
-import { safeJsonParse } from '../utils/json';
-import type { LegoBlock } from '../types';
+import { safeJsonParse } from '../../../lib/storage/json';
+import type { LegoBlock } from '../../../types';
 import { Block } from './Block';
 
 interface SpineProps {
@@ -84,7 +84,6 @@ export const Spine: React.FC<SpineProps> = ({
       className="w-full min-h-screen flex flex-col items-center py-8 sm:py-20 px-4 sm:px-6"
       onClick={() => onSelectBlock(null)}
       aria-label="Clear selection"
-      tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
@@ -99,7 +98,6 @@ export const Spine: React.FC<SpineProps> = ({
       }}
       onDrop={(e) => handleDropFromExternal(e)}
       role="main"
-      aria-label="Strategy builder workspace"
     >
       <div className="w-full max-w-[750px] flex flex-col gap-4 sm:gap-8 items-center">
         {/* Empty State */}

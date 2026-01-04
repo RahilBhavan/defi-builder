@@ -1,8 +1,8 @@
 /**
  * Shared library utilities
- * 
+ *
  * Central export point for all shared utilities
- * 
+ *
  * Usage:
  *   import { trpc, trpcClient } from '@/lib/api';
  *   import { validateNumberRange } from '@/lib/validation';
@@ -17,4 +17,3 @@ export * from './storage';
 export * from './monitoring';
 export * from './format';
 export * from './spine';
-

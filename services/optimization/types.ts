@@ -41,6 +41,8 @@ export interface OptimizationConfig {
     initialCapital: number;
     rebalanceInterval: number;
   };
+  dataSource?: 'backtest' | 'paperTrading' | 'both';
+  paperTradingSessionId?: string; // If using paper trading data source
 }
 
 // Walk-forward validation
@@ -77,7 +79,11 @@ export interface OptimizationProgress {
   bestSolution?: OptimizationSolution;
   paretoFrontier: OptimizationSolution[];
   estimatedTimeRemaining: number; // seconds
+  elapsedTime: number; // seconds
   workersActive: number;
+  solutionsEvaluated: number;
+  cacheHitRate: number;
+  currentPhase?: 'initializing' | 'evaluating' | 'optimizing' | 'finalizing';
   errors?: string[];
   lastError?: string;
 }

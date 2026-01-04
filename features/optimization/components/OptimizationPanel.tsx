@@ -22,8 +22,10 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { useToast } from '../hooks/useToast';
-import { getUserFriendlyErrorMessage } from '../utils/errorHandler';
+import { Button } from '../../../components/ui/Button';
+import { useToast } from '../../../hooks/useToast';
+import { getUserFriendlyErrorMessage } from '../../../lib/error/handler';
+import type { BlockParams, LegoBlock } from '../../../types';
 import {
   type OptimizationAlgorithm,
   type OptimizationConfig,
@@ -34,10 +36,8 @@ import {
   optimizationEngine,
 } from '../services/optimization';
 import { parameterExtractor } from '../services/optimization/parameterExtractor';
-import type { BlockParams, LegoBlock } from '../types';
 import { type ConvergenceDataPoint, ConvergenceGraph } from './optimization/ConvergenceGraph';
 import { SolutionComparison } from './optimization/SolutionComparison';
-import { Button } from './ui/Button';
 
 type OptimizationView = 'pareto' | 'convergence' | 'solutions' | 'log';
 
@@ -112,9 +112,9 @@ export const OptimizationPanel: React.FC<OptimizationPanelProps> = ({
       if (!blockParams) return block;
 
       const updatedParams: BlockParams = { ...block.params };
-      Object.entries(blockParams).forEach(([paramName, value]) => {
+      for (const [paramName, value] of Object.entries(blockParams)) {
         updatedParams[paramName] = value;
-      });
+      }
 
       return { ...block, params: updatedParams };
     });
@@ -191,23 +191,25 @@ export const OptimizationPanel: React.FC<OptimizationPanelProps> = ({
             const convergencePoint: ConvergenceDataPoint = {
               iteration: progressUpdate.iteration,
             };
-            objectives.forEach((obj) => {
+            for (const obj of objectives) {
               const value = progressUpdate.bestSolution?.outOfSampleScores[obj];
               if (value !== undefined) {
                 convergencePoint[obj] = value;
               }
-            });
+            }
             setConvergenceHistory((prev) => [...prev, convergencePoint]);
           }
 
           // Track iteration log
           if (progressUpdate.bestSolution) {
             const bestScores: Record<string, number> = {};
-            Object.entries(progressUpdate.bestSolution.outOfSampleScores).forEach(([key, value]) => {
+            for (const [key, value] of Object.entries(
+              progressUpdate.bestSolution.outOfSampleScores
+            )) {
               if (value !== undefined && typeof value === 'number') {
                 bestScores[key] = value;
               }
-            });
+            }
             setIterationLog((prev) => [
               ...prev,
               {
@@ -243,7 +245,7 @@ export const OptimizationPanel: React.FC<OptimizationPanelProps> = ({
         `Optimization complete! Found ${optimizationResult.paretoFrontier.length} Pareto-optimal solutions.`
       );
     } catch (error) {
-      const { logger } = await import('../../lib/monitoring/logger');
+      const { logger } = await import('../../../lib/monitoring/logger');
       logger.error(
         'Optimization failed',
         error instanceof Error ? error : new Error(String(error)),
@@ -584,7 +586,7 @@ export const OptimizationPanel: React.FC<OptimizationPanelProps> = ({
                             data={paretoChartData}
                             fill="#FF5500"
                             onClick={(data) => {
-                              if (data && data.solution) {
+                              if (data?.solution) {
                                 setSelectedSolution(data.solution);
                               }
                             }}

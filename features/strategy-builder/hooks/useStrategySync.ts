@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import type { LegoBlock } from '../types';
+import type { LegoBlock } from '../../../types';
 
 /**
  * Hook for syncing strategy blocks with backend

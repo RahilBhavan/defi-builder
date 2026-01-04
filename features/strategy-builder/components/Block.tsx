@@ -1,7 +1,7 @@
 import { Activity, ArrowRightLeft, Box, Landmark, MoreHorizontal, Shield } from 'lucide-react';
 import React from 'react';
-import { PROTOCOL_COLORS } from '../constants';
-import { type LegoBlock, Protocol } from '../types';
+import { PROTOCOL_COLORS } from '../../../constants';
+import { type LegoBlock, Protocol } from '../../../types';
 
 interface BlockProps {
   block: LegoBlock;

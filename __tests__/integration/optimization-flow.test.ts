@@ -1,7 +1,7 @@
-import { describe, expect, it, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { validateStrategy } from '../../services/strategyValidator';
 import { BlockCategory, Protocol } from '../../types';
 import type { LegoBlock } from '../../types';
-import { validateStrategy } from '../../services/strategyValidator';
 
 describe('Optimization Workflow', () => {
   let mockBlocks: LegoBlock[];
@@ -50,7 +50,7 @@ describe('Optimization Workflow', () => {
     const optimizableBlocks = mockBlocks.filter((block) => {
       return block.params.amount !== undefined || block.params.slippage !== undefined;
     });
-    
+
     expect(optimizableBlocks.length).toBeGreaterThan(0);
   });
 
@@ -80,4 +80,3 @@ describe('Optimization Workflow', () => {
     expect(result.valid).toBe(true);
   });
 });
-

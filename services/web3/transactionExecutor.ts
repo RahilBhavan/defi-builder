@@ -3,10 +3,10 @@
  * Handles on-chain transaction execution with proper error handling and status tracking
  */
 
-import { type Address, type Hash, type PublicClient, type WalletClient, createPublicClient, createWalletClient, custom, http } from 'viem';
+import { http, type Address, type Hash, type WalletClient, createPublicClient } from 'viem';
 import { arbitrum, mainnet, optimism, polygon, sepolia } from 'wagmi/chains';
-import { estimateGas, type GasEstimate } from './gasEstimator';
-import { logger } from '../lib/monitoring/logger';
+import { logger } from '../../lib/monitoring/logger';
+import { type GasEstimate, estimateGas } from './gasEstimator';
 
 export interface TransactionRequest {
   to: Address;
@@ -39,10 +39,16 @@ export interface TransactionStatus {
 /**
  * Get public client for a chain
  */
-function getPublicClient(chainId: number): PublicClient {
-  const chains = { [sepolia.id]: sepolia, [mainnet.id]: mainnet, [polygon.id]: polygon, [arbitrum.id]: arbitrum, [optimism.id]: optimism };
+function getPublicClient(chainId: number) {
+  const chains = {
+    [sepolia.id]: sepolia,
+    [mainnet.id]: mainnet,
+    [polygon.id]: polygon,
+    [arbitrum.id]: arbitrum,
+    [optimism.id]: optimism,
+  };
   const chain = chains[chainId as keyof typeof chains];
-  
+
   if (!chain) {
     throw new Error(`Unsupported chain: ${chainId}`);
   }
@@ -74,24 +80,32 @@ export async function executeTransaction(
     // Estimate gas if not provided
     let gasEstimate: GasEstimate;
     if (!transaction.gasLimit) {
-      gasEstimate = await estimateGas(chainId, {
-        to: transaction.to,
-        from: account,
-        data: transaction.data,
-        value: transaction.value,
-      }, speed);
+      gasEstimate = await estimateGas(
+        chainId,
+        {
+          to: transaction.to,
+          from: account,
+          data: transaction.data,
+          value: transaction.value,
+        },
+        speed
+      );
       transaction.gasLimit = gasEstimate.gasLimit;
     }
 
     // Get gas prices if not provided
     if (!transaction.gasPrice && !transaction.maxFeePerGas) {
-      gasEstimate = await estimateGas(chainId, {
-        to: transaction.to,
-        from: account,
-        data: transaction.data,
-        value: transaction.value,
-      }, speed);
-      
+      gasEstimate = await estimateGas(
+        chainId,
+        {
+          to: transaction.to,
+          from: account,
+          data: transaction.data,
+          value: transaction.value,
+        },
+        speed
+      );
+
       if (gasEstimate.maxFeePerGas && gasEstimate.maxPriorityFeePerGas) {
         transaction.maxFeePerGas = gasEstimate.maxFeePerGas;
         transaction.maxPriorityFeePerGas = gasEstimate.maxPriorityFeePerGas;
@@ -107,16 +121,25 @@ export async function executeTransaction(
       gasLimit: transaction.gasLimit?.toString(),
     });
 
+    // Ensure gasLimit has a value before sending
+    const gasLimit = transaction.gasLimit ?? 21000n;
+
+    // Build transaction parameters - viem types are complex, use type assertion
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // Biome-ignore lint/suspicious/noExplicitAny: viem types are complex, type assertion needed for wallet compatibility
     const hash = await walletClient.sendTransaction({
       account,
+      chain: undefined, // Let the wallet determine the chain
       to: transaction.to,
       data: transaction.data,
       value: transaction.value,
-      gas: transaction.gasLimit,
-      gasPrice: transaction.gasPrice,
-      maxFeePerGas: transaction.maxFeePerGas,
-      maxPriorityFeePerGas: transaction.maxPriorityFeePerGas,
-    });
+      gas: gasLimit,
+      ...(transaction.gasPrice ? { gasPrice: transaction.gasPrice } : {}),
+      ...(transaction.maxFeePerGas ? { maxFeePerGas: transaction.maxFeePerGas } : {}),
+      ...(transaction.maxPriorityFeePerGas
+        ? { maxPriorityFeePerGas: transaction.maxPriorityFeePerGas }
+        : {}),
+    } as any);
 
     // Wait for transaction receipt
     const receipt = await publicClient.waitForTransactionReceipt({ hash });
@@ -137,7 +160,11 @@ export async function executeTransaction(
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error('Transaction execution failed', error instanceof Error ? error : new Error(errorMessage), 'TransactionExecutor');
+    logger.error(
+      'Transaction execution failed',
+      error instanceof Error ? error : new Error(errorMessage),
+      'TransactionExecutor'
+    );
 
     // Try to extract transaction hash from error
     const hashMatch = errorMessage.match(/0x[a-fA-F0-9]{64}/);
@@ -174,21 +201,25 @@ export async function getTransactionStatus(
         gasUsed: receipt.gasUsed,
         effectiveGasPrice: receipt.effectiveGasPrice,
       };
-    } else if (transaction) {
+    }
+    if (transaction) {
       return {
         hash,
         status: 'pending',
         confirmations: 0,
       };
-    } else {
-      return {
-        hash,
-        status: 'failed',
-        confirmations: 0,
-      };
     }
+    return {
+      hash,
+      status: 'failed',
+      confirmations: 0,
+    };
   } catch (error) {
-    logger.error('Failed to get transaction status', error instanceof Error ? error : new Error(String(error)), 'TransactionExecutor');
+    logger.error(
+      'Failed to get transaction status',
+      error instanceof Error ? error : new Error(String(error)),
+      'TransactionExecutor'
+    );
     return {
       hash,
       status: 'failed',
@@ -203,7 +234,7 @@ export async function getTransactionStatus(
 export async function waitForTransaction(
   chainId: number,
   hash: Hash,
-  confirmations: number = 1
+  confirmations = 1
 ): Promise<TransactionStatus> {
   try {
     const publicClient = getPublicClient(chainId);
@@ -224,7 +255,11 @@ export async function waitForTransaction(
       effectiveGasPrice: receipt.effectiveGasPrice,
     };
   } catch (error) {
-    logger.error('Failed to wait for transaction', error instanceof Error ? error : new Error(String(error)), 'TransactionExecutor');
+    logger.error(
+      'Failed to wait for transaction',
+      error instanceof Error ? error : new Error(String(error)),
+      'TransactionExecutor'
+    );
     return {
       hash,
       status: 'failed',
@@ -232,4 +267,3 @@ export async function waitForTransaction(
     };
   }
 }
-

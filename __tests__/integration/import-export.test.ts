@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { BlockCategory, Protocol } from '../../types';
-import type { LegoBlock } from '../../types';
 import { exportBlocks, importBlocks } from '../../services/strategyStorage';
 import { validateStrategy } from '../../services/strategyValidator';
+import { BlockCategory, Protocol } from '../../types';
+import type { LegoBlock } from '../../types';
 
 describe('Strategy Import/Export', () => {
   const mockBlocks: LegoBlock[] = [
@@ -57,12 +57,12 @@ describe('Strategy Import/Export', () => {
   it('should preserve all block properties after import/export', () => {
     const json = exportBlocks(mockBlocks);
     const imported = importBlocks(json);
-    
+
     // IDs are regenerated, but other properties should be preserved
     expect(imported[0]?.id).toBeDefined();
     expect(imported[0]?.type).toBe('price_trigger');
     expect(imported[0]?.params.asset).toBe('ETH');
-    
+
     expect(imported[1]?.id).toBeDefined();
     expect(imported[1]?.type).toBe('uniswap_swap');
     expect(imported[1]?.params.amount).toBe(1.0);
@@ -71,7 +71,7 @@ describe('Strategy Import/Export', () => {
   it('should maintain block order after import/export', () => {
     const json = exportBlocks(mockBlocks);
     const imported = importBlocks(json);
-    
+
     expect(imported[0]?.category).toBe(BlockCategory.ENTRY);
     expect(imported[1]?.category).toBe(BlockCategory.PROTOCOL);
   });
@@ -80,7 +80,7 @@ describe('Strategy Import/Export', () => {
     const json = exportBlocks(mockBlocks);
     const imported = importBlocks(json);
     const result = validateStrategy(imported);
-    
+
     expect(result.valid).toBe(true);
   });
 
@@ -92,4 +92,3 @@ describe('Strategy Import/Export', () => {
     expect(() => importBlocks('')).toThrow(/Failed to import blocks/i);
   });
 });
-

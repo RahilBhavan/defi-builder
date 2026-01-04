@@ -3,9 +3,8 @@
  * Tests strategy performance under extreme market conditions
  */
 
-import type { DeFiBacktestResult } from '../defiBacktestEngine';
-import { runBacktest } from '../defiBacktestEngine';
 import type { LegoBlock } from '../../types';
+import { type DeFiBacktestResult, runDeFiBacktest } from '../defiBacktestEngine';
 
 export interface StressTestScenario {
   name: string;
@@ -93,11 +92,12 @@ export async function runStressTest(
   scenario: StressTestScenario
 ): Promise<StressTestResult> {
   // Run baseline backtest
-  const baselineResult = await runBacktest({
+  const baselineResult = await runDeFiBacktest({
     blocks,
     initialCapital,
     startDate,
     endDate,
+    rebalanceInterval: 1, // Daily rebalancing
   });
 
   // Run stress test backtest
@@ -105,26 +105,27 @@ export async function runStressTest(
   // to accept stress test parameters and apply them during execution
   // For now, we'll run the same backtest and note that stress testing
   // would require modifications to the backtest engine
-  
+
   // TODO: Implement stress test modifications in backtest engine
   // This would involve:
   // - Applying price shocks to historical data
   // - Increasing volatility in price movements
   // - Applying higher slippage during liquidity crises
   // - Applying gas price multipliers
-  
-  const stressResult = await runBacktest({
+
+  const stressResult = await runDeFiBacktest({
     blocks,
     initialCapital,
     startDate,
     endDate,
+    rebalanceInterval: 1, // Daily rebalancing
   });
 
   // Calculate impact
   const returnChange = stressResult.metrics.totalReturn - baselineResult.metrics.totalReturn;
   const drawdownChange = stressResult.metrics.maxDrawdown - baselineResult.metrics.maxDrawdown;
   const sharpeChange = stressResult.metrics.sharpeRatio - baselineResult.metrics.sharpeRatio;
-  
+
   const finalEquity = stressResult.equityCurve[stressResult.equityCurve.length - 1]?.equity || 0;
   const survival = finalEquity > initialCapital * 0.1; // Survived if > 10% of initial capital remains
 
@@ -169,4 +170,3 @@ export async function runAllStressTests(
 
   return results;
 }
-

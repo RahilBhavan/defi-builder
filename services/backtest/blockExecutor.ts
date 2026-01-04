@@ -4,8 +4,9 @@
  */
 
 import type { LegoBlock } from '../../types';
-import { PriceDataPoint, getPriceAtTimestamp } from './dataFetcher';
-import { type PortfolioManager, Trade } from './portfolio';
+// getPriceAtTimestamp reserved for future use
+// import { getPriceAtTimestamp } from './dataFetcher';
+import type { PortfolioManager } from './portfolio';
 
 export interface ExecutionContext {
   timestamp: number;
@@ -189,7 +190,7 @@ function executeUniswapSwap(block: LegoBlock, context: ExecutionContext): Execut
  * Execute an Aave supply block
  */
 function executeAaveSupply(block: LegoBlock, context: ExecutionContext): ExecutionResult {
-  const { asset, amount, collateral } = block.params;
+  const { asset, amount, collateral: _collateral } = block.params;
   const token = String(asset);
   const supplyAmount = Number(amount) || 0;
 
@@ -356,7 +357,7 @@ function executeTimeTrigger(block: LegoBlock, context: ExecutionContext): Execut
  * Execute a volume trigger block
  */
 function executeVolumeTrigger(block: LegoBlock, context: ExecutionContext): ExecutionResult {
-  const { asset, minVolume, timeframe } = block.params;
+  const { asset, minVolume, timeframe: _timeframe } = block.params;
   // Simplified: would need historical volume data
   // For now, simulate based on price movement
   const price = context.prices.get(String(asset)) || 0;
@@ -387,7 +388,7 @@ function executeTechnicalIndicatorTrigger(
   block: LegoBlock,
   context: ExecutionContext
 ): ExecutionResult {
-  const { asset, indicator, condition, value, period } = block.params;
+  const { asset, indicator, condition, value, period: _period } = block.params;
   const price = context.prices.get(String(asset)) || 0;
 
   // Simplified indicator calculation
@@ -511,7 +512,7 @@ function executeAaveBorrow(block: LegoBlock, context: ExecutionContext): Executi
  * Execute an Aave repay block
  */
 function executeAaveRepay(block: LegoBlock, context: ExecutionContext): ExecutionResult {
-  const { asset, amount, interestRateMode } = block.params;
+  const { asset, amount, interestRateMode: _interestRateMode } = block.params;
   const token = String(asset);
   const repayAmount = Number(amount) || 0;
 
@@ -645,7 +646,7 @@ function executeUniswapV3Liquidity(block: LegoBlock, context: ExecutionContext):
     return {
       success: false,
       executed: false,
-      message: `Insufficient balance for liquidity provision`,
+      message: 'Insufficient balance for liquidity provision',
     };
   }
 
@@ -831,7 +832,7 @@ function executeCurveSwap(block: LegoBlock, context: ExecutionContext): Executio
     return {
       success: false,
       executed: false,
-      message: `Missing price data`,
+      message: 'Missing price data',
     };
   }
 
@@ -903,7 +904,7 @@ function executeBalancerSwap(block: LegoBlock, context: ExecutionContext): Execu
     return {
       success: false,
       executed: false,
-      message: `Missing price data`,
+      message: 'Missing price data',
     };
   }
 
@@ -975,7 +976,7 @@ function executeOneInchSwap(block: LegoBlock, context: ExecutionContext): Execut
     return {
       success: false,
       executed: false,
-      message: `Missing price data`,
+      message: 'Missing price data',
     };
   }
 
@@ -1184,9 +1185,9 @@ function executeTakeProfit(block: LegoBlock, context: ExecutionContext): Executi
  * Execute a time exit block
  */
 function executeTimeExit(block: LegoBlock, context: ExecutionContext): ExecutionResult {
-  const { duration, from } = block.params;
+  const { duration } = block.params;
   const durationMs = Number(duration) || 86400000;
-  const startPoint = from === 'entry' ? 'entry' : 'position';
+  // 'from' parameter reserved for future use: determines if time is from entry or position start
 
   const positions = context.portfolio.getPositions();
   if (positions.length === 0) {
@@ -1242,6 +1243,7 @@ function executeConditionalExit(block: LegoBlock, context: ExecutionContext): Ex
   // Simplified: would need expression evaluator
   // For now, check if condition string contains profit keywords
   const targetAsset = asset ? String(asset) : null;
+  const conditionStr = String(condition || '');
 
   const positions = context.portfolio.getPositions();
   if (positions.length === 0) {
@@ -1253,7 +1255,7 @@ function executeConditionalExit(block: LegoBlock, context: ExecutionContext): Ex
   }
 
   // Simplified condition evaluation
-  const shouldExit = condition.includes('profit') || condition.includes('>');
+  const shouldExit = conditionStr.includes('profit') || conditionStr.includes('>');
 
   if (!shouldExit) {
     return {
@@ -1300,7 +1302,7 @@ function executeConditionalExit(block: LegoBlock, context: ExecutionContext): Ex
 /**
  * Execute a position sizing block
  */
-function executePositionSizing(block: LegoBlock, context: ExecutionContext): ExecutionResult {
+function executePositionSizing(block: LegoBlock, _context: ExecutionContext): ExecutionResult {
   const { method, value, maxPosition } = block.params;
   // Position sizing affects future block execution
   // Store sizing rules in context for use by subsequent blocks
@@ -1318,10 +1320,10 @@ function executePositionSizing(block: LegoBlock, context: ExecutionContext): Exe
 /**
  * Execute a risk limits block
  */
-function executeRiskLimits(block: LegoBlock, context: ExecutionContext): ExecutionResult {
+function executeRiskLimits(block: LegoBlock, _context: ExecutionContext): ExecutionResult {
   const { maxDrawdown, maxPositionSize, maxLeverage, maxDailyLoss } = block.params;
   // Risk limits affect strategy execution
-  // Store limits in context for validation
+  // Store limits in context for validation (context reserved for future use)
 
   return {
     success: true,
@@ -1349,7 +1351,7 @@ function executeRebalancing(block: LegoBlock, context: ExecutionContext): Execut
     const price = context.prices.get(position.asset) || 0;
     totalValue += position.amount * price;
   }
-  const allocations = targetAllocation as Record<string, number>;
+  const allocations = targetAllocation as unknown as Record<string, number>;
 
   let rebalanced = false;
   const changes: string[] = [];

@@ -21,26 +21,34 @@ export function initSentry(dsn?: string): void {
 
   try {
     // Dynamic import to avoid bundling Sentry in production if not needed
-    import('@sentry/react').then((sentryModule) => {
-      Sentry = sentryModule;
-      Sentry.init({
-        dsn,
-        environment: import.meta.env.MODE || 'development',
-        tracesSampleRate: import.meta.env.MODE === 'production' ? 0.1 : 1.0,
-        replaysSessionSampleRate: 0.1,
-        replaysOnErrorSampleRate: 1.0,
-        integrations: [
-          new Sentry.BrowserTracing(),
-          new Sentry.Replay(),
-        ],
+    // @ts-ignore - Sentry is optional, may not be installed
+    import('@sentry/react')
+      .then((sentryModule: any) => {
+        Sentry = sentryModule;
+        Sentry.init({
+          dsn,
+          environment: import.meta.env.MODE || 'development',
+          tracesSampleRate: import.meta.env.MODE === 'production' ? 0.1 : 1.0,
+          replaysSessionSampleRate: 0.1,
+          replaysOnErrorSampleRate: 1.0,
+          integrations: [new Sentry.BrowserTracing(), new Sentry.Replay()],
+        });
+        isSentryInitialized = true;
+        logger.info('Sentry initialized successfully', 'Monitoring');
+      })
+      .catch((error) => {
+        logger.error(
+          'Failed to initialize Sentry',
+          error instanceof Error ? error : new Error(String(error)),
+          'Monitoring'
+        );
       });
-      isSentryInitialized = true;
-      logger.info('Sentry initialized successfully', 'Monitoring');
-    }).catch((error) => {
-      logger.error('Failed to initialize Sentry', error instanceof Error ? error : new Error(String(error)), 'Monitoring');
-    });
   } catch (error) {
-    logger.error('Error loading Sentry', error instanceof Error ? error : new Error(String(error)), 'Monitoring');
+    logger.error(
+      'Error loading Sentry',
+      error instanceof Error ? error : new Error(String(error)),
+      'Monitoring'
+    );
   }
 }
 
@@ -62,7 +70,11 @@ export function captureException(error: Error, context?: Record<string, any>): v
 /**
  * Capture message to Sentry
  */
-export function captureMessage(message: string, level: 'info' | 'warning' | 'error' = 'info', context?: Record<string, any>): void {
+export function captureMessage(
+  message: string,
+  level: 'info' | 'warning' | 'error' = 'info',
+  context?: Record<string, any>
+): void {
   if (isSentryInitialized && Sentry) {
     Sentry.captureMessage(message, {
       level,
@@ -71,7 +83,15 @@ export function captureMessage(message: string, level: 'info' | 'warning' | 'err
       },
     });
   }
-  logger[level](message, undefined, 'Monitoring', context);
+  // Map 'warning' to 'warn' for logger compatibility
+  const logLevel = level === 'warning' ? 'warn' : level;
+  if (logLevel === 'error') {
+    logger.error(message, undefined, 'Monitoring');
+  } else if (logLevel === 'warn') {
+    logger.warn(message, 'Monitoring');
+  } else {
+    logger.info(message, 'Monitoring');
+  }
 }
 
 /**
@@ -102,7 +122,7 @@ export function clearUserContext(): void {
  */
 export function trackEvent(eventName: string, properties?: Record<string, any>): void {
   // Log event for now (can be extended to PostHog, Mixpanel, etc.)
-  logger.info(`Event: ${eventName}`, undefined, 'Analytics', properties);
+  logger.info(`Event: ${eventName} ${properties ? JSON.stringify(properties) : ''}`, 'Analytics');
 
   // Example: PostHog integration
   // if (window.posthog) {
@@ -138,10 +158,7 @@ export function startPerformanceMeasurement(name: string): () => void {
 /**
  * Measure async function performance
  */
-export async function measurePerformance<T>(
-  name: string,
-  fn: () => Promise<T>
-): Promise<T> {
+export async function measurePerformance<T>(name: string, fn: () => Promise<T>): Promise<T> {
   const endMeasurement = startPerformanceMeasurement(name);
   try {
     const result = await fn();
@@ -152,4 +169,3 @@ export async function measurePerformance<T>(
     throw error;
   }
 }
-

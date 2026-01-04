@@ -1,7 +1,7 @@
 /**
  * Audit Logging Utility
  * Provides comprehensive audit trail for security-sensitive operations
- * 
+ *
  * Audit logs track:
  * - User authentication events (login, logout, token refresh)
  * - API key access and rotation
@@ -10,8 +10,8 @@
  * - Security events (failed auth, rate limiting, etc.)
  */
 
-import { logger } from './logger';
 import prisma from '../db/client';
+import { logger } from './logger';
 
 export enum AuditEventType {
   // Authentication
@@ -19,23 +19,23 @@ export enum AuditEventType {
   USER_LOGOUT = 'user.logout',
   USER_TOKEN_REFRESH = 'user.token_refresh',
   USER_AUTH_FAILED = 'user.auth_failed',
-  
+
   // API Keys & Secrets
   API_KEY_ACCESSED = 'api_key.accessed',
   API_KEY_ROTATED = 'api_key.rotated',
   SECRET_SYNCED = 'secret.synced',
-  
+
   // Strategy Operations
   STRATEGY_CREATED = 'strategy.created',
   STRATEGY_UPDATED = 'strategy.updated',
   STRATEGY_DELETED = 'strategy.deleted',
   STRATEGY_SHARED = 'strategy.shared',
-  
+
   // Security Events
   RATE_LIMIT_EXCEEDED = 'security.rate_limit_exceeded',
   CSRF_TOKEN_MISMATCH = 'security.csrf_mismatch',
   UNAUTHORIZED_ACCESS = 'security.unauthorized_access',
-  
+
   // System Events
   SECRET_ROTATION_TRIGGERED = 'system.secret_rotation_triggered',
   DEPENDENCY_SCAN_COMPLETED = 'system.dependency_scan_completed',
@@ -59,16 +59,12 @@ export interface AuditLogEntry {
 export async function auditLog(entry: AuditLogEntry): Promise<void> {
   try {
     // Log to structured logger
-    logger.info(
-      `Audit: ${entry.eventType}`,
-      'Audit',
-      {
-        userId: entry.userId,
-        walletAddress: entry.walletAddress,
-        success: entry.success,
-        metadata: entry.metadata,
-      }
-    );
+    logger.info(`Audit: ${entry.eventType}`, 'Audit', {
+      userId: entry.userId,
+      walletAddress: entry.walletAddress,
+      success: entry.success,
+      metadata: entry.metadata,
+    });
 
     // Store in database for audit trail
     try {
@@ -79,7 +75,7 @@ export async function auditLog(entry: AuditLogEntry): Promise<void> {
           walletAddress: entry.walletAddress,
           ipAddress: entry.ipAddress,
           userAgent: entry.userAgent,
-          metadata: entry.metadata || {},
+          metadata: JSON.stringify(entry.metadata || {}),
           success: entry.success,
           errorMessage: entry.errorMessage,
           timestamp: new Date(),
@@ -91,7 +87,11 @@ export async function auditLog(entry: AuditLogEntry): Promise<void> {
     }
   } catch (error) {
     // Never fail on audit logging errors
-    logger.error('Audit logging failed', error instanceof Error ? error : new Error(String(error)), 'Audit');
+    logger.error(
+      'Audit logging failed',
+      error instanceof Error ? error : new Error(String(error)),
+      'Audit'
+    );
   }
 }
 
@@ -99,7 +99,11 @@ export async function auditLog(entry: AuditLogEntry): Promise<void> {
  * Create audit log entry for authentication events
  */
 export function auditAuth(
-  eventType: AuditEventType.USER_LOGIN | AuditEventType.USER_LOGOUT | AuditEventType.USER_TOKEN_REFRESH | AuditEventType.USER_AUTH_FAILED,
+  eventType:
+    | AuditEventType.USER_LOGIN
+    | AuditEventType.USER_LOGOUT
+    | AuditEventType.USER_TOKEN_REFRESH
+    | AuditEventType.USER_AUTH_FAILED,
   options: {
     userId?: string;
     walletAddress?: string;
@@ -126,7 +130,11 @@ export function auditAuth(
  * Create audit log entry for strategy operations
  */
 export function auditStrategy(
-  eventType: AuditEventType.STRATEGY_CREATED | AuditEventType.STRATEGY_UPDATED | AuditEventType.STRATEGY_DELETED | AuditEventType.STRATEGY_SHARED,
+  eventType:
+    | AuditEventType.STRATEGY_CREATED
+    | AuditEventType.STRATEGY_UPDATED
+    | AuditEventType.STRATEGY_DELETED
+    | AuditEventType.STRATEGY_SHARED,
   options: {
     userId?: string;
     walletAddress?: string;
@@ -157,7 +165,10 @@ export function auditStrategy(
  * Create audit log entry for security events
  */
 export function auditSecurity(
-  eventType: AuditEventType.RATE_LIMIT_EXCEEDED | AuditEventType.CSRF_TOKEN_MISMATCH | AuditEventType.UNAUTHORIZED_ACCESS,
+  eventType:
+    | AuditEventType.RATE_LIMIT_EXCEEDED
+    | AuditEventType.CSRF_TOKEN_MISMATCH
+    | AuditEventType.UNAUTHORIZED_ACCESS,
   options: {
     userId?: string;
     walletAddress?: string;
@@ -183,7 +194,10 @@ export function auditSecurity(
  * Create audit log entry for API key operations
  */
 export function auditApiKey(
-  eventType: AuditEventType.API_KEY_ACCESSED | AuditEventType.API_KEY_ROTATED | AuditEventType.SECRET_SYNCED,
+  eventType:
+    | AuditEventType.API_KEY_ACCESSED
+    | AuditEventType.API_KEY_ROTATED
+    | AuditEventType.SECRET_SYNCED,
   options: {
     keyName: string;
     success: boolean;
@@ -201,4 +215,3 @@ export function auditApiKey(
     // Silently fail
   });
 }
-

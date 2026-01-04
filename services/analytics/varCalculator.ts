@@ -13,10 +13,7 @@ export interface VaRResult {
 /**
  * Calculate Value at Risk using historical method
  */
-export function calculateHistoricalVaR(
-  returns: number[],
-  confidenceLevel = 0.95
-): number {
+export function calculateHistoricalVaR(returns: number[], confidenceLevel = 0.95): number {
   if (returns.length === 0) return 0;
 
   const sortedReturns = [...returns].sort((a, b) => a - b);
@@ -30,26 +27,23 @@ export function calculateHistoricalVaR(
  * Calculate Value at Risk using parametric method (variance-covariance)
  * Assumes returns follow a normal distribution
  */
-export function calculateParametricVaR(
-  returns: number[],
-  confidenceLevel = 0.95
-): number {
+export function calculateParametricVaR(returns: number[], confidenceLevel = 0.95): number {
   if (returns.length === 0) return 0;
 
   const meanReturn = returns.reduce((sum, r) => sum + r, 0) / returns.length;
-  const variance = returns.reduce((sum, r) => sum + Math.pow(r - meanReturn, 2), 0) / returns.length;
+  const variance = returns.reduce((sum, r) => sum + (r - meanReturn) ** 2, 0) / returns.length;
   const stdDev = Math.sqrt(variance);
 
   // Z-score for confidence level
   const zScores: Record<number, number> = {
-    0.90: 1.282,
+    0.9: 1.282,
     0.95: 1.645,
     0.99: 2.326,
   };
   const zScore = zScores[confidenceLevel] || 1.645;
 
   // VaR = mean - (z-score * stdDev)
-  const varValue = meanReturn - (zScore * stdDev);
+  const varValue = meanReturn - zScore * stdDev;
 
   return Math.abs(varValue) * 100; // Return as positive percentage
 }
@@ -66,7 +60,7 @@ export function calculateMonteCarloVaR(
   if (returns.length === 0) return 0;
 
   const meanReturn = returns.reduce((sum, r) => sum + r, 0) / returns.length;
-  const variance = returns.reduce((sum, r) => sum + Math.pow(r - meanReturn, 2), 0) / returns.length;
+  const variance = returns.reduce((sum, r) => sum + (r - meanReturn) ** 2, 0) / returns.length;
   const stdDev = Math.sqrt(variance);
 
   // Generate random returns based on normal distribution
@@ -91,10 +85,7 @@ export function calculateMonteCarloVaR(
 /**
  * Calculate VaR using all methods
  */
-export function calculateVaR(
-  returns: number[],
-  confidenceLevel = 0.95
-): VaRResult {
+export function calculateVaR(returns: number[], confidenceLevel = 0.95): VaRResult {
   return {
     historical: calculateHistoricalVaR(returns, confidenceLevel),
     parametric: calculateParametricVaR(returns, confidenceLevel),
@@ -106,17 +97,14 @@ export function calculateVaR(
 /**
  * Calculate VaR at multiple confidence levels
  */
-export function calculateVaRMultipleLevels(
-  returns: number[]
-): {
+export function calculateVaRMultipleLevels(returns: number[]): {
   var90: VaRResult;
   var95: VaRResult;
   var99: VaRResult;
 } {
   return {
-    var90: calculateVaR(returns, 0.90),
+    var90: calculateVaR(returns, 0.9),
     var95: calculateVaR(returns, 0.95),
     var99: calculateVaR(returns, 0.99),
   };
 }
-

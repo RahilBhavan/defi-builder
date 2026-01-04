@@ -30,8 +30,7 @@ export const ValidationStatus: React.FC<ValidationStatusProps> = ({
   if (!validationResult || (!isValid && errorCount === 0)) return null;
 
   return (
-    <div
-      data-onboarding="validation" className="relative">
+    <div data-onboarding="validation" className="relative">
       {/* Error details panel */}
       {showDetails && !isValid && errorCount > 0 && (
         <div className="absolute bottom-full left-0 mb-4 w-80 max-h-64 bg-white border-2 border-alert-red rounded-lg p-4 z-50 overflow-y-auto shadow-xl">

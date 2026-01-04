@@ -9,7 +9,7 @@ export const getUserFromToken = async (ctx: Context) => {
   // Fallback to Authorization header for backward compatibility
   if (!token) {
     const authHeader = ctx.req.headers.authorization;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
+    if (authHeader?.startsWith('Bearer ')) {
       token = authHeader.substring(7);
     }
   }

@@ -1,4 +1,4 @@
-import type { OptimizationObjective, ParameterDefinition, ParameterSet } from '../types';
+import type { ParameterDefinition, ParameterSet } from '../types';
 
 interface Individual {
   parameters: ParameterSet;
@@ -11,7 +11,7 @@ export class GeneticOptimizer {
 
   constructor(
     private parameters: ParameterDefinition[],
-    private objectives: OptimizationObjective[],
+    // private objectives: OptimizationObjective[], // Reserved for future use
     private populationSize = 30
   ) {
     this.initializePopulation();
@@ -37,12 +37,17 @@ export class GeneticOptimizer {
 
       if (param.type === 'discrete') {
         const values = param.values || [];
-        const randomIndex = Math.floor(Math.random() * values.length);
-        params[param.blockId][param.paramName] = values[randomIndex];
+        if (values.length > 0) {
+          const randomIndex = Math.floor(Math.random() * values.length);
+          const selectedValue = values[randomIndex];
+          if (selectedValue !== undefined) {
+            params[param.blockId]![param.paramName] = selectedValue;
+          }
+        }
       } else {
-        const min = param.min || 0;
-        const max = param.max || 100;
-        params[param.blockId][param.paramName] = min + Math.random() * (max - min);
+        const min = param.min ?? 0;
+        const max = param.max ?? 100;
+        params[param.blockId]![param.paramName] = min + Math.random() * (max - min);
       }
     }
 
@@ -63,10 +68,10 @@ export class GeneticOptimizer {
       if (value1 === undefined || value2 === undefined) continue;
 
       if (param.type === 'discrete') {
-        child[param.blockId][param.paramName] = Math.random() < 0.5 ? value1 : value2;
+        child[param.blockId]![param.paramName] = Math.random() < 0.5 ? value1 : value2;
       } else {
         const alpha = Math.random();
-        child[param.blockId][param.paramName] = value1 * alpha + value2 * (1 - alpha);
+        child[param.blockId]![param.paramName] = value1 * alpha + value2 * (1 - alpha);
       }
     }
 
@@ -79,20 +84,30 @@ export class GeneticOptimizer {
     for (const param of this.parameters) {
       if (Math.random() > mutationRate) continue;
 
+      if (!mutated[param.blockId]) {
+        mutated[param.blockId] = {};
+      }
+
       if (param.type === 'discrete') {
         const values = param.values || [];
-        const randomIndex = Math.floor(Math.random() * values.length);
-        mutated[param.blockId][param.paramName] = values[randomIndex];
+        if (values.length > 0) {
+          const randomIndex = Math.floor(Math.random() * values.length);
+          const selectedValue = values[randomIndex];
+          if (selectedValue !== undefined) {
+            mutated[param.blockId]![param.paramName] = selectedValue;
+          }
+        }
       } else {
-        const min = param.min || 0;
-        const max = param.max || 100;
+        const min = param.min ?? 0;
+        const max = param.max ?? 100;
         const range = max - min;
 
-        const current = mutated[param.blockId][param.paramName];
-        const noise = (Math.random() - 0.5) * range * 0.2;
-        const newValue = Math.max(min, Math.min(max, current + noise));
-
-        mutated[param.blockId][param.paramName] = newValue;
+        const current = mutated[param.blockId]?.[param.paramName];
+        if (current !== undefined) {
+          const noise = (Math.random() - 0.5) * range * 0.2;
+          const newValue = Math.max(min, Math.min(max, current + noise));
+          mutated[param.blockId]![param.paramName] = newValue;
+        }
       }
     }
 
@@ -115,7 +130,9 @@ export class GeneticOptimizer {
   }
 
   getPopulation(): ParameterSet[] {
-    return this.population.map((ind) => ind.parameters);
+    return this.population
+      .map((ind) => ind.parameters)
+      .filter((p): p is ParameterSet => p !== undefined);
   }
 
   evolve(): void {
@@ -126,6 +143,8 @@ export class GeneticOptimizer {
     for (let i = 0; i < this.populationSize - parentCount; i++) {
       const parent1 = parents[Math.floor(Math.random() * parents.length)];
       const parent2 = parents[Math.floor(Math.random() * parents.length)];
+
+      if (!parent1 || !parent2) continue;
 
       let child = this.crossover(parent1, parent2);
       child = this.mutate(child);

@@ -1,5 +1,5 @@
-import type { StrategyEdge, StrategyNode } from '../components/studio/types';
-import type { LegoBlock } from '../types';
+import type { StrategyEdge, StrategyNode } from '../../components/studio/types';
+import type { LegoBlock } from '../../types';
 
 export function spineBlocksToReactFlow(blocks: LegoBlock[]): {
   nodes: StrategyNode[];

@@ -1,12 +1,12 @@
-import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { BacktestModal } from '../BacktestModal';
+import { describe, expect, it, vi } from 'vitest';
 import type { DeFiBacktestResult } from '../../../services/defiBacktestEngine';
+import { BacktestModal } from '../BacktestModal';
 
 describe('BacktestModal', () => {
   const mockOnClose = vi.fn();
-  
+
   const mockResult: DeFiBacktestResult = {
     metrics: {
       sharpeRatio: 1.5,
@@ -52,21 +52,20 @@ describe('BacktestModal', () => {
   it('switches tabs when tab is clicked', async () => {
     const user = userEvent.setup();
     render(<BacktestModal isOpen={true} onClose={mockOnClose} result={mockResult} />);
-    
+
     const tradesTab = screen.getByRole('button', { name: /trades/i });
     await user.click(tradesTab);
-    
+
     expect(screen.getByText(/trade history/i)).toBeInTheDocument();
   });
 
   it('calls onClose when close button is clicked', async () => {
     const user = userEvent.setup();
     render(<BacktestModal isOpen={true} onClose={mockOnClose} result={mockResult} />);
-    
+
     const closeButton = screen.getByRole('button', { name: /close/i });
     await user.click(closeButton);
-    
+
     expect(mockOnClose).toHaveBeenCalledTimes(1);
   });
 });
-

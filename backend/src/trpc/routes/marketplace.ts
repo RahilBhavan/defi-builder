@@ -1,7 +1,35 @@
 import { z } from 'zod';
-import { router, publicProcedure, protectedProcedure } from '../trpc';
-import { prisma } from '../db/client';
-import { logger } from '../utils/logger';
+import { prisma } from '../../db/client';
+import { logger } from '../../utils/logger';
+import { protectedProcedure, publicProcedure, router } from '../index';
+
+/**
+ * Calculate trending score for a strategy
+ * Trending = (recent views * 0.3) + (recent likes * 0.4) + (recent forks * 0.3)
+ * Recent = last 7 days
+ */
+async function calculateTrendingScore(strategy: {
+  id: string;
+  viewCount: number;
+  likeCount: number;
+  forkCount: number;
+  createdAt: Date;
+  updatedAt: Date;
+}): Promise<number> {
+  // For now, use a simplified trending algorithm
+  // In production, track views/likes/forks over time windows
+  const daysSinceCreation = (Date.now() - strategy.createdAt.getTime()) / (1000 * 60 * 60 * 24);
+  const recencyFactor = Math.max(0, 1 - daysSinceCreation / 30); // Decay over 30 days
+
+  // Weighted score
+  const score =
+    strategy.viewCount * 0.3 +
+    strategy.likeCount * 0.4 +
+    strategy.forkCount * 0.3;
+
+  // Apply recency factor
+  return score * (1 + recencyFactor * 0.5);
+}
 
 export const marketplaceRouter = router({
   // Get public strategies with pagination and filtering
@@ -21,6 +49,7 @@ export const marketplaceRouter = router({
         const { page, limit, category, tags, sortBy, search } = input;
         const skip = (page - 1) * limit;
 
+        // biome-ignore lint/suspicious/noExplicitAny: Prisma where clause type is complex and inferred
         const where: any = {
           isPublic: true,
         };
@@ -44,55 +73,31 @@ export const marketplaceRouter = router({
           ];
         }
 
-        const orderBy: any = {};
-        switch (sortBy) {
-          case 'newest':
-            orderBy.createdAt = 'desc';
-            break;
-          case 'popular':
-            orderBy.viewCount = 'desc';
-            break;
-          case 'trending':
-            // Trending = recent views + likes
-            orderBy.likeCount = 'desc';
-            orderBy.viewCount = 'desc';
-            break;
-          case 'rating':
-            // Would need aggregation for average rating
-            orderBy.likeCount = 'desc';
-            break;
-        }
-
-        const [strategies, total] = await Promise.all([
-          prisma.strategy.findMany({
-            where,
-            skip,
-            take: limit,
-            orderBy,
-            include: {
-              user: {
-                select: {
-                  id: true,
-                  walletAddress: true,
-                  username: true,
-                  avatarUrl: true,
-                },
-              },
-              _count: {
-                select: {
-                  ratings: true,
-                  reviews: true,
-                  forks: true,
-                },
+        // Get all strategies first for trending calculation
+        const allStrategies = await prisma.strategy.findMany({
+          where,
+          include: {
+            user: {
+              select: {
+                id: true,
+                walletAddress: true,
+                username: true,
+                avatarUrl: true,
               },
             },
-          }),
-          prisma.strategy.count({ where }),
-        ]);
+            _count: {
+              select: {
+                ratings: true,
+                reviews: true,
+                originalForks: true,
+              },
+            },
+          },
+        });
 
-        // Calculate average ratings
-        const strategiesWithRatings = await Promise.all(
-          strategies.map(async (strategy) => {
+        // Calculate average ratings and trending scores
+        const strategiesWithMetadata = await Promise.all(
+          allStrategies.map(async (strategy) => {
             const ratings = await prisma.rating.findMany({
               where: { strategyId: strategy.id },
               select: { rating: true },
@@ -100,19 +105,51 @@ export const marketplaceRouter = router({
 
             const avgRating =
               ratings.length > 0
-                ? ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length
+                ? ratings.reduce((sum: number, r: { rating: number }) => sum + r.rating, 0) /
+                  ratings.length
                 : 0;
+
+            const trendingScore = await calculateTrendingScore({
+              id: strategy.id,
+              viewCount: strategy.viewCount,
+              likeCount: strategy.likeCount,
+              forkCount: strategy.forkCount,
+              createdAt: strategy.createdAt,
+              updatedAt: strategy.updatedAt,
+            });
 
             return {
               ...strategy,
               averageRating: avgRating,
               ratingCount: ratings.length,
+              trendingScore,
             };
           })
         );
 
+        // Sort based on sortBy
+        let sortedStrategies = [...strategiesWithMetadata];
+        switch (sortBy) {
+          case 'newest':
+            sortedStrategies.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+            break;
+          case 'popular':
+            sortedStrategies.sort((a, b) => b.viewCount - a.viewCount);
+            break;
+          case 'trending':
+            sortedStrategies.sort((a, b) => (b.trendingScore || 0) - (a.trendingScore || 0));
+            break;
+          case 'rating':
+            sortedStrategies.sort((a, b) => (b.averageRating || 0) - (a.averageRating || 0));
+            break;
+        }
+
+        // Apply pagination
+        const paginatedStrategies = sortedStrategies.slice(skip, skip + limit);
+        const total = sortedStrategies.length;
+
         return {
-          strategies: strategiesWithRatings,
+          strategies: paginatedStrategies,
           pagination: {
             page,
             limit,
@@ -121,7 +158,11 @@ export const marketplaceRouter = router({
           },
         };
       } catch (error) {
-        logger.error('Error discovering strategies', error instanceof Error ? error : new Error(String(error)), 'Marketplace');
+        logger.error(
+          'Error discovering strategies',
+          error instanceof Error ? error : new Error(String(error)),
+          'Marketplace'
+        );
         throw new Error('Failed to discover strategies');
       }
     }),
@@ -151,7 +192,6 @@ export const marketplaceRouter = router({
             select: {
               ratings: true,
               reviews: true,
-              forks: true,
             },
           },
         },
@@ -159,18 +199,29 @@ export const marketplaceRouter = router({
 
       return strategies;
     } catch (error) {
-      logger.error('Error fetching featured strategies', error instanceof Error ? error : new Error(String(error)), 'Marketplace');
+      logger.error(
+        'Error fetching featured strategies',
+        error instanceof Error ? error : new Error(String(error)),
+        'Marketplace'
+      );
       throw new Error('Failed to fetch featured strategies');
     }
   }),
 
-  // Get strategy details
-  getStrategy: publicProcedure
-    .input(z.object({ id: z.string() }))
+  // Get trending strategies
+  trending: publicProcedure
+    .input(
+      z.object({
+        limit: z.number().min(1).max(20).default(10),
+      })
+    )
     .query(async ({ input }) => {
       try {
-        const strategy = await prisma.strategy.findUnique({
-          where: { id: input.id },
+        const strategies = await prisma.strategy.findMany({
+          where: {
+            isPublic: true,
+          },
+          take: 50, // Get more to calculate trending scores
           include: {
             user: {
               select: {
@@ -178,69 +229,143 @@ export const marketplaceRouter = router({
                 walletAddress: true,
                 username: true,
                 avatarUrl: true,
-                bio: true,
               },
-            },
-            ratings: {
-              include: {
-                user: {
-                  select: {
-                    id: true,
-                    walletAddress: true,
-                    username: true,
-                  },
-                },
-              },
-            },
-            reviews: {
-              include: {
-                user: {
-                  select: {
-                    id: true,
-                    walletAddress: true,
-                    username: true,
-                    avatarUrl: true,
-                  },
-                },
-              },
-              orderBy: {
-                createdAt: 'desc',
-              },
-              take: 10,
             },
             _count: {
               select: {
-                forks: true,
+                ratings: true,
+                reviews: true,
+                originalForks: true,
               },
             },
           },
         });
 
-        if (!strategy || !strategy.isPublic) {
-          throw new Error('Strategy not found');
-        }
+        // Calculate trending scores
+        const strategiesWithScores = await Promise.all(
+          strategies.map(async (strategy) => {
+            const trendingScore = await calculateTrendingScore({
+              id: strategy.id,
+              viewCount: strategy.viewCount,
+              likeCount: strategy.likeCount,
+              forkCount: strategy.forkCount,
+              createdAt: strategy.createdAt,
+              updatedAt: strategy.updatedAt,
+            });
 
-        // Increment view count
-        await prisma.strategy.update({
-          where: { id: input.id },
-          data: { viewCount: { increment: 1 } },
-        });
+            const ratings = await prisma.rating.findMany({
+              where: { strategyId: strategy.id },
+              select: { rating: true },
+            });
 
-        // Calculate average rating
-        const avgRating =
-          strategy.ratings.length > 0
-            ? strategy.ratings.reduce((sum, r) => sum + r.rating, 0) / strategy.ratings.length
-            : 0;
+            const avgRating =
+              ratings.length > 0
+                ? ratings.reduce((sum: number, r: { rating: number }) => sum + r.rating, 0) /
+                  ratings.length
+                : 0;
 
-        return {
-          ...strategy,
-          averageRating: avgRating,
-        };
+            return {
+              ...strategy,
+              trendingScore,
+              averageRating: avgRating,
+              ratingCount: ratings.length,
+            };
+          })
+        );
+
+        // Sort by trending score and return top N
+        strategiesWithScores.sort((a, b) => (b.trendingScore || 0) - (a.trendingScore || 0));
+        return strategiesWithScores.slice(0, input.limit);
       } catch (error) {
-        logger.error('Error fetching strategy', error instanceof Error ? error : new Error(String(error)), 'Marketplace');
-        throw new Error('Failed to fetch strategy');
+        logger.error(
+          'Error fetching trending strategies',
+          error instanceof Error ? error : new Error(String(error)),
+          'Marketplace'
+        );
+        throw new Error('Failed to fetch trending strategies');
       }
     }),
+
+  // Get strategy details
+  getStrategy: publicProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {
+    try {
+      const strategy = await prisma.strategy.findUnique({
+        where: { id: input.id },
+        include: {
+          user: {
+            select: {
+              id: true,
+              walletAddress: true,
+              username: true,
+              avatarUrl: true,
+              bio: true,
+            },
+          },
+          ratings: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  walletAddress: true,
+                  username: true,
+                },
+              },
+            },
+          },
+          reviews: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  walletAddress: true,
+                  username: true,
+                  avatarUrl: true,
+                },
+              },
+            },
+            orderBy: {
+              createdAt: 'desc',
+            },
+            take: 10,
+          },
+          _count: {
+            select: {
+              originalForks: true,
+            },
+          },
+        },
+      });
+
+      if (!strategy || !strategy.isPublic) {
+        throw new Error('Strategy not found');
+      }
+
+      // Increment view count
+      await prisma.strategy.update({
+        where: { id: input.id },
+        data: { viewCount: { increment: 1 } },
+      });
+
+      // Calculate average rating
+      const avgRating =
+        strategy.ratings.length > 0
+          ? strategy.ratings.reduce((sum: number, r: { rating: number }) => sum + r.rating, 0) /
+            strategy.ratings.length
+          : 0;
+
+      return {
+        ...strategy,
+        averageRating: avgRating,
+      };
+    } catch (error) {
+      logger.error(
+        'Error fetching strategy',
+        error instanceof Error ? error : new Error(String(error)),
+        'Marketplace'
+      );
+      throw new Error('Failed to fetch strategy');
+    }
+  }),
 
   // Rate a strategy
   rateStrategy: protectedProcedure
@@ -252,7 +377,7 @@ export const marketplaceRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       try {
-        const userId = ctx.userId;
+        const userId = ctx.user.id;
         if (!userId) {
           throw new Error('Unauthorized');
         }
@@ -284,7 +409,11 @@ export const marketplaceRouter = router({
 
         return rating;
       } catch (error) {
-        logger.error('Error rating strategy', error instanceof Error ? error : new Error(String(error)), 'Marketplace');
+        logger.error(
+          'Error rating strategy',
+          error instanceof Error ? error : new Error(String(error)),
+          'Marketplace'
+        );
         throw new Error('Failed to rate strategy');
       }
     }),
@@ -299,10 +428,7 @@ export const marketplaceRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       try {
-        const userId = ctx.userId;
-        if (!userId) {
-          throw new Error('Unauthorized');
-        }
+        const userId = ctx.user.id;
 
         const review = await prisma.review.create({
           data: {
@@ -324,7 +450,11 @@ export const marketplaceRouter = router({
 
         return review;
       } catch (error) {
-        logger.error('Error adding review', error instanceof Error ? error : new Error(String(error)), 'Marketplace');
+        logger.error(
+          'Error adding review',
+          error instanceof Error ? error : new Error(String(error)),
+          'Marketplace'
+        );
         throw new Error('Failed to add review');
       }
     }),
@@ -340,10 +470,7 @@ export const marketplaceRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       try {
-        const userId = ctx.userId;
-        if (!userId) {
-          throw new Error('Unauthorized');
-        }
+        const userId = ctx.user.id;
 
         // Get original strategy
         const original = await prisma.strategy.findUnique({
@@ -384,7 +511,11 @@ export const marketplaceRouter = router({
 
         return forked;
       } catch (error) {
-        logger.error('Error forking strategy', error instanceof Error ? error : new Error(String(error)), 'Marketplace');
+        logger.error(
+          'Error forking strategy',
+          error instanceof Error ? error : new Error(String(error)),
+          'Marketplace'
+        );
         throw new Error('Failed to fork strategy');
       }
     }),
@@ -401,10 +532,7 @@ export const marketplaceRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       try {
-        const userId = ctx.userId;
-        if (!userId) {
-          throw new Error('Unauthorized');
-        }
+        const userId = ctx.user.id;
 
         // Verify ownership
         const strategy = await prisma.strategy.findFirst({
@@ -429,9 +557,288 @@ export const marketplaceRouter = router({
 
         return updated;
       } catch (error) {
-        logger.error('Error updating strategy visibility', error instanceof Error ? error : new Error(String(error)), 'Marketplace');
+        logger.error(
+          'Error updating strategy visibility',
+          error instanceof Error ? error : new Error(String(error)),
+          'Marketplace'
+        );
         throw new Error('Failed to update strategy visibility');
       }
     }),
-});
 
+  // Get user profile with their strategies
+  getUserProfile: publicProcedure
+    .input(z.object({ userId: z.string().optional(), walletAddress: z.string().optional() }))
+    .query(async ({ input }) => {
+      try {
+        if (!input.userId && !input.walletAddress) {
+          throw new Error('Either userId or walletAddress must be provided');
+        }
+
+        const where: any = {};
+        if (input.userId) {
+          where.id = input.userId;
+        } else if (input.walletAddress) {
+          where.walletAddress = input.walletAddress;
+        }
+
+        const user = await prisma.user.findUnique({
+          where,
+          include: {
+            strategies: {
+              where: {
+                isPublic: true,
+              },
+              orderBy: {
+                createdAt: 'desc',
+              },
+              take: 20,
+              include: {
+                _count: {
+                  select: {
+                    ratings: true,
+                    reviews: true,
+                    originalForks: true,
+                  },
+                },
+              },
+            },
+            _count: {
+              select: {
+                strategies: true,
+                ratings: true,
+                reviews: true,
+              },
+            },
+          },
+        });
+
+        if (!user) {
+          throw new Error('User not found');
+        }
+
+        // Calculate user stats
+        const publicStrategies = user.strategies.filter((s) => s.isPublic);
+        const totalViews = publicStrategies.reduce((sum, s) => sum + s.viewCount, 0);
+        const totalForks = publicStrategies.reduce((sum, s) => sum + s.forkCount, 0);
+
+        return {
+          ...user,
+          stats: {
+            totalStrategies: user._count.strategies,
+            publicStrategies: publicStrategies.length,
+            totalViews,
+            totalForks,
+            totalRatings: user._count.ratings,
+            totalReviews: user._count.reviews,
+          },
+        };
+      } catch (error) {
+        logger.error(
+          'Error fetching user profile',
+          error instanceof Error ? error : new Error(String(error)),
+          'Marketplace'
+        );
+        throw new Error('Failed to fetch user profile');
+      }
+    }),
+
+  // Collections endpoints
+  createCollection: protectedProcedure
+    .input(
+      z.object({
+        name: z.string().min(1).max(100),
+        description: z.string().max(500).optional(),
+        isPublic: z.boolean().default(false),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      try {
+        const userId = ctx.user.id;
+        if (!userId) {
+          throw new Error('Unauthorized');
+        }
+
+        const collection = await prisma.collection.create({
+          data: {
+            userId,
+            name: input.name,
+            description: input.description,
+            isPublic: input.isPublic,
+          },
+        });
+
+        return collection;
+      } catch (error) {
+        logger.error(
+          'Error creating collection',
+          error instanceof Error ? error : new Error(String(error)),
+          'Marketplace'
+        );
+        throw new Error('Failed to create collection');
+      }
+    }),
+
+  addStrategyToCollection: protectedProcedure
+    .input(
+      z.object({
+        collectionId: z.string(),
+        strategyId: z.string(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      try {
+        const userId = ctx.user.id;
+        if (!userId) {
+          throw new Error('Unauthorized');
+        }
+
+        // Verify collection ownership
+        const collection = await prisma.collection.findFirst({
+          where: {
+            id: input.collectionId,
+            userId,
+          },
+        });
+
+        if (!collection) {
+          throw new Error('Collection not found or unauthorized');
+        }
+
+        // Get current max order
+        const maxOrder = await prisma.collectionStrategy.findFirst({
+          where: { collectionId: input.collectionId },
+          orderBy: { order: 'desc' },
+          select: { order: true },
+        });
+
+        const collectionStrategy = await prisma.collectionStrategy.create({
+          data: {
+            collectionId: input.collectionId,
+            strategyId: input.strategyId,
+            order: (maxOrder?.order || 0) + 1,
+          },
+          include: {
+            strategy: true,
+          },
+        });
+
+        return collectionStrategy;
+      } catch (error) {
+        logger.error(
+          'Error adding strategy to collection',
+          error instanceof Error ? error : new Error(String(error)),
+          'Marketplace'
+        );
+        throw new Error('Failed to add strategy to collection');
+      }
+    }),
+
+  getCollections: publicProcedure
+    .input(
+      z.object({
+        userId: z.string().optional(),
+        isPublic: z.boolean().optional(),
+      })
+    )
+    .query(async ({ input }) => {
+      try {
+        const where: any = {};
+        if (input.userId) {
+          where.userId = input.userId;
+        }
+        if (input.isPublic !== undefined) {
+          where.isPublic = input.isPublic;
+        }
+
+        const collections = await prisma.collection.findMany({
+          where,
+          include: {
+            user: {
+              select: {
+                id: true,
+                walletAddress: true,
+                username: true,
+                avatarUrl: true,
+              },
+            },
+            _count: {
+              select: {
+                strategies: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+        });
+
+        return collections;
+      } catch (error) {
+        logger.error(
+          'Error fetching collections',
+          error instanceof Error ? error : new Error(String(error)),
+          'Marketplace'
+        );
+        throw new Error('Failed to fetch collections');
+      }
+    }),
+
+  getCollection: publicProcedure
+    .input(z.object({ id: z.string() }))
+    .query(async ({ input, ctx }) => {
+      try {
+        const collection = await prisma.collection.findUnique({
+          where: { id: input.id },
+          include: {
+            user: {
+              select: {
+                id: true,
+                walletAddress: true,
+                username: true,
+                avatarUrl: true,
+              },
+            },
+            strategies: {
+              include: {
+                strategy: {
+                  include: {
+                    user: {
+                      select: {
+                        id: true,
+                        walletAddress: true,
+                        username: true,
+                      },
+                    },
+                    _count: {
+                      select: {
+                        ratings: true,
+                        reviews: true,
+                        originalForks: true,
+                      },
+                    },
+                  },
+                },
+              },
+              orderBy: {
+                order: 'asc',
+              },
+            },
+          },
+        });
+
+        if (!collection || (!collection.isPublic && collection.userId !== ctx?.user?.id)) {
+          throw new Error('Collection not found or unauthorized');
+        }
+
+        return collection;
+      } catch (error) {
+        logger.error(
+          'Error fetching collection',
+          error instanceof Error ? error : new Error(String(error)),
+          'Marketplace'
+        );
+        throw new Error('Failed to fetch collection');
+      }
+    }),
+});

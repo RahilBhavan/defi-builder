@@ -4,7 +4,8 @@
  * All API calls go through backend proxy for security
  */
 
-import { logger } from '../utils/logger';
+import { priceFeedRateLimiter, requestDeduplicator } from '../lib/monitoring/rateLimiter';
+import { logger } from '../lib/monitoring/logger';
 
 export interface PriceUpdate {
   token: string;
@@ -43,7 +44,11 @@ class PriceFeedService {
       // In production, upgrade to WebSocket service like CoinGecko Pro, CryptoCompare, or custom
       this.startPolling();
     } catch (error) {
-      logger.error('Failed to connect to price feed', error instanceof Error ? error : new Error(String(error)), 'PriceFeed');
+      logger.error(
+        'Failed to connect to price feed',
+        error instanceof Error ? error : new Error(String(error)),
+        'PriceFeed'
+      );
       this.isConnecting = false;
       this.scheduleReconnect();
     }
@@ -107,7 +112,11 @@ class PriceFeedService {
         }
       });
     } catch (error) {
-      logger.error('Failed to fetch prices', error instanceof Error ? error : new Error(String(error)), 'PriceFeed');
+      logger.error(
+        'Failed to fetch prices',
+        error instanceof Error ? error : new Error(String(error)),
+        'PriceFeed'
+      );
     }
   }
 
@@ -119,10 +128,10 @@ class PriceFeedService {
    */
   private async fetchPricesFromAPI(tokens: string[]): Promise<Record<string, number>> {
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-    
+
     // Create cache key for deduplication
     const cacheKey = `prices-${tokens.sort().join(',')}`;
-    
+
     // Use rate limiter and deduplication
     return priceFeedRateLimiter.enqueue(
       () =>
@@ -212,7 +221,7 @@ class PriceFeedService {
     if (!this.subscribers.has(token)) {
       this.subscribers.set(token, new Set());
     }
-    this.subscribers.get(token)!.add(callback);
+    this.subscribers.get(token)?.add(callback);
 
     // Send current price if available
     const currentPrice = this.prices.get(token);
@@ -255,7 +264,11 @@ class PriceFeedService {
         try {
           callback(update);
         } catch (error) {
-          logger.error('Error in price update callback', error instanceof Error ? error : new Error(String(error)), 'PriceFeed');
+          logger.error(
+            'Error in price update callback',
+            error instanceof Error ? error : new Error(String(error)),
+            'PriceFeed'
+          );
         }
       });
     }
@@ -311,16 +324,16 @@ class PriceFeedService {
       this.ws.removeEventListener('close', () => {});
       this.ws = null;
     }
-    
+
     // Stop polling
     this.stopPolling();
-    
+
     // Clear reconnect timeout
     if (this.reconnectTimeout) {
       clearTimeout(this.reconnectTimeout);
       this.reconnectTimeout = null;
     }
-    
+
     // Clear all subscribers
     this.subscribers.clear();
     this.reconnectAttempts = 0;

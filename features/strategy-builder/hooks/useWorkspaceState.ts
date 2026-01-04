@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { validateStrategy } from '../services/strategyValidator';
-import type { BlockParams, LegoBlock, ValidationResult } from '../types';
-import { useDebounce } from './useDebounce';
-import { useLocalStorage } from './useLocalStorage';
+import { useDebounce } from '../../../hooks/useDebounce';
+import { useLocalStorage } from '../../../hooks/useLocalStorage';
+import { useUndoRedo } from '../../../hooks/useUndoRedo';
+import type { BlockParams, LegoBlock, ValidationResult } from '../../../types';
+import { validateStrategy } from '../services/validator';
 import { useStrategySync } from './useStrategySync';
-import { useUndoRedo } from './useUndoRedo';
 
 /**
  * Deep equality check for arrays of objects

@@ -5,8 +5,8 @@
 
 import { useMemo } from 'react';
 import { useChainId, useSwitchChain } from 'wagmi';
+import { Protocol } from '../../../types';
 import { SUPPORTED_CHAINS, getChainName, isChainSupported } from '../services/web3/config';
-import { Protocol } from '../types';
 
 /**
  * Network capabilities for different protocols
@@ -74,7 +74,7 @@ export function useNetwork(): NetworkState {
   };
 
   const getSupportedChains = () => {
-    return Object.entries(SUPPORTED_CHAINS).map(([name, id]) => ({
+    return Object.entries(SUPPORTED_CHAINS).map(([_name, id]) => ({
       id,
       name: getChainName(id),
     }));

@@ -1,5 +1,5 @@
 import type { LegoBlock } from '../../types';
-import { isRetryableError, retryWithBackoff } from '../../utils/retry';
+import { isRetryableError, retryWithBackoff } from '../../lib/error/retry';
 import type { DeFiBacktestResult } from '../defiBacktestEngine';
 import type { BacktestWorkerRequest, BacktestWorkerResponse, ParameterSet } from './types';
 
@@ -29,7 +29,10 @@ export class BacktestWorkerPool {
   private workers: Worker[] = [];
   private taskQueue: BacktestTask[] = [];
   private activeWorkers = 0;
+  private busyWorkers = new Set<number>(); // Track which worker indices are busy
   private cache = new Map<string, DeFiBacktestResult>();
+  private cacheHits = 0;
+  private cacheMisses = 0;
   private onError?: (error: WorkerErrorInfo) => void;
 
   constructor(
@@ -61,11 +64,13 @@ export class BacktestWorkerPool {
       rebalanceInterval: number;
     }
   ): Promise<DeFiBacktestResult> {
-    const cacheKey = this.getCacheKey(parameters);
+    const cacheKey = this.getCacheKey(parameters, config);
     const cached = this.cache.get(cacheKey);
     if (cached) {
+      this.cacheHits++;
       return cached;
     }
+    this.cacheMisses++;
 
     return retryWithBackoff(
       () => {
@@ -75,7 +80,10 @@ export class BacktestWorkerPool {
           this.taskQueue.push({
             id: taskId,
             resolve: (result) => {
-              this.cache.set(cacheKey, result);
+              // Only cache if it wasn't already cached
+              if (!this.cache.has(cacheKey)) {
+                this.cache.set(cacheKey, result);
+              }
               resolve(result);
             },
             reject,
@@ -124,10 +132,23 @@ export class BacktestWorkerPool {
       return;
     }
 
+    // Find an available worker
+    let availableWorkerIndex = -1;
+    for (let i = 0; i < this.workers.length; i++) {
+      if (!this.busyWorkers.has(i)) {
+        availableWorkerIndex = i;
+        break;
+      }
+    }
+
+    if (availableWorkerIndex === -1) {
+      return; // No available workers
+    }
+
     const task = this.taskQueue.shift();
     if (!task) return;
 
-    const worker = this.workers[this.activeWorkers];
+    const worker = this.workers[availableWorkerIndex];
     if (!worker) return;
 
     const request: BacktestWorkerRequest = {
@@ -139,7 +160,11 @@ export class BacktestWorkerPool {
     };
 
     worker.postMessage(request);
+    this.busyWorkers.add(availableWorkerIndex);
     this.activeWorkers++;
+    
+    // Store worker index in task for later cleanup
+    (task as BacktestTask & { workerIndex?: number }).workerIndex = availableWorkerIndex;
   }
 
   private parseWorkerError(error: string, parameters?: ParameterSet): WorkerErrorInfo {
@@ -191,9 +216,13 @@ export class BacktestWorkerPool {
     const taskIndex = this.taskQueue.findIndex((t) => t.id === id);
     if (taskIndex === -1) return;
 
-    const task = this.taskQueue[taskIndex];
+    const task = this.taskQueue[taskIndex] as BacktestTask & { workerIndex?: number };
     if (!task) return;
 
+    // Mark worker as available
+    if (task.workerIndex !== undefined) {
+      this.busyWorkers.delete(task.workerIndex);
+    }
     this.activeWorkers--;
 
     if (type === 'RESULT' && result) {
@@ -201,12 +230,7 @@ export class BacktestWorkerPool {
       // Remove task from queue
       this.taskQueue.splice(taskIndex, 1);
       // Process next task in queue
-      if (this.taskQueue.length > 0) {
-        const nextTask = this.taskQueue[0];
-        if (nextTask) {
-          this.processQueue(nextTask.blocks, nextTask.parameters, nextTask.config);
-        }
-      }
+      this.processNextTask();
     } else if (type === 'ERROR') {
       const errorInfo = this.parseWorkerError(
         error || 'Unknown worker error',
@@ -231,23 +255,40 @@ export class BacktestWorkerPool {
       this.taskQueue.splice(taskIndex, 1);
 
       // Process next task even after error
-      if (this.taskQueue.length > 0) {
-        const nextTask = this.taskQueue[0];
-        if (nextTask) {
-          this.processQueue(nextTask.blocks, nextTask.parameters, nextTask.config);
-        }
+      this.processNextTask();
+    }
+  }
+
+  private processNextTask(): void {
+    if (this.taskQueue.length > 0 && this.activeWorkers < this.workerCount) {
+      const nextTask = this.taskQueue[0];
+      if (nextTask) {
+        this.processQueue(nextTask.blocks, nextTask.parameters, nextTask.config);
       }
     }
   }
 
-  private getCacheKey(parameters: ParameterSet): string {
-    return JSON.stringify(parameters);
+  private getCacheKey(parameters: ParameterSet, config: {
+    startDate: Date;
+    endDate: Date;
+    initialCapital: number;
+    rebalanceInterval: number;
+  }): string {
+    // Include config in cache key to avoid collisions
+    return JSON.stringify({
+      parameters,
+      startDate: config.startDate.toISOString(),
+      endDate: config.endDate.toISOString(),
+      initialCapital: config.initialCapital,
+      rebalanceInterval: config.rebalanceInterval,
+    });
   }
 
   getCacheStats(): { size: number; hitRate: number } {
+    const total = this.cacheHits + this.cacheMisses;
     return {
       size: this.cache.size,
-      hitRate: 0,
+      hitRate: total > 0 ? this.cacheHits / total : 0,
     };
   }
 
@@ -259,6 +300,8 @@ export class BacktestWorkerPool {
     this.workers.forEach((worker) => worker.terminate());
     this.workers = [];
     this.taskQueue = [];
+    this.busyWorkers.clear();
+    this.activeWorkers = 0;
     this.cache.clear();
   }
 }

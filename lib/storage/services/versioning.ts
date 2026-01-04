@@ -136,12 +136,18 @@ export function saveVersionMetadata(metadata: VersionMetadata): void {
     localStorage.setItem(VERSION_METADATA_KEY, JSON.stringify(metadata));
   } catch (error) {
     // Use dynamic import to avoid circular dependencies
-    import('../../monitoring/logger').then(({ logger }) => {
-      logger.error('Failed to save version metadata', error instanceof Error ? error : new Error(String(error)), 'Versioning');
-    }).catch(() => {
-      // Fallback if logger fails to load
-      console.error('Failed to save version metadata', error);
-    });
+    import('../../monitoring/logger')
+      .then(({ logger }) => {
+        logger.error(
+          'Failed to save version metadata',
+          error instanceof Error ? error : new Error(String(error)),
+          'Versioning'
+        );
+      })
+      .catch(() => {
+        // Fallback if logger fails to load
+        console.error('Failed to save version metadata', error);
+      });
   }
 }
 

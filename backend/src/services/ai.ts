@@ -5,7 +5,7 @@
  */
 
 import { GoogleGenAI, Type } from '@google/genai';
-import { auditApiKey, AuditEventType } from '../utils/auditLogger';
+import { AuditEventType, auditApiKey } from '../utils/auditLogger';
 import { logger } from '../utils/logger';
 
 interface AISuggestion {
@@ -31,7 +31,11 @@ if (apiKey) {
     ai = new GoogleGenAI({ apiKey });
     logger.info('Gemini AI initialized successfully', 'AI');
   } catch (error) {
-    logger.error('Failed to initialize Gemini AI', error instanceof Error ? error : new Error(String(error)), 'AI');
+    logger.error(
+      'Failed to initialize Gemini AI',
+      error instanceof Error ? error : new Error(String(error)),
+      'AI'
+    );
   }
 } else {
   logger.warn('No Gemini API key found - AI suggestions will use rule-based fallback', 'AI');
@@ -67,16 +71,18 @@ export async function getAISuggestions(
           operation: 'getAISuggestions',
           blockCount: Array.isArray(currentBlocks) ? currentBlocks.length : 0,
         },
-      }).catch(() => {
-        // Silently fail
       });
 
       const aiSuggestions = await getGeminiSuggestions(currentBlocks, userQuery);
       // Merge AI suggestions with rule-based ones
       return [...suggestions, ...aiSuggestions];
     } catch (error) {
-      logger.error('Gemini API error (falling back to rule-based)', error instanceof Error ? error : new Error(String(error)), 'AI');
-      
+      logger.error(
+        'Gemini API error (falling back to rule-based)',
+        error instanceof Error ? error : new Error(String(error)),
+        'AI'
+      );
+
       // Audit failed API key usage
       auditApiKey(AuditEventType.API_KEY_ACCESSED, {
         keyName: 'GEMINI_API_KEY',
@@ -85,8 +91,6 @@ export async function getAISuggestions(
           operation: 'getAISuggestions',
           error: error instanceof Error ? error.message : String(error),
         },
-      }).catch(() => {
-        // Silently fail
       });
 
       // Return rule-based suggestions on error
@@ -172,14 +176,18 @@ async function getGeminiSuggestions(
       }
 
       // Exponential backoff
-      const delay = RETRY_DELAY * Math.pow(2, attempt);
+      const delay = RETRY_DELAY * 2 ** attempt;
       await sleep(delay);
     }
   }
 
   // All retries failed
   if (lastError) {
-    logger.error('Gemini API error after retries', lastError instanceof Error ? lastError : new Error(String(lastError)), 'AI');
+    logger.error(
+      'Gemini API error after retries',
+      lastError instanceof Error ? lastError : new Error(String(lastError)),
+      'AI'
+    );
   }
 
   return [];
@@ -189,10 +197,7 @@ async function getGeminiSuggestions(
  * Rule-based fallback suggestions
  * Used when AI is unavailable or as a baseline
  */
-function getRuleBasedSuggestions(
-  currentBlocks: unknown[],
-  userQuery?: string
-): AISuggestion[] {
+function getRuleBasedSuggestions(currentBlocks: unknown[], userQuery?: string): AISuggestion[] {
   const suggestions: AISuggestion[] = [];
 
   // Handle user query context

@@ -26,7 +26,7 @@ export const PriceTriggerParamsSchema = z.object({
   asset: z.string().min(1, 'Asset is required'),
   targetPrice: z.number().positive('Target price must be positive'),
   condition: z.enum(['>=', '<=', '>', '<', '=='], {
-    errorMap: () => ({ message: 'Condition must be one of: >=, <=, >, <, ==' }),
+    message: 'Condition must be one of: >=, <=, >, <, ==',
   }),
 });
 
@@ -168,7 +168,7 @@ export const UniswapV3LiquidityParamsSchema = z.object({
   token1: z.string().min(1, 'Token1 is required'),
   amount0: z.number().positive('Amount0 must be positive'),
   amount1: z.number().positive('Amount1 must be positive'),
-  feeTier: z.enum([500, 3000, 10000]),
+  feeTier: z.union([z.literal('500'), z.literal('3000'), z.literal('10000')]),
   tickLower: z.number().optional(),
   tickUpper: z.number().optional(),
 });
@@ -412,7 +412,7 @@ export function validateBlockParams(block: { type: string; params: unknown }): {
       case 'price_trigger': {
         const result = PriceTriggerParamsSchema.safeParse(block.params);
         if (!result.success) {
-          errors.push(...result.error.errors.map((e) => e.message));
+          errors.push(...result.error.issues.map((e: { message: string }) => e.message));
           return { valid: false, errors };
         }
         return { valid: true, errors: [], data: result.data };
@@ -421,7 +421,7 @@ export function validateBlockParams(block: { type: string; params: unknown }): {
       case 'uniswap_swap': {
         const result = UniswapSwapParamsSchema.safeParse(block.params);
         if (!result.success) {
-          errors.push(...result.error.errors.map((e) => e.message));
+          errors.push(...result.error.issues.map((e: { message: string }) => e.message));
           return { valid: false, errors };
         }
         return { valid: true, errors: [], data: result.data };
@@ -430,7 +430,7 @@ export function validateBlockParams(block: { type: string; params: unknown }): {
       case 'aave_supply': {
         const result = AaveSupplyParamsSchema.safeParse(block.params);
         if (!result.success) {
-          errors.push(...result.error.errors.map((e) => e.message));
+          errors.push(...result.error.issues.map((e: { message: string }) => e.message));
           return { valid: false, errors };
         }
         return { valid: true, errors: [], data: result.data };
@@ -439,7 +439,7 @@ export function validateBlockParams(block: { type: string; params: unknown }): {
       case 'stop_loss': {
         const result = StopLossParamsSchema.safeParse(block.params);
         if (!result.success) {
-          errors.push(...result.error.errors.map((e) => e.message));
+          errors.push(...result.error.issues.map((e: { message: string }) => e.message));
           return { valid: false, errors };
         }
         return { valid: true, errors: [], data: result.data };
@@ -448,7 +448,7 @@ export function validateBlockParams(block: { type: string; params: unknown }): {
       case 'time_trigger': {
         const result = TimeTriggerParamsSchema.safeParse(block.params);
         if (!result.success) {
-          errors.push(...result.error.errors.map((e) => e.message));
+          errors.push(...result.error.issues.map((e: { message: string }) => e.message));
           return { valid: false, errors };
         }
         return { valid: true, errors: [], data: result.data };
@@ -457,7 +457,7 @@ export function validateBlockParams(block: { type: string; params: unknown }): {
       case 'volume_trigger': {
         const result = VolumeTriggerParamsSchema.safeParse(block.params);
         if (!result.success) {
-          errors.push(...result.error.errors.map((e) => e.message));
+          errors.push(...result.error.issues.map((e: { message: string }) => e.message));
           return { valid: false, errors };
         }
         return { valid: true, errors: [], data: result.data };
@@ -466,7 +466,7 @@ export function validateBlockParams(block: { type: string; params: unknown }): {
       case 'technical_indicator_trigger': {
         const result = TechnicalIndicatorTriggerParamsSchema.safeParse(block.params);
         if (!result.success) {
-          errors.push(...result.error.errors.map((e) => e.message));
+          errors.push(...result.error.issues.map((e: { message: string }) => e.message));
           return { valid: false, errors };
         }
         return { valid: true, errors: [], data: result.data };
@@ -475,7 +475,7 @@ export function validateBlockParams(block: { type: string; params: unknown }): {
       case 'aave_borrow': {
         const result = AaveBorrowParamsSchema.safeParse(block.params);
         if (!result.success) {
-          errors.push(...result.error.errors.map((e) => e.message));
+          errors.push(...result.error.issues.map((e: { message: string }) => e.message));
           return { valid: false, errors };
         }
         return { valid: true, errors: [], data: result.data };
@@ -484,7 +484,7 @@ export function validateBlockParams(block: { type: string; params: unknown }): {
       case 'aave_repay': {
         const result = AaveRepayParamsSchema.safeParse(block.params);
         if (!result.success) {
-          errors.push(...result.error.errors.map((e) => e.message));
+          errors.push(...result.error.issues.map((e: { message: string }) => e.message));
           return { valid: false, errors };
         }
         return { valid: true, errors: [], data: result.data };
@@ -493,7 +493,7 @@ export function validateBlockParams(block: { type: string; params: unknown }): {
       case 'aave_withdraw': {
         const result = AaveWithdrawParamsSchema.safeParse(block.params);
         if (!result.success) {
-          errors.push(...result.error.errors.map((e) => e.message));
+          errors.push(...result.error.issues.map((e: { message: string }) => e.message));
           return { valid: false, errors };
         }
         return { valid: true, errors: [], data: result.data };
@@ -502,7 +502,7 @@ export function validateBlockParams(block: { type: string; params: unknown }): {
       case 'uniswap_v3_liquidity': {
         const result = UniswapV3LiquidityParamsSchema.safeParse(block.params);
         if (!result.success) {
-          errors.push(...result.error.errors.map((e) => e.message));
+          errors.push(...result.error.issues.map((e: { message: string }) => e.message));
           return { valid: false, errors };
         }
         return { valid: true, errors: [], data: result.data };
@@ -511,7 +511,7 @@ export function validateBlockParams(block: { type: string; params: unknown }): {
       case 'compound_supply': {
         const result = CompoundSupplyParamsSchema.safeParse(block.params);
         if (!result.success) {
-          errors.push(...result.error.errors.map((e) => e.message));
+          errors.push(...result.error.issues.map((e: { message: string }) => e.message));
           return { valid: false, errors };
         }
         return { valid: true, errors: [], data: result.data };
@@ -520,7 +520,7 @@ export function validateBlockParams(block: { type: string; params: unknown }): {
       case 'compound_borrow': {
         const result = CompoundBorrowParamsSchema.safeParse(block.params);
         if (!result.success) {
-          errors.push(...result.error.errors.map((e) => e.message));
+          errors.push(...result.error.issues.map((e: { message: string }) => e.message));
           return { valid: false, errors };
         }
         return { valid: true, errors: [], data: result.data };
@@ -529,7 +529,7 @@ export function validateBlockParams(block: { type: string; params: unknown }): {
       case 'curve_swap': {
         const result = CurveSwapParamsSchema.safeParse(block.params);
         if (!result.success) {
-          errors.push(...result.error.errors.map((e) => e.message));
+          errors.push(...result.error.issues.map((e: { message: string }) => e.message));
           return { valid: false, errors };
         }
         return { valid: true, errors: [], data: result.data };
@@ -538,7 +538,7 @@ export function validateBlockParams(block: { type: string; params: unknown }): {
       case 'balancer_swap': {
         const result = BalancerSwapParamsSchema.safeParse(block.params);
         if (!result.success) {
-          errors.push(...result.error.errors.map((e) => e.message));
+          errors.push(...result.error.issues.map((e: { message: string }) => e.message));
           return { valid: false, errors };
         }
         return { valid: true, errors: [], data: result.data };
@@ -547,7 +547,7 @@ export function validateBlockParams(block: { type: string; params: unknown }): {
       case 'oneinch_swap': {
         const result = OneInchSwapParamsSchema.safeParse(block.params);
         if (!result.success) {
-          errors.push(...result.error.errors.map((e) => e.message));
+          errors.push(...result.error.issues.map((e: { message: string }) => e.message));
           return { valid: false, errors };
         }
         return { valid: true, errors: [], data: result.data };
@@ -556,7 +556,7 @@ export function validateBlockParams(block: { type: string; params: unknown }): {
       case 'flash_loan': {
         const result = FlashLoanParamsSchema.safeParse(block.params);
         if (!result.success) {
-          errors.push(...result.error.errors.map((e) => e.message));
+          errors.push(...result.error.issues.map((e: { message: string }) => e.message));
           return { valid: false, errors };
         }
         return { valid: true, errors: [], data: result.data };
@@ -565,7 +565,7 @@ export function validateBlockParams(block: { type: string; params: unknown }): {
       case 'staking': {
         const result = StakingParamsSchema.safeParse(block.params);
         if (!result.success) {
-          errors.push(...result.error.errors.map((e) => e.message));
+          errors.push(...result.error.issues.map((e: { message: string }) => e.message));
           return { valid: false, errors };
         }
         return { valid: true, errors: [], data: result.data };
@@ -574,7 +574,7 @@ export function validateBlockParams(block: { type: string; params: unknown }): {
       case 'take_profit': {
         const result = TakeProfitParamsSchema.safeParse(block.params);
         if (!result.success) {
-          errors.push(...result.error.errors.map((e) => e.message));
+          errors.push(...result.error.issues.map((e: { message: string }) => e.message));
           return { valid: false, errors };
         }
         return { valid: true, errors: [], data: result.data };
@@ -583,7 +583,7 @@ export function validateBlockParams(block: { type: string; params: unknown }): {
       case 'time_exit': {
         const result = TimeExitParamsSchema.safeParse(block.params);
         if (!result.success) {
-          errors.push(...result.error.errors.map((e) => e.message));
+          errors.push(...result.error.issues.map((e: { message: string }) => e.message));
           return { valid: false, errors };
         }
         return { valid: true, errors: [], data: result.data };
@@ -592,7 +592,7 @@ export function validateBlockParams(block: { type: string; params: unknown }): {
       case 'conditional_exit': {
         const result = ConditionalExitParamsSchema.safeParse(block.params);
         if (!result.success) {
-          errors.push(...result.error.errors.map((e) => e.message));
+          errors.push(...result.error.issues.map((e: { message: string }) => e.message));
           return { valid: false, errors };
         }
         return { valid: true, errors: [], data: result.data };
@@ -601,7 +601,7 @@ export function validateBlockParams(block: { type: string; params: unknown }): {
       case 'position_sizing': {
         const result = PositionSizingParamsSchema.safeParse(block.params);
         if (!result.success) {
-          errors.push(...result.error.errors.map((e) => e.message));
+          errors.push(...result.error.issues.map((e: { message: string }) => e.message));
           return { valid: false, errors };
         }
         return { valid: true, errors: [], data: result.data };
@@ -610,7 +610,7 @@ export function validateBlockParams(block: { type: string; params: unknown }): {
       case 'risk_limits': {
         const result = RiskLimitsParamsSchema.safeParse(block.params);
         if (!result.success) {
-          errors.push(...result.error.errors.map((e) => e.message));
+          errors.push(...result.error.issues.map((e: { message: string }) => e.message));
           return { valid: false, errors };
         }
         return { valid: true, errors: [], data: result.data };
@@ -619,7 +619,7 @@ export function validateBlockParams(block: { type: string; params: unknown }): {
       case 'rebalancing': {
         const result = RebalancingParamsSchema.safeParse(block.params);
         if (!result.success) {
-          errors.push(...result.error.errors.map((e) => e.message));
+          errors.push(...result.error.issues.map((e: { message: string }) => e.message));
           return { valid: false, errors };
         }
         return { valid: true, errors: [], data: result.data };
@@ -651,7 +651,7 @@ export function parseBlock(block: unknown): {
     }
     return {
       success: false,
-      errors: result.error.errors.map((e) => `${e.path.join('.')}: ${e.message}`),
+      errors: result.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`),
     };
   } catch (error) {
     return {
@@ -676,7 +676,7 @@ export function parseBlocks(blocks: unknown): {
     }
     return {
       success: false,
-      errors: result.error.errors.map((e) => `${e.path.join('.')}: ${e.message}`),
+      errors: result.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`),
     };
   } catch (error) {
     return {

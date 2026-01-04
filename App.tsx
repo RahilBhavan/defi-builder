@@ -1,18 +1,24 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type React from 'react';
-import { useEffect, useState } from 'react';
+import { Suspense, lazy, useEffect, useState } from 'react';
 import { WagmiProvider } from 'wagmi';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import LandingPage from './components/LandingPage';
-import Workspace from './components/Workspace';
 import { ToastContainer } from './components/ui/ToastContainer';
+import { useTheme } from './hooks/useTheme';
 import { ToastProvider } from './hooks/useToast';
 import { wagmiConfig } from './services/web3/config';
 import type { ViewState } from './types';
-import { trpcClient } from './utils/api-client';
-import { initSentry } from './utils/monitoring';
-import { trpc } from './utils/trpc';
-import { useTheme } from './hooks/useTheme';
+import { trpcClient } from './lib/api/client';
+import { initSentry } from './lib/monitoring/monitoring';
+import { trpc } from './lib/api/trpc';
+
+// Lazy load main views to reduce initial bundle size
+const LandingPage = lazy(() =>
+  import('./components/LandingPage').then((m) => ({ default: m.default }))
+);
+const Workspace = lazy(() =>
+  import('./components/Workspace').then((m) => ({ default: m.default }))
+);
 
 // Create a query client for React Query
 const queryClient = new QueryClient({
@@ -26,7 +32,7 @@ const queryClient = new QueryClient({
 
 const App: React.FC = () => {
   const [view, setView] = useState<ViewState>('landing');
-  const { effectiveTheme } = useTheme();
+  useTheme(); // Initialize theme
 
   // Initialize monitoring
   useEffect(() => {
@@ -42,12 +48,20 @@ const App: React.FC = () => {
         <trpc.Provider client={trpcClient} queryClient={queryClient}>
           <QueryClientProvider client={queryClient}>
             <ToastProvider>
+              <Suspense
+                fallback={
+                  <div className="flex items-center justify-center h-screen bg-canvas">
+                    <div className="text-ink font-mono">Loading...</div>
+                  </div>
+                }
+              >
               {view === 'landing' && <LandingPage onEnter={() => setView('workspace')} />}
               {view === 'workspace' && (
                 <ErrorBoundary>
                   <Workspace />
                 </ErrorBoundary>
               )}
+              </Suspense>
               <ToastContainer />
             </ToastProvider>
           </QueryClientProvider>

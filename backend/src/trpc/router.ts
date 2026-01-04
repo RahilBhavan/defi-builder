@@ -1,22 +1,29 @@
+import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 import { signToken, verifyToken } from '../auth/jwt';
-import redis from '../cache/redis';
+import { getUserFromToken } from '../auth/middleware';
+import { redisClient } from '../cache/redis';
 import { getAISuggestions, getProtocolDocumentation } from '../services/ai';
 import { getTokenPrices } from '../services/priceFeed';
-import { publicProcedure, router } from './index';
-import { protectedProcedure } from './procedures';
+import { AuditEventType, auditAuth, auditStrategy } from '../utils/auditLogger';
+import { logger } from '../utils/logger';
+import { optionalAuthProcedure, protectedProcedure, publicProcedure, router } from './index';
+import { marketplaceRouter } from './routes/marketplace';
 import { webhooksRouter } from './routes/webhooks';
 
 export const appRouter = router({
   health: publicProcedure.query(async () => {
+    const redisStatus = redisClient ? 'connected' : 'disabled';
     try {
-      await redis.ping();
+      if (redisClient) {
+        await redisClient.ping();
+      }
       return {
         status: 'ok',
         timestamp: new Date().toISOString(),
-        redis: 'connected',
+        redis: redisStatus,
       };
-    } catch (error) {
+    } catch (_error) {
       return {
         status: 'degraded',
         timestamp: new Date().toISOString(),
@@ -34,57 +41,80 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ input, ctx }) => {
-        // Find or create user
-        let user = await ctx.prisma.user.findUnique({
-          where: { walletAddress: input.walletAddress },
-        });
-
-        if (!user) {
-          user = await ctx.prisma.user.create({
-            data: { walletAddress: input.walletAddress },
+        try {
+          // Find or create user
+          let user = await ctx.prisma.user.findUnique({
+            where: { walletAddress: input.walletAddress },
           });
-        }
 
-        const accessToken = signToken({
-          userId: user.id,
-          walletAddress: user.walletAddress,
-        });
-        const refreshToken = signToken(
-          {
+          if (!user) {
+            user = await ctx.prisma.user.create({
+              data: { walletAddress: input.walletAddress },
+            });
+          }
+
+          const accessToken = signToken({
             userId: user.id,
             walletAddress: user.walletAddress,
-          },
-          true
-        );
+          });
+          const refreshToken = signToken(
+            {
+              userId: user.id,
+              walletAddress: user.walletAddress,
+            },
+            true
+          );
 
-        // Set httpOnly cookies
-        ctx.res.cookie('auth_token', accessToken, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-          sameSite: 'strict',
-          maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-          path: '/',
-        });
+          // Set httpOnly cookies
+          ctx.res.cookie('auth_token', accessToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+            sameSite: 'strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+            path: '/',
+          });
 
-        ctx.res.cookie('refresh_token', refreshToken, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'strict',
-          maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-          path: '/',
-        });
+          ctx.res.cookie('refresh_token', refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+            path: '/',
+          });
 
-        // Audit log login
-        auditAuth(AuditEventType.USER_LOGIN, {
-          userId: user.id,
-          walletAddress: user.walletAddress,
-          ipAddress: ctx.req.ip,
-          userAgent: ctx.req.headers['user-agent'],
-          success: true,
-        });
+          // Audit log login
+          auditAuth(AuditEventType.USER_LOGIN, {
+            userId: user.id,
+            walletAddress: user.walletAddress,
+            ipAddress: ctx.req.ip,
+            userAgent: ctx.req.headers['user-agent'],
+            success: true,
+          });
 
-        // Return user (tokens are in cookies, not in response)
-        return { user };
+          // Return user (tokens are in cookies, not in response)
+          return { user };
+        } catch (error) {
+          logger.error(
+            'Login error',
+            error instanceof Error ? error : new Error(String(error)),
+            'Auth'
+          );
+
+          // Audit log failed login
+          auditAuth(AuditEventType.USER_AUTH_FAILED, {
+            walletAddress: input.walletAddress,
+            ipAddress: ctx.req.ip,
+            userAgent: ctx.req.headers['user-agent'],
+            success: false,
+            errorMessage: error instanceof Error ? error.message : String(error),
+          });
+
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Failed to authenticate user',
+            cause: error,
+          });
+        }
       }),
 
     logout: publicProcedure.mutation(async ({ ctx }) => {
@@ -142,10 +172,13 @@ export const appRouter = router({
       }
 
       // Generate new access token
-      const newAccessToken = signToken({
-        userId: payload.userId,
-        walletAddress: payload.walletAddress,
-      }, false);
+      const newAccessToken = signToken(
+        {
+          userId: payload.userId,
+          walletAddress: payload.walletAddress,
+        },
+        false
+      );
 
       // Set new access token
       ctx.res.cookie('auth_token', newAccessToken, {
@@ -159,7 +192,8 @@ export const appRouter = router({
       return { success: true };
     }),
 
-    me: protectedProcedure.query(({ ctx }) => {
+    me: optionalAuthProcedure.query(({ ctx }) => {
+      // Return null if not authenticated instead of throwing error
       return ctx.user;
     }),
   }),
@@ -342,4 +376,8 @@ export const appRouter = router({
   }),
 });
 
+// Explicitly export the router type to ensure proper type inference
 export type AppRouter = typeof appRouter;
+
+// Re-export for easier imports
+export type { AppRouter as RouterType };

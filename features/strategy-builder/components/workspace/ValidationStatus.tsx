@@ -1,7 +1,7 @@
 import { AlertTriangle, CheckCircle } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
-import type { ValidationResult } from '../../types';
+import type { ValidationResult } from '../../../../types';
 
 interface ValidationStatusProps {
   validationResult: ValidationResult | null;

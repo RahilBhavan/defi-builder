@@ -4,9 +4,13 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { useChainId } from 'wagmi';
-import { getGasPrices, estimateGas, type GasEstimate } from '../services/web3/gasEstimator';
 import type { Address } from 'viem';
+import { useChainId } from 'wagmi';
+import {
+  type GasEstimate as _GasEstimate,
+  estimateGas,
+  getGasPrices,
+} from '../services/web3/gasEstimator';
 
 export interface UseGasEstimateOptions {
   transaction?: {
@@ -54,4 +58,3 @@ export function useGasEstimate(options: UseGasEstimateOptions = {}) {
     staleTime: 10000,
   });
 }
-

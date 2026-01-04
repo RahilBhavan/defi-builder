@@ -1,7 +1,7 @@
 /**
  * Virtual List Component
  * Efficiently renders large lists by only rendering visible items
- * 
+ *
  * @example
  * ```tsx
  * <VirtualList
@@ -46,7 +46,6 @@ export function VirtualList<T>({
 
   // Calculate visible range
   const { startIndex, endIndex, totalHeight, offsetY } = useMemo(() => {
-    const visibleCount = Math.ceil(containerHeight / itemHeight);
     const startIndex = Math.max(0, Math.floor(scrollTop / itemHeight) - overscan);
     const endIndex = Math.min(
       items.length - 1,
@@ -123,4 +122,3 @@ export function VirtualList<T>({
     </div>
   );
 }
-

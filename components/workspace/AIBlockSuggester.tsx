@@ -6,20 +6,23 @@ import {
   Box,
   ChevronDown,
   ChevronRight,
+  GripVertical,
   Landmark,
   Loader2,
   Search,
   Shield,
   Sparkles,
+  X,
 } from 'lucide-react';
 import type React from 'react';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { AVAILABLE_BLOCKS } from '../../constants';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { AVAILABLE_BLOCKS, PROTOCOL_COLORS } from '../../constants';
 import { useDebounce } from '../../hooks/useDebounce';
 import { useToast } from '../../hooks/useToast';
 import { suggestNextBlocks } from '../../services/geminiService';
 import type { LegoBlock } from '../../types';
-import { trpc } from '../../utils/trpc';
+import { Protocol } from '../../types';
+import { trpc } from '../../lib/api/trpc';
 
 interface AIBlockSuggesterProps {
   isOpen: boolean;
@@ -28,44 +31,19 @@ interface AIBlockSuggesterProps {
   currentBlocks: LegoBlock[];
 }
 
-const getIcon = (iconName: string) => {
+const getIcon = (iconName: string, size = 16) => {
+  const props = { size, strokeWidth: 1.5 };
   switch (iconName) {
     case 'swap':
-      return <ArrowRightLeft size={18} />;
+      return <ArrowRightLeft {...props} />;
     case 'supply':
-      return <Landmark size={18} />;
+      return <Landmark {...props} />;
     case 'trigger':
-      return <Activity size={18} />;
+      return <Activity {...props} />;
     case 'shield':
-      return <Shield size={18} />;
-    case 'clock':
-      return <Activity size={18} />;
-    case 'bar-chart':
-      return <Activity size={18} />;
-    case 'trending-up':
-      return <Activity size={18} />;
-    case 'arrow-down':
-      return <ArrowRightLeft size={18} />;
-    case 'arrow-up':
-      return <ArrowRightLeft size={18} />;
-    case 'arrow-up-circle':
-      return <ArrowRightLeft size={18} />;
-    case 'droplet':
-      return <Box size={18} />;
-    case 'zap':
-      return <Activity size={18} />;
-    case 'lock':
-      return <Shield size={18} />;
-    case 'code':
-      return <Box size={18} />;
-    case 'sliders':
-      return <Activity size={18} />;
-    case 'alert-triangle':
-      return <Shield size={18} />;
-    case 'refresh-cw':
-      return <Activity size={18} />;
+      return <Shield {...props} />;
     default:
-      return <Box size={18} />;
+      return <Box {...props} />;
   }
 };
 
@@ -102,6 +80,101 @@ function getFallbackSuggestions(blocks: LegoBlock[]): LegoBlock[] {
   return AVAILABLE_BLOCKS.filter((b) => b.category === 'RISK').slice(0, 3);
 }
 
+// Category colors for visual hierarchy
+const CATEGORY_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+  ENTRY: { bg: 'bg-blue-50', text: 'text-blue-600', border: 'border-blue-200' },
+  PROTOCOL: { bg: 'bg-purple-50', text: 'text-purple-600', border: 'border-purple-200' },
+  EXIT: { bg: 'bg-green-50', text: 'text-green-600', border: 'border-green-200' },
+  RISK: { bg: 'bg-red-50', text: 'text-red-600', border: 'border-red-200' },
+  OTHER: { bg: 'bg-gray-50', text: 'text-gray-600', border: 'border-gray-200' },
+};
+
+interface BlockCardProps {
+  block: LegoBlock;
+  isAISuggested?: boolean;
+  onAdd: (block: LegoBlock) => void;
+  onDragStart: (e: React.DragEvent, block: LegoBlock) => void;
+  onDragEnd: (e: React.DragEvent) => void;
+}
+
+function BlockCard({ block, isAISuggested, onAdd, onDragStart, onDragEnd }: BlockCardProps) {
+  const accentColor = PROTOCOL_COLORS[block.protocol] || PROTOCOL_COLORS[Protocol.GENERIC];
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleDragStart = (e: React.DragEvent) => {
+    setIsDragging(true);
+    onDragStart(e, block);
+  };
+
+  const handleDragEnd = (e: React.DragEvent) => {
+    setIsDragging(false);
+    onDragEnd(e);
+  };
+
+  return (
+    <motion.button
+      type="button"
+      onClick={() => onAdd(block)}
+      draggable
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+      className={`
+        w-full p-3 bg-white border rounded-lg text-left group
+        transition-all duration-150
+        ${isDragging ? 'opacity-50 shadow-lg' : 'shadow-sm hover:shadow-md'}
+        cursor-grab active:cursor-grabbing
+        border-gray-200 hover:border-gray-300
+      `}
+      style={{
+        borderLeftWidth: 3,
+        borderLeftColor: accentColor,
+      }}
+      aria-label={`Add ${block.label} block to strategy`}
+    >
+      <div className="flex items-center gap-3">
+        {/* Drag Handle */}
+        <div className="text-gray-300 group-hover:text-gray-400 transition-colors">
+          <GripVertical size={14} />
+        </div>
+
+        {/* Icon */}
+        <div
+          className="p-1.5 rounded"
+          style={{ backgroundColor: `${accentColor}15`, color: accentColor }}
+        >
+          {getIcon(block.icon)}
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 mb-0.5">
+            <span
+              className="text-[8px] font-mono font-bold uppercase px-1 py-0.5 rounded"
+              style={{
+                backgroundColor: `${accentColor}15`,
+                color: accentColor,
+              }}
+            >
+              {block.protocol}
+            </span>
+            {isAISuggested && (
+              <Sparkles size={10} className="text-orange" aria-label="AI suggested" />
+            )}
+          </div>
+          <p className="text-xs font-bold text-ink truncate uppercase tracking-wide">
+            {block.label}
+          </p>
+          <p className="text-[10px] text-gray-400 truncate mt-0.5 font-mono">
+            {block.description}
+          </p>
+        </div>
+      </div>
+    </motion.button>
+  );
+}
+
 export const AIBlockSuggester: React.FC<AIBlockSuggesterProps> = ({
   isOpen,
   onClose,
@@ -116,31 +189,35 @@ export const AIBlockSuggester: React.FC<AIBlockSuggesterProps> = ({
   const [aiSuggestions, setAiSuggestions] = useState<LegoBlock[]>([]);
   const [aiError, setAiError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch AI suggestions from backend (preferred method - API keys are server-side)
+  // Focus search on open
+  useEffect(() => {
+    if (isOpen && searchInputRef.current) {
+      setTimeout(() => searchInputRef.current?.focus(), 100);
+    }
+  }, [isOpen]);
+
+  // Fetch AI suggestions from backend
   const backendQuery = trpc.ai.getSuggestions.useQuery(
     { currentBlocks, query: searchQuery || undefined },
     {
-      enabled: isOpen, // Enable when panel is open
+      enabled: isOpen,
       refetchOnWindowFocus: false,
       retry: 2,
     }
   );
 
-  // Handle query errors separately using useEffect (tRPC v11 doesn't support onError in useQuery)
+  // Handle query errors
   useEffect(() => {
     if (backendQuery.error) {
-      // Silently fall back to client-side suggestions if backend fails
-      // Error handled gracefully - fallback to rule-based suggestions
+      // Silently fall back to client-side suggestions
     }
   }, [backendQuery.error]);
-
-  // isLoadingBackend removed - not currently used in UI
 
   // Use backend suggestions if available, otherwise use fallback
   useEffect(() => {
     if (!isOpen) {
-      // Cleanup: abort any pending requests when panel closes
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
         abortControllerRef.current = null;
@@ -148,34 +225,23 @@ export const AIBlockSuggester: React.FC<AIBlockSuggesterProps> = ({
       return;
     }
 
-    // Prefer backend suggestions (from tRPC query)
-    if (backendQuery?.data && Array.isArray(backendQuery.data)) {
-      // Backend returns AISuggestion[] - we need to convert to blocks
-      // For now, use fallback suggestions since backend format is different
-      // TODO: Map backend suggestions to actual blocks
-    }
-
     // Fallback to client-side rule-based suggestions
     const cacheKey = getCacheKey(currentBlocks);
     const cached = suggestionCache.get(cacheKey);
 
-    // Check cache
     if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
       setAiSuggestions(cached.blocks);
       setAiError(null);
       return;
     }
 
-    // Cancel previous request
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
 
-    // Create new abort controller
     abortControllerRef.current = new AbortController();
     const signal = abortControllerRef.current.signal;
 
-    // Fetch fallback suggestions (rule-based)
     setIsLoadingAI(true);
     setAiError(null);
 
@@ -184,8 +250,6 @@ export const AIBlockSuggester: React.FC<AIBlockSuggesterProps> = ({
         if (!signal.aborted) {
           setAiSuggestions(suggestions);
           setAiError(null);
-
-          // Cache the suggestions
           suggestionCache.set(cacheKey, {
             blocks: suggestions,
             timestamp: Date.now(),
@@ -196,13 +260,9 @@ export const AIBlockSuggester: React.FC<AIBlockSuggesterProps> = ({
         if (!signal.aborted) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
           setAiError(errorMessage);
-
-          // Show warning but don't block UI
           if (errorMessage !== 'Request cancelled') {
             showWarning('AI suggestions unavailable. Using fallback suggestions.');
           }
-
-          // Use fallback
           setAiSuggestions(getFallbackSuggestions(currentBlocks));
         }
       })
@@ -212,7 +272,6 @@ export const AIBlockSuggester: React.FC<AIBlockSuggesterProps> = ({
         }
       });
 
-    // Cleanup on unmount or when blocks change
     return () => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
@@ -220,7 +279,6 @@ export const AIBlockSuggester: React.FC<AIBlockSuggesterProps> = ({
     };
   }, [currentBlocks, isOpen, showWarning]);
 
-  // Use AI suggestions if available, otherwise fallback
   const suggestedBlocks = useMemo(() => {
     if (aiSuggestions.length > 0) {
       return aiSuggestions;
@@ -228,57 +286,54 @@ export const AIBlockSuggester: React.FC<AIBlockSuggesterProps> = ({
     return getFallbackSuggestions(currentBlocks);
   }, [aiSuggestions, currentBlocks]);
 
-  // Filter blocks by search (using debounced query)
   const filteredBlocks = useMemo(() => {
     if (!debouncedSearchQuery) return AVAILABLE_BLOCKS;
     const query = debouncedSearchQuery.toLowerCase();
     return AVAILABLE_BLOCKS.filter(
       (block) =>
         block.label.toLowerCase().includes(query) ||
-        (block.params && JSON.stringify(block.params).toLowerCase().includes(query))
+        block.protocol.toLowerCase().includes(query) ||
+        block.category.toLowerCase().includes(query)
     );
   }, [debouncedSearchQuery]);
 
-  // Group blocks by category
   const blocksByCategory = useMemo(() => {
     const grouped: Record<string, LegoBlock[]> = {};
+    const order = ['ENTRY', 'PROTOCOL', 'EXIT', 'RISK'];
+    order.forEach((cat) => (grouped[cat] = []));
+    
     filteredBlocks.forEach((block) => {
       const category = block.category || 'OTHER';
       if (!grouped[category]) grouped[category] = [];
       grouped[category].push(block);
     });
+    
     return grouped;
   }, [filteredBlocks]);
 
-  const categoryNames: Record<string, string> = {
-    ENTRY: 'ENTRY CONDITIONS',
-    PROTOCOL: 'PROTOCOL ACTIONS',
-    EXIT: 'EXIT CONDITIONS',
-    RISK: 'RISK MANAGEMENT',
-    OTHER: 'OTHER',
+  const categoryLabels: Record<string, string> = {
+    ENTRY: 'Entry Conditions',
+    PROTOCOL: 'Protocol Actions',
+    EXIT: 'Exit Conditions',
+    RISK: 'Risk Management',
+    OTHER: 'Other',
   };
 
-  const handleAddBlock = (template: LegoBlock) => {
+  const handleAddBlock = useCallback((template: LegoBlock) => {
     onAddBlock(template);
     setSearchQuery('');
-    if (window.innerWidth < 1024) onClose(); // Close on mobile add
-  };
+    if (window.innerWidth < 1024) onClose();
+  }, [onAddBlock, onClose]);
 
-  const handleDragStart = (e: React.DragEvent, block: LegoBlock) => {
+  const handleDragStart = useCallback((e: React.DragEvent, block: LegoBlock) => {
     e.dataTransfer.effectAllowed = 'copy';
     e.dataTransfer.setData('application/json', JSON.stringify(block));
     e.dataTransfer.setData('text/plain', block.id);
-    // Add visual feedback
-    if (e.currentTarget instanceof HTMLElement) {
-      e.currentTarget.style.opacity = '0.5';
-    }
-  };
+  }, []);
 
-  const handleDragEnd = (e: React.DragEvent) => {
-    if (e.currentTarget instanceof HTMLElement) {
-      e.currentTarget.style.opacity = '1';
-    }
-  };
+  const handleDragEnd = useCallback((e: React.DragEvent) => {
+    // Reset any drag states
+  }, []);
 
   return (
     <AnimatePresence>
@@ -290,185 +345,186 @@ export const AIBlockSuggester: React.FC<AIBlockSuggesterProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/20 z-40"
+            className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40"
             aria-hidden="true"
           />
 
           {/* Panel */}
-          <motion.div
+          <motion.aside
             data-onboarding="block-palette"
-            initial={{ x: -320 }}
+            initial={{ x: -340 }}
             animate={{ x: 0 }}
+            exit={{ x: -340 }}
+            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
             role="dialog"
             aria-modal="true"
-            aria-labelledby="ai-suggester-title"
-            exit={{ x: -320 }}
-            transition={{ type: 'tween', duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-            className="fixed left-0 top-0 h-full w-80 bg-canvas/95 backdrop-blur-md border-r border-ink z-50 flex flex-col shadow-2xl"
+            aria-labelledby="palette-title"
+            className="fixed left-0 top-14 bottom-0 w-[320px] bg-white border-r border-gray-200 z-50 flex flex-col shadow-2xl"
           >
-            {/* Header / Suggestions */}
-            <div className="p-0 border-b border-gray-300 flex-shrink-0">
-              <div className="p-6 bg-gray-50 border-b border-gray-200">
-                <div className="flex items-center gap-2 mb-3">
-                  <Sparkles
-                    size={14}
-                    className={`${isLoadingAI ? 'animate-pulse' : ''} text-orange`}
-                    aria-hidden="true"
-                  />
-                  <h3 id="ai-suggester-title" className="text-xs font-bold uppercase text-gray-500">
-                    AI Block Suggester
-                  </h3>
-                  {isLoadingAI && (
-                    <Loader2 size={12} className="animate-spin text-orange ml-auto" />
-                  )}
-                  {aiError && !isLoadingAI && (
-                    <AlertCircle size={12} className="text-gray-400 ml-auto" />
-                  )}
+            {/* Header */}
+            <header className="p-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-orange/10 rounded">
+                  <Sparkles size={14} className="text-orange" />
                 </div>
-                <div className="max-h-48 sm:max-h-64 overflow-y-auto scroll-smooth pr-2 -mr-2 touch-pan-y">
-                  {isLoadingAI ? (
-                    <div className="space-y-2">
-                      {[1, 2, 3].map((i) => (
-                        <div
-                          key={i}
-                          className="w-full p-3 bg-white border border-gray-300 animate-pulse"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="w-5 h-5 bg-gray-200 rounded" />
-                            <div className="flex-1 space-y-1">
-                              <div className="h-3 bg-gray-200 rounded w-3/4" />
-                              <div className="h-2 bg-gray-200 rounded w-1/2" />
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {suggestedBlocks.map((block) => (
-                        <button
-                          key={block.id}
-                          type="button"
-                          onClick={() => handleAddBlock(block)}
-                          draggable
-                          onDragStart={(e) => handleDragStart(e, block)}
-                          onDragEnd={handleDragEnd}
-                          className="w-full p-3 bg-white border border-gray-300 hover:border-ink transition-all text-left group shadow-sm hover:shadow-md cursor-grab active:cursor-grabbing rounded-lg"
-                          aria-label={`Add ${block.label} block to strategy`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <span className="text-gray-600 group-hover:text-ink">
-                              {getIcon(block.icon)}
-                            </span>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-xs font-bold text-ink truncate">{block.label}</p>
-                              <p className="text-[10px] text-gray-400 truncate mt-0.5">
-                                {block.description}
-                              </p>
-                            </div>
-                            {aiSuggestions.length > 0 && aiSuggestions.includes(block) && (
-                              <Sparkles size={10} className="text-orange flex-shrink-0" aria-label="AI suggested" />
-                            )}
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                <h2 id="palette-title" className="text-sm font-bold text-ink uppercase tracking-wide">
+                  Block Palette
+                </h2>
               </div>
-            </div>
+              <button
+                type="button"
+                onClick={onClose}
+                className="p-1.5 text-gray-400 hover:text-ink hover:bg-gray-100 rounded transition-colors"
+                aria-label="Close palette"
+              >
+                <X size={16} />
+              </button>
+            </header>
+
+            {/* AI Suggestions Section */}
+            <section className="p-4 border-b border-gray-200 bg-gradient-to-b from-orange/5 to-transparent">
+              <div className="flex items-center gap-2 mb-3">
+                <Sparkles
+                  size={12}
+                  className={`text-orange ${isLoadingAI ? 'animate-pulse' : ''}`}
+                />
+                <h3 className="text-[10px] font-bold uppercase text-gray-500 tracking-wider">
+                  Suggested Next
+                </h3>
+                {isLoadingAI && <Loader2 size={10} className="animate-spin text-orange ml-auto" />}
+                {aiError && !isLoadingAI && <AlertCircle size={10} className="text-gray-400 ml-auto" />}
+              </div>
+
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {isLoadingAI ? (
+                  [...Array(3)].map((_, i) => (
+                    <div key={i} className="p-3 bg-white border border-gray-200 rounded-lg animate-pulse">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-gray-100 rounded" />
+                        <div className="flex-1 space-y-1.5">
+                          <div className="h-3 bg-gray-100 rounded w-3/4" />
+                          <div className="h-2 bg-gray-100 rounded w-1/2" />
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  suggestedBlocks.map((block) => (
+                    <BlockCard
+                      key={block.id}
+                      block={block}
+                      isAISuggested={aiSuggestions.includes(block)}
+                      onAdd={handleAddBlock}
+                      onDragStart={handleDragStart}
+                      onDragEnd={handleDragEnd}
+                    />
+                  ))
+                )}
+              </div>
+            </section>
 
             {/* Search */}
-            <div className="p-6 border-b border-gray-300 bg-white flex-shrink-0">
+            <div className="p-4 border-b border-gray-200">
               <div className="relative">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
+                  ref={searchInputRef}
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search blocks..."
-                  className="w-full h-10 pl-3 pr-10 border border-gray-300 focus:border-ink font-mono text-sm outline-none bg-gray-50 focus:bg-white transition-colors rounded-lg"
+                  className="w-full h-9 pl-9 pr-3 border border-gray-200 rounded-lg text-sm font-mono
+                    focus:border-ink focus:outline-none focus:ring-1 focus:ring-ink/10
+                    bg-gray-50 focus:bg-white transition-colors"
                   aria-label="Search for blocks"
                 />
-                <div className="absolute right-3 top-3 text-gray-400" aria-hidden="true">
-                  <Search size={16} />
-                </div>
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-ink"
+                    aria-label="Clear search"
+                  >
+                    <X size={12} />
+                  </button>
+                )}
               </div>
             </div>
 
             {/* Categories */}
-            <div className="flex-1 overflow-y-auto bg-canvas scroll-smooth">
-              {Object.entries(blocksByCategory).map(([category, blocks]) => (
-                <div key={category} className="border-b border-gray-200 last:border-b-0">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setExpandedCategory((prev) => (prev === category ? '' : category))
-                    }
-                    className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-100 transition-colors bg-white"
-                    aria-expanded={expandedCategory === category}
-                    aria-controls={`category-${category}`}
-                  >
-                    <span
-                      id={`category-header-${category}`}
-                      className="text-xs font-bold uppercase text-ink tracking-wider"
-                    >
-                      {categoryNames[category] || category}
-                    </span>
-                    <span className="text-gray-400" aria-hidden="true">
-                      {expandedCategory === category ? (
-                        <ChevronDown size={14} />
-                      ) : (
-                        <ChevronRight size={14} />
-                      )}
-                    </span>
-                  </button>
+            <nav className="flex-1 overflow-y-auto" aria-label="Block categories">
+              {Object.entries(blocksByCategory).map(([category, blocks]) => {
+                if (blocks.length === 0) return null;
+                const colors = CATEGORY_COLORS[category] || CATEGORY_COLORS.OTHER;
+                const isExpanded = expandedCategory === category;
 
-                  <AnimatePresence>
-                    {expandedCategory === category && (
-                      <motion.div
-                        id={`category-${category}`}
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        className="overflow-hidden"
-                        role="region"
-                        aria-labelledby={`category-header-${category}`}
-                      >
-                        <div className="px-6 pb-6 pt-2 space-y-2 bg-gray-50 inner-shadow">
-                          {(blocks as LegoBlock[]).map((block) => (
-                            <button
-                              key={block.id}
-                              type="button"
-                              onClick={() => handleAddBlock(block)}
-                              draggable
-                              onDragStart={(e) => handleDragStart(e, block)}
-                              onDragEnd={handleDragEnd}
-                              className="w-full p-3 bg-white border border-gray-200 hover:border-ink transition-all text-left group cursor-grab active:cursor-grabbing rounded-lg"
-                              aria-label={`Add ${block.label} block to strategy`}
-                            >
-                              <div className="flex items-center gap-3">
-                                <span className="text-gray-400 group-hover:text-ink transition-colors">
-                                  {getIcon(block.icon)}
-                                </span>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-xs font-bold text-ink truncate">
-                                    {block.label}
-                                  </p>
-                                  <p className="text-[10px] text-gray-500 truncate mt-0.5">
-                                    {block.description}
-                                  </p>
-                                </div>
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              ))}
-            </div>
-          </motion.div>
+                return (
+                  <div key={category} className="border-b border-gray-100 last:border-b-0">
+                    <button
+                      type="button"
+                      onClick={() => setExpandedCategory(isExpanded ? '' : category)}
+                      className={`
+                        w-full px-4 py-3 flex items-center justify-between
+                        hover:bg-gray-50 transition-colors
+                        ${isExpanded ? 'bg-gray-50' : ''}
+                      `}
+                      aria-expanded={isExpanded}
+                      aria-controls={`category-${category}`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`px-2 py-0.5 text-[9px] font-bold uppercase rounded ${colors.bg} ${colors.text}`}
+                        >
+                          {category}
+                        </span>
+                        <span className="text-xs text-gray-500 font-medium">
+                          {categoryLabels[category]}
+                        </span>
+                        <span className="text-[10px] text-gray-400 font-mono">
+                          ({blocks.length})
+                        </span>
+                      </div>
+                      <span className="text-gray-400">
+                        {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                      </span>
+                    </button>
+
+                    <AnimatePresence>
+                      {isExpanded && (
+                        <motion.div
+                          id={`category-${category}`}
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="px-4 pb-4 space-y-2">
+                            {blocks.map((block) => (
+                              <BlockCard
+                                key={block.id}
+                                block={block}
+                                onAdd={handleAddBlock}
+                                onDragStart={handleDragStart}
+                                onDragEnd={handleDragEnd}
+                              />
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                );
+              })}
+            </nav>
+
+            {/* Footer hint */}
+            <footer className="p-3 border-t border-gray-200 bg-gray-50">
+              <p className="text-[10px] text-gray-400 text-center font-mono">
+                Drag blocks to canvas or click to add
+              </p>
+            </footer>
+          </motion.aside>
         </>
       )}
     </AnimatePresence>

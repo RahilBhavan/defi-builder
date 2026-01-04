@@ -1,6 +1,6 @@
 import { useCallback, useReducer } from 'react';
 
-export type ModalType = 'backtest' | 'portfolio' | 'settings' | 'library' | 'optimization' | null;
+export type ModalType = 'backtest' | 'portfolio' | 'settings' | 'library' | 'optimization' | 'paperTrading' | null;
 
 interface ModalState {
   activeModal: ModalType;
@@ -53,5 +53,6 @@ export function useModalState() {
     isSettingsOpen: state.activeModal === 'settings',
     isLibraryOpen: state.activeModal === 'library',
     isOptimizationOpen: state.activeModal === 'optimization',
+    isPaperTradingOpen: state.activeModal === 'paperTrading',
   };
 }

@@ -2,9 +2,13 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { AlertCircle, ChevronDown, Info, Trash2, X } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useState } from 'react';
-import { validateJsonObject, validateNumberRange, validateStringLength } from '../../utils/validation';
 import { PROTOCOL_COLORS } from '../../constants';
 import type { BlockParams, LegoBlock } from '../../types';
+import {
+  validateJsonObject,
+  validateNumberRange,
+  validateStringLength,
+} from '../../lib/validation';
 import { Button } from '../ui/Button';
 
 interface BlockConfigPanelProps {
@@ -341,7 +345,7 @@ const ParamField: React.FC<ParamFieldProps> = ({ name, value, onChange, definiti
     // Text validation
     if (def.type === 'text') {
       const strVal = String(val);
-      
+
       // JSON validation for targetAllocation using utility function
       if (name === 'targetAllocation') {
         const jsonError = validateJsonObject(strVal, {
@@ -361,18 +365,13 @@ const ParamField: React.FC<ParamFieldProps> = ({ name, value, onChange, definiti
       }
 
       // Length validation using utility function (default max length is 500)
-      const maxLength = 'maxLength' in def && typeof def.maxLength === 'number' ? def.maxLength : 500;
+      const maxLength =
+        'maxLength' in def && typeof def.maxLength === 'number' ? def.maxLength : 500;
       const lengthError = validateStringLength(strVal, undefined, maxLength, def.label || name);
       if (lengthError) return lengthError;
     }
 
     return null;
-  };
-
-  const handleBlur = () => {
-    setTouched(true);
-    const error = validate(value);
-    setError(error);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -514,7 +513,7 @@ export const BlockConfigPanel: React.FC<BlockConfigPanelProps> = ({
     // Validate all fields before saving
     let hasErrors = false;
     const paramKeys = Object.keys(params);
-    
+
     for (const key of paramKeys) {
       const def = FIELD_DEFINITIONS[key];
       if (def) {
@@ -579,7 +578,10 @@ export const BlockConfigPanel: React.FC<BlockConfigPanelProps> = ({
               />
 
               <div className="pl-2">
-                <div className="text-[10px] text-gray-400 font-mono uppercase tracking-widest mb-1" aria-hidden="true">
+                <div
+                  className="text-[10px] text-gray-400 font-mono uppercase tracking-widest mb-1"
+                  aria-hidden="true"
+                >
                   {block.protocol}
                 </div>
                 <h2 id="block-config-title" className="text-sm font-bold uppercase tracking-wide">

@@ -1,12 +1,8 @@
 import { useCallback, useState } from 'react';
-import { logger } from '../utils/logger';
 import { migrateData } from '../services/storage/migrations';
-import {
-  type VersionedData,
-  unwrapVersionedData,
-  wrapWithVersion,
-} from '../services/storage/versioning';
+import { type VersionedData, wrapWithVersion } from '../services/storage/versioning';
 import { CURRENT_VERSION } from '../services/storage/versioning';
+import { logger } from '../lib/monitoring/logger';
 
 /**
  * Custom hook for localStorage with type safety and versioning
@@ -57,12 +53,17 @@ export function useLocalStorage<T>(
 
       return parsed as T;
     } catch (error) {
-      const { logger } = await import('../lib/monitoring/logger');
-      logger.error(
-        `Error reading localStorage key "${key}"`,
-        error instanceof Error ? error : new Error(String(error)),
-        'useLocalStorage'
-      );
+      // Use dynamic import in async IIFE to avoid await in non-async function
+      (async () => {
+        const { logger } = await import('../lib/monitoring/logger');
+        logger.error(
+          `Error reading localStorage key "${key}"`,
+          error instanceof Error ? error : new Error(String(error)),
+          'useLocalStorage'
+        );
+      })().catch(() => {
+        // Silently fail if logger import fails
+      });
       return initialValue;
     }
   });
@@ -88,7 +89,11 @@ export function useLocalStorage<T>(
           return valueToStore;
         });
       } catch (error) {
-        logger.error(`Error setting localStorage key "${key}"`, error instanceof Error ? error : new Error(String(error)), 'LocalStorage');
+        logger.error(
+          `Error setting localStorage key "${key}"`,
+          error instanceof Error ? error : new Error(String(error)),
+          'LocalStorage'
+        );
       }
     },
     [key, useVersioning]
@@ -101,7 +106,11 @@ export function useLocalStorage<T>(
         window.localStorage.removeItem(key);
       }
     } catch (error) {
-      logger.error(`Error removing localStorage key "${key}"`, error instanceof Error ? error : new Error(String(error)), 'LocalStorage');
+      logger.error(
+        `Error removing localStorage key "${key}"`,
+        error instanceof Error ? error : new Error(String(error)),
+        'LocalStorage'
+      );
     }
   }, [key, initialValue]);
 

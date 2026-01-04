@@ -3,9 +3,10 @@
  * Provides error tracking, analytics, and performance monitoring
  */
 
-import { logger } from './logger';
+import { logger } from '../lib/monitoring/logger';
 
 // Sentry integration (optional)
+// biome-ignore lint/suspicious/noExplicitAny: Sentry module is dynamically imported and type is complex
 let Sentry: any = null;
 let isSentryInitialized = false;
 
@@ -32,10 +33,7 @@ export function initSentry(dsn?: string): void {
         tracesSampleRate: import.meta.env.MODE === 'production' ? 0.1 : 1.0,
         replaysSessionSampleRate: 0.1,
         replaysOnErrorSampleRate: 1.0,
-        integrations: [
-          new Sentry.BrowserTracing(),
-          new Sentry.Replay(),
-        ],
+        integrations: [new Sentry.BrowserTracing(), new Sentry.Replay()],
       });
       isSentryInitialized = true;
       logger.info('Sentry initialized successfully', 'Monitoring');
@@ -56,7 +54,7 @@ export function initSentry(dsn?: string): void {
 /**
  * Capture exception to Sentry
  */
-export function captureException(error: Error, context?: Record<string, any>): void {
+export function captureException(error: Error, context?: Record<string, unknown>): void {
   if (isSentryInitialized && Sentry) {
     Sentry.captureException(error, {
       contexts: {
@@ -71,7 +69,11 @@ export function captureException(error: Error, context?: Record<string, any>): v
 /**
  * Capture message to Sentry
  */
-export function captureMessage(message: string, level: 'info' | 'warning' | 'error' = 'info', context?: Record<string, any>): void {
+export function captureMessage(
+  message: string,
+  level: 'info' | 'warning' | 'error' = 'info',
+  context?: Record<string, unknown>
+): void {
   if (isSentryInitialized && Sentry) {
     Sentry.captureMessage(message, {
       level,
@@ -116,7 +118,7 @@ export function clearUserContext(): void {
  * Track custom event (for analytics)
  * Can be extended to support PostHog, Mixpanel, etc.
  */
-export function trackEvent(eventName: string, properties?: Record<string, any>): void {
+export function trackEvent(eventName: string, properties?: Record<string, unknown>): void {
   // Log event for now (can be extended to PostHog, Mixpanel, etc.)
   logger.info(`Event: ${eventName}`, 'Analytics', properties);
 
@@ -129,7 +131,7 @@ export function trackEvent(eventName: string, properties?: Record<string, any>):
 /**
  * Track page view
  */
-export function trackPageView(pageName: string, properties?: Record<string, any>): void {
+export function trackPageView(pageName: string, properties?: Record<string, unknown>): void {
   trackEvent('page_view', {
     page: pageName,
     ...properties,
@@ -154,10 +156,7 @@ export function startPerformanceMeasurement(name: string): () => void {
 /**
  * Measure async function performance
  */
-export async function measurePerformance<T>(
-  name: string,
-  fn: () => Promise<T>
-): Promise<T> {
+export async function measurePerformance<T>(name: string, fn: () => Promise<T>): Promise<T> {
   const endMeasurement = startPerformanceMeasurement(name);
   try {
     const result = await fn();
@@ -168,4 +167,3 @@ export async function measurePerformance<T>(
     throw error;
   }
 }
-

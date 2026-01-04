@@ -3,7 +3,7 @@
  * Fetches actual gas prices from the network and estimates transaction costs
  */
 
-import { type Address, type PublicClient, createPublicClient, formatUnits, http } from 'viem';
+import { http, type Address, createPublicClient, formatUnits } from 'viem';
 import { arbitrum, mainnet, optimism, polygon, sepolia } from 'wagmi/chains';
 
 export interface GasPriceData {
@@ -25,10 +25,16 @@ export interface GasEstimate {
 /**
  * Get public client for a chain
  */
-function getPublicClient(chainId: number): PublicClient {
-  const chains = { [sepolia.id]: sepolia, [mainnet.id]: mainnet, [polygon.id]: polygon, [arbitrum.id]: arbitrum, [optimism.id]: optimism };
+function getPublicClient(chainId: number) {
+  const chains = {
+    [sepolia.id]: sepolia,
+    [mainnet.id]: mainnet,
+    [polygon.id]: polygon,
+    [arbitrum.id]: arbitrum,
+    [optimism.id]: optimism,
+  };
   const chain = chains[chainId as keyof typeof chains];
-  
+
   if (!chain) {
     throw new Error(`Unsupported chain: ${chainId}`);
   }
@@ -48,38 +54,37 @@ export async function getGasPrices(chainId: number): Promise<GasPriceData> {
 
     // Get fee data (EIP-1559)
     const feeData = await publicClient.estimateFeesPerGas();
-    
+
     if (feeData.maxFeePerGas && feeData.maxPriorityFeePerGas) {
       // EIP-1559 network
       const baseFee = feeData.maxFeePerGas - feeData.maxPriorityFeePerGas;
       const priorityFee = feeData.maxPriorityFeePerGas;
-      
+
       return {
         slow: baseFee + priorityFee, // 1x priority
         standard: baseFee + (priorityFee * 3n) / 2n, // 1.5x priority
         fast: baseFee + priorityFee * 2n, // 2x priority
         instant: baseFee + priorityFee * 3n, // 3x priority
       };
-    } else {
-      // Legacy network
-      const gasPrice = await publicClient.getGasPrice();
-      return {
-        slow: gasPrice * 8n / 10n, // 80% of current
-        standard: gasPrice,
-        fast: gasPrice * 12n / 10n, // 120% of current
-        instant: gasPrice * 15n / 10n, // 150% of current
-      };
     }
-  } catch (error) {
+    // Legacy network
+    const gasPrice = await publicClient.getGasPrice();
+    return {
+      slow: (gasPrice * 8n) / 10n, // 80% of current
+      standard: gasPrice,
+      fast: (gasPrice * 12n) / 10n, // 120% of current
+      instant: (gasPrice * 15n) / 10n, // 150% of current
+    };
+  } catch (_error) {
     // Fallback to default estimates
     const defaultGwei = 20n;
     const defaultWei = defaultGwei * 10n ** 9n;
-    
+
     return {
-      slow: defaultWei * 8n / 10n,
+      slow: (defaultWei * 8n) / 10n,
       standard: defaultWei,
-      fast: defaultWei * 12n / 10n,
-      instant: defaultWei * 15n / 10n,
+      fast: (defaultWei * 12n) / 10n,
+      instant: (defaultWei * 15n) / 10n,
     };
   }
 }
@@ -122,7 +127,7 @@ export async function estimateGas(
 
     // Get fee data for EIP-1559
     const feeData = await publicClient.estimateFeesPerGas();
-    
+
     return {
       gasLimit,
       gasPrice,
@@ -131,7 +136,7 @@ export async function estimateGas(
       estimatedCost: costETH,
       estimatedCostUSD: costUSD,
     };
-  } catch (error) {
+  } catch (_error) {
     // Fallback estimation
     const defaultGasLimit = 210000n; // Standard transaction
     const gasPrices = await getGasPrices(chainId);
@@ -156,8 +161,10 @@ export async function estimateGas(
 async function getETHPriceUSD(): Promise<number> {
   try {
     // In production, fetch from CoinGecko or Chainlink oracle
-    const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd');
-    const data = await response.json() as { ethereum?: { usd?: number } };
+    const response = await fetch(
+      'https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd'
+    );
+    const data = (await response.json()) as { ethereum?: { usd?: number } };
     return data.ethereum?.usd || 3000;
   } catch {
     return 3000; // Fallback price
@@ -171,4 +178,3 @@ export function formatGasPrice(gasPrice: bigint): string {
   const gwei = gasPrice / 10n ** 9n;
   return `${gwei.toString()} gwei`;
 }
-

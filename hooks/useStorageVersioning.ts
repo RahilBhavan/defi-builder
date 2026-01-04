@@ -3,19 +3,17 @@
  * Automatically handles version detection and migration
  */
 
-import { useEffect, useState } from 'react';
-import { logger } from '../utils/logger';
-import { safeJsonParse } from '../utils/json';
+import { useState } from 'react';
 import { migrateData } from '../services/storage/migrations';
 import {
   CURRENT_VERSION,
   type VersionedData,
-  getDataVersion,
   needsMigration,
-  unwrapVersionedData,
   updateVersionMetadata,
   wrapWithVersion,
 } from '../services/storage/versioning';
+import { safeJsonParse } from '../lib/storage/json';
+import { logger } from '../lib/monitoring/logger';
 
 /**
  * Options for versioned storage
@@ -87,7 +85,11 @@ export function useVersionedStorage<T>(
 
       return parsed as T;
     } catch (error) {
-      logger.error(`Error reading versioned storage key "${key}"`, error instanceof Error ? error : new Error(String(error)), 'StorageVersioning');
+      logger.error(
+        `Error reading versioned storage key "${key}"`,
+        error instanceof Error ? error : new Error(String(error)),
+        'StorageVersioning'
+      );
       return initialValue;
     }
   });
@@ -102,7 +104,11 @@ export function useVersionedStorage<T>(
         window.localStorage.setItem(key, JSON.stringify(versioned));
       }
     } catch (error) {
-      logger.error(`Error setting versioned storage key "${key}"`, error instanceof Error ? error : new Error(String(error)), 'StorageVersioning');
+      logger.error(
+        `Error setting versioned storage key "${key}"`,
+        error instanceof Error ? error : new Error(String(error)),
+        'StorageVersioning'
+      );
     }
   };
 
@@ -115,7 +121,11 @@ export function useVersionedStorage<T>(
         window.localStorage.removeItem(key);
       }
     } catch (error) {
-      logger.error(`Error removing versioned storage key "${key}"`, error instanceof Error ? error : new Error(String(error)), 'StorageVersioning');
+      logger.error(
+        `Error removing versioned storage key "${key}"`,
+        error instanceof Error ? error : new Error(String(error)),
+        'StorageVersioning'
+      );
     }
   };
 

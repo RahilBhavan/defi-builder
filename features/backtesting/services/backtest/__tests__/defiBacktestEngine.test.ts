@@ -3,8 +3,8 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { BlockCategory, type LegoBlock, Protocol } from '../../../types';
-import { runDeFiBacktest } from '../../defiBacktestEngine';
+import { runDeFiBacktest } from '../../../../../services/defiBacktestEngine';
+import { BlockCategory, type LegoBlock, Protocol } from '../../../../../types';
 import * as dataFetcher from '../dataFetcher';
 
 // Mock the data fetcher

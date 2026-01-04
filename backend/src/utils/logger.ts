@@ -36,12 +36,22 @@ class Logger {
     const userId = entry.userId ? `[user:${entry.userId}] ` : '';
     const requestId = entry.requestId ? `[req:${entry.requestId}] ` : '';
     const data = entry.data ? ` ${JSON.stringify(entry.data)}` : '';
-    const error = entry.error ? ` Error: ${entry.error.message}${entry.error.stack ? `\n${entry.error.stack}` : ''}` : '';
-    
+    const error = entry.error
+      ? ` Error: ${entry.error.message}${entry.error.stack ? `\n${entry.error.stack}` : ''}`
+      : '';
+
     return `${entry.timestamp} ${levelName} ${context}${userId}${requestId}${entry.message}${data}${error}`;
   }
 
-  private log(level: LogLevel, message: string, context?: string, data?: unknown, error?: Error, userId?: string, requestId?: string): void {
+  private log(
+    level: LogLevel,
+    message: string,
+    context?: string,
+    data?: unknown,
+    error?: Error,
+    userId?: string,
+    requestId?: string
+  ): void {
     if (level < this.minLevel) {
       return;
     }
@@ -97,11 +107,17 @@ class Logger {
     this.log(LogLevel.WARN, message, context, data);
   }
 
-  error(message: string, error?: Error, context?: string, data?: unknown, userId?: string, requestId?: string): void {
+  error(
+    message: string,
+    error?: Error,
+    context?: string,
+    data?: unknown,
+    userId?: string,
+    requestId?: string
+  ): void {
     this.log(LogLevel.ERROR, message, context, data, error, userId, requestId);
   }
 }
 
 // Singleton instance
 export const logger = new Logger();
-

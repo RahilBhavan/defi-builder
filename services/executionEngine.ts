@@ -1,5 +1,5 @@
 import type { LegoBlock } from '../types';
-import { isRetryableError, retryWithBackoff } from '../utils/retry';
+import { isRetryableError, retryWithBackoff } from '../lib/error/retry';
 import { type DeFiBacktestResult, runDeFiBacktest } from './defiBacktestEngine';
 
 export class BacktestExecutionError extends Error {

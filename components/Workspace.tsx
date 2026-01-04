@@ -1,18 +1,13 @@
 import type React from 'react';
 import { Suspense, lazy, useCallback, useState } from 'react';
+import { ReactFlowProvider } from '@xyflow/react';
+import { getUserFriendlyErrorMessage } from '../lib/error/handler';
+import { smartLayout } from '../lib/canvas/layoutEngine';
+import { blocksToCanvasElements } from '../lib/spine/canvas';
 import { ErrorBoundary } from './ErrorBoundary';
-import { getUserFriendlyErrorMessage } from '../utils/errorHandler';
-import { Spine } from './Spine';
+import { CanvasToolbar, StrategyCanvas } from './canvas';
 import { AIBlockSuggester } from './workspace/AIBlockSuggester';
 import { BlockConfigPanel } from './workspace/BlockConfigPanel';
-import { ExecuteButton } from './workspace/ExecuteButton';
-import { NetworkBadge } from './workspace/NetworkBadge';
-import { SecondaryMenu } from './workspace/SecondaryMenu';
-import { ValidationStatus } from './workspace/ValidationStatus';
-import { ZoomControls } from './workspace/ZoomControls';
-import { MobileNavigation } from './workspace/MobileNavigation';
-import { useBreakpoint } from '../hooks/useTouchGestures';
-import { OnboardingTour } from './onboarding/OnboardingTour';
 
 // Lazy load modals and heavy components
 const BacktestModal = lazy(() =>
@@ -24,24 +19,27 @@ const PortfolioModal = lazy(() =>
 const StrategyLibraryModal = lazy(() =>
   import('./modals/StrategyLibraryModal').then((m) => ({ default: m.StrategyLibraryModal }))
 );
-const MarketplaceModal = lazy(() =>
-  import('./marketplace/MarketplaceModal').then((m) => ({ default: m.MarketplaceModal }))
-);
 const SettingsModal = lazy(() =>
   import('./modals/SettingsModal').then((m) => ({ default: m.SettingsModal }))
 );
 const OptimizationPanel = lazy(() =>
-  import('./OptimizationPanel').then((m) => ({ default: m.OptimizationPanel }))
+  import('@/features/optimization').then((m) => ({ default: m.OptimizationPanel }))
 );
 const SimulationModal = lazy(() =>
   import('./modals/SimulationModal').then((m) => ({ default: m.SimulationModal }))
 );
+const PaperTradingPanel = lazy(() =>
+  import('./paperTrading/PaperTradingPanel').then((m) => ({ default: m.PaperTradingPanel }))
+);
+const PaperTradingModal = lazy(() =>
+  import('./modals/PaperTradingModal').then((m) => ({ default: m.PaperTradingModal }))
+);
+
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { useModalState } from '../hooks/useModalState';
 import { useToast } from '../hooks/useToast';
 import { useWallet } from '../hooks/useWallet';
 import { useWorkspaceState } from '../hooks/useWorkspaceState';
-import { RouteGuard } from './RouteGuard';
 import type { DeFiBacktestResult } from '../services/defiBacktestEngine';
 import { BacktestExecutionError, executeStrategy } from '../services/executionEngine';
 import { portfolioTracker } from '../services/portfolioTracker';
@@ -59,7 +57,6 @@ const Workspace: React.FC = () => {
     setSelectedBlockId,
     selectedBlock,
     validationResult,
-    isValidating,
     showLeftPanel,
     setShowLeftPanel,
     showRightPanel,
@@ -68,7 +65,6 @@ const Workspace: React.FC = () => {
     handleSelectBlock,
     handleDeleteBlock,
     handleUpdateBlock,
-    handleReorderBlocks,
     undoBlocks,
     redoBlocks,
     canUndo,
@@ -83,6 +79,8 @@ const Workspace: React.FC = () => {
   const [simulationResult, setSimulationResult] = useState<
     import('../services/web3/transactionSimulator').SimulationResult | null
   >(null);
+  const [showGrid, setShowGrid] = useState(true);
+  const [showMinimap, setShowMinimap] = useState(true);
 
   // Wallet connection
   const { address, isConnected } = useWallet();
@@ -94,11 +92,15 @@ const Workspace: React.FC = () => {
     isSettingsOpen,
     isLibraryOpen,
     isOptimizationOpen,
+    isPaperTradingOpen,
     openModal,
     closeModal,
   } = useModalState();
 
-  const handleExport = useCallback(() => {
+  // Paper trading state
+  const [paperTradingSessionId, setPaperTradingSessionId] = useState<string | undefined>();
+
+  const handleExport = useCallback(async () => {
     try {
       const json = exportBlocks(blocks);
       const blob = new Blob([json], { type: 'application/json' });
@@ -112,12 +114,17 @@ const Workspace: React.FC = () => {
       URL.revokeObjectURL(url);
       showSuccess('Strategy exported successfully');
     } catch (error) {
-      logger.error('Export failed', error instanceof Error ? error : new Error(String(error)), 'Workspace');
+      const { logger } = await import('../lib/monitoring/logger');
+      logger.error(
+        'Export failed',
+        error instanceof Error ? error : new Error(String(error)),
+        'Workspace'
+      );
       showError('Failed to export strategy. Please ensure your strategy is valid and try again.');
     }
   }, [blocks, showError, showSuccess]);
 
-  const handleImport = useCallback(() => {
+  const handleImport = useCallback(async () => {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'application/json';
@@ -126,14 +133,19 @@ const Workspace: React.FC = () => {
       if (!file) return;
 
       const reader = new FileReader();
-      reader.onload = (event) => {
+      reader.onload = async (event) => {
         try {
           const json = event.target?.result as string;
           const importedBlocks = importBlocks(json);
           setBlocks(importedBlocks);
           showSuccess('Strategy imported successfully');
         } catch (error) {
-          logger.error('Import failed', error instanceof Error ? error : new Error(String(error)), 'Workspace');
+          const { logger } = await import('../lib/monitoring/logger');
+          logger.error(
+            'Import failed',
+            error instanceof Error ? error : new Error(String(error)),
+            'Workspace'
+          );
           showError(getUserFriendlyErrorMessage(error, 'import'));
         }
       };
@@ -142,14 +154,20 @@ const Workspace: React.FC = () => {
     input.click();
   }, [setBlocks, showError, showSuccess]);
 
+  const handleSave = useCallback(() => {
+    openModal('library');
+  }, [openModal]);
+
+  const handleLoad = useCallback(() => {
+    openModal('library');
+  }, [openModal]);
+
   const handleExecute = async () => {
-    // Check wallet connection first
     if (!isConnected) {
       showError('Please connect your wallet before executing a strategy');
       return;
     }
 
-    // Run simulation first
     try {
       const simulation = await simulateStrategyExecution(
         blocks,
@@ -159,7 +177,11 @@ const Workspace: React.FC = () => {
       setShowSimulation(true);
     } catch (error) {
       const { logger } = await import('../lib/monitoring/logger');
-      logger.error('Simulation failed', error instanceof Error ? error : new Error(String(error)), 'Workspace');
+      logger.error(
+        'Simulation failed',
+        error instanceof Error ? error : new Error(String(error)),
+        'Workspace'
+      );
       const { getUserFriendlyErrorMessage } = await import('../utils/errorHandler');
       showError(getUserFriendlyErrorMessage(error, 'simulation'));
     }
@@ -172,16 +194,12 @@ const Workspace: React.FC = () => {
       const result = await executeStrategy(blocks);
       setBacktestResult(result);
 
-      // Record backtest result in portfolio tracker
       const strategyName = blocks.length > 0 ? `Strategy with ${blocks.length} blocks` : 'Strategy';
       portfolioTracker.recordBacktestResult(result, undefined, strategyName);
 
-      openModal('backtest'); // Show results after execution
+      openModal('backtest');
       showSuccess('Strategy executed successfully');
     } catch (error) {
-      // Error shown to user via toast notification
-      // logger.error('Strategy execution failed', error instanceof Error ? error : new Error(String(error)), 'Workspace');
-
       if (error instanceof BacktestExecutionError) {
         const message = error.actionable ? `${error.message}. ${error.actionable}` : error.message;
         showError(message);
@@ -194,11 +212,42 @@ const Workspace: React.FC = () => {
     }
   };
 
+  const handleAutoLayout = useCallback(() => {
+    if (blocks.length === 0) return;
+
+    // Convert blocks to nodes/edges, apply layout, then update positions
+    const { nodes, edges } = blocksToCanvasElements(blocks);
+    // Apply smart layout - the canvas will handle the visual arrangement
+    smartLayout(nodes, edges);
+
+    showSuccess('Layout applied');
+  }, [blocks, showSuccess]);
+
+  const handleZoomIn = useCallback(() => {
+    setZoomLevel((prev) => Math.min(prev + 10, 200));
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    setZoomLevel((prev) => Math.max(prev - 10, 25));
+  }, []);
+
+  const handleZoomReset = useCallback(() => {
+    setZoomLevel(100);
+  }, []);
+
+  const handleConfigureBlock = useCallback(
+    (blockId: string) => {
+      handleSelectBlock(blockId);
+      setShowRightPanel(true);
+    },
+    [handleSelectBlock, setShowRightPanel]
+  );
+
   // Keyboard Shortcuts
   useKeyboardShortcuts({
     onOpenPalette: () => setShowLeftPanel(true),
     onExecute: () => {
-      if (validationResult?.valid && !isExecuting) handleExecute();
+      if (validationResult?.valid && !isExecuting && isConnected) handleExecute();
     },
     onEscape: () => {
       setShowLeftPanel(false);
@@ -216,181 +265,179 @@ const Workspace: React.FC = () => {
   });
 
   return (
-    <div className="relative w-full h-screen bg-canvas overflow-hidden flex flex-col">
-      {/* 1. Canvas Layer - Spine View */}
-      <main className="relative w-full h-full overflow-hidden bg-dot-pattern">
-        <div
-          className="w-full h-full overflow-y-auto overflow-x-hidden flex items-start justify-center scroll-smooth touch-pan-y"
-          style={{
-            transform: `scale(${zoomLevel / 100})`,
-            transformOrigin: 'center top',
-            transition: 'transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+    <ReactFlowProvider>
+      <div className="relative w-full h-screen bg-canvas overflow-hidden flex flex-col">
+        {/* Top Toolbar */}
+        <CanvasToolbar
+          onSave={handleSave}
+          onLoad={handleLoad}
+          onExport={handleExport}
+          onImport={handleImport}
+          onUndo={undoBlocks}
+          onRedo={redoBlocks}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          zoomLevel={zoomLevel}
+          onZoomIn={handleZoomIn}
+          onZoomOut={handleZoomOut}
+          onZoomReset={handleZoomReset}
+          onAutoLayout={handleAutoLayout}
+          showGrid={showGrid}
+          onToggleGrid={() => setShowGrid((prev) => !prev)}
+          showMinimap={showMinimap}
+          onToggleMinimap={() => setShowMinimap((prev) => !prev)}
+          onExecute={handleExecute}
+          isExecuting={isExecuting}
+          validationResult={validationResult}
+          onOpenBacktest={() => openModal('backtest')}
+          onOpenOptimization={() => openModal('optimization')}
+          onOpenPaperTrading={() => {
+            setPaperTradingSessionId(undefined);
+            openModal('paperTrading');
           }}
-        >
-          <Spine
+          onOpenSettings={() => openModal('settings')}
+        />
+
+        {/* Main Canvas Area */}
+        <main className="flex-1 pt-14 relative">
+          <StrategyCanvas
             blocks={blocks}
             selectedBlockId={selectedBlockId}
+            validationResult={validationResult}
+            onBlocksChange={setBlocks}
             onSelectBlock={handleSelectBlock}
             onDeleteBlock={handleDeleteBlock}
+            onConfigureBlock={handleConfigureBlock}
             onOpenSuggester={() => setShowLeftPanel(true)}
-            onReorderBlocks={handleReorderBlocks}
-            onAddBlock={(block, targetIndex) => {
-              const newBlock = { ...block, id: `${block.id}-${Date.now()}` };
-              if (targetIndex !== undefined) {
-                setBlocks((prev) => {
-                  const newBlocks = [...prev];
-                  newBlocks.splice(targetIndex, 0, newBlock);
-                  return newBlocks;
-                });
-              } else {
-                handleAddBlock(newBlock);
-              }
-            }}
+            showGrid={showGrid}
+            showMinimap={showMinimap}
           />
-        </div>
-      </main>
 
-      {/* Mobile bottom padding to account for navigation */}
-      {breakpoint === 'mobile' && <div className="h-16" />}
-
-      {/* 2. Persistent UI Layer */}
-      <NetworkBadge />
-
-      <SecondaryMenu
-        onOpenBacktest={() => openModal('backtest')}
-        onOpenPortfolio={() => openModal('portfolio')}
-        onOpenLibrary={() => openModal('library')}
-        onOpenSettings={() => openModal('settings')}
-        onExport={handleExport}
-        onImport={handleImport}
-      />
-
-      <ExecuteButton
-        isValid={(validationResult?.valid ?? false) && isConnected}
-        isExecuting={isExecuting}
-        onClick={handleExecute}
-      />
-
-      {/* Bottom Toolbar - Centered */}
-      <div className="fixed bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 flex gap-2 sm:gap-3 z-40 items-center bg-white/95 backdrop-blur-sm px-4 sm:px-6 py-2 sm:py-3 rounded-lg border border-gray-200 shadow-lg">
-        <button
-          onClick={() => openModal('optimization')}
-          className="px-4 py-2 bg-white border border-gray-300 hover:border-orange hover:text-orange hover:bg-orange/5 text-ink font-mono text-xs font-bold uppercase transition-all shadow-sm rounded"
-          title="Optimize strategy parameters"
-        >
-          <span className="flex items-center gap-2">
-            <span>⚡</span> OPTIMIZE
-          </span>
-        </button>
-        <div className="h-6 w-px bg-gray-300" />
-        <div className="flex gap-1">
+          {/* Palette Toggle - Left Edge */}
           <button
-            onClick={undoBlocks}
-            disabled={!canUndo}
-            className="px-3 py-2 bg-white border border-gray-300 hover:border-ink hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-ink font-mono text-xs font-bold uppercase transition-all shadow-sm rounded"
-            aria-label="Undo"
-            title="Undo (Cmd/Ctrl+Z)"
+            type="button"
+            onClick={() => setShowLeftPanel(true)}
+            className="fixed left-0 top-1/2 -translate-y-1/2 w-10 h-24 bg-white/90 backdrop-blur-sm border-r border-y border-gray-200 flex items-center justify-center hover:w-12 hover:border-ink transition-all z-30 shadow-sm group rounded-r-lg"
+            aria-label="Open block palette"
           >
-            ↶
+            <span className="transform -rotate-90 font-mono text-[10px] font-bold whitespace-nowrap text-gray-400 group-hover:text-ink uppercase tracking-wider">
+              + Blocks
+            </span>
           </button>
-          <button
-            onClick={redoBlocks}
-            disabled={!canRedo}
-            className="px-3 py-2 bg-white border border-gray-300 hover:border-ink hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-ink font-mono text-xs font-bold uppercase transition-all shadow-sm rounded"
-            aria-label="Redo"
-            title="Redo (Cmd/Ctrl+Shift+Z)"
-          >
-            ↷
-          </button>
-        </div>
-        <div className="h-6 w-px bg-gray-300" />
-        <ValidationStatus validationResult={validationResult} isValidating={isValidating} />
+        </main>
+
+        {/* Side Panels */}
+        <AIBlockSuggester
+          isOpen={showLeftPanel}
+          onClose={() => setShowLeftPanel(false)}
+          currentBlocks={blocks}
+          onAddBlock={handleAddBlock}
+        />
+
+        <BlockConfigPanel
+          isOpen={showRightPanel}
+          block={selectedBlock}
+          onClose={() => setShowRightPanel(false)}
+          onUpdate={handleUpdateBlock}
+          onDelete={() => selectedBlock && handleDeleteBlock(selectedBlock.id)}
+        />
+
+        {/* Modals - Lazy loaded with error boundaries */}
+        <Suspense fallback={null}>
+          {showSimulation && (
+            <ErrorBoundary>
+              <SimulationModal
+                isOpen={showSimulation}
+                onClose={() => setShowSimulation(false)}
+                onProceed={handleProceedWithExecution}
+                result={simulationResult}
+              />
+            </ErrorBoundary>
+          )}
+          {isBacktestOpen && (
+            <ErrorBoundary>
+              <BacktestModal isOpen={isBacktestOpen} onClose={closeModal} result={backtestResult} />
+            </ErrorBoundary>
+          )}
+          {isPortfolioOpen && (
+            <ErrorBoundary>
+              <PortfolioModal isOpen={isPortfolioOpen} onClose={closeModal} />
+            </ErrorBoundary>
+          )}
+          {isLibraryOpen && (
+            <ErrorBoundary>
+              <StrategyLibraryModal
+                isOpen={isLibraryOpen}
+                onClose={closeModal}
+                currentBlocks={blocks}
+                onLoadStrategy={(loadedBlocks) => {
+                  setBlocks(loadedBlocks);
+                  showSuccess('Strategy loaded successfully');
+                }}
+              />
+            </ErrorBoundary>
+          )}
+          {isSettingsOpen && (
+            <ErrorBoundary>
+              <SettingsModal isOpen={isSettingsOpen} onClose={closeModal} />
+            </ErrorBoundary>
+          )}
+          {isPaperTradingOpen && (
+            <ErrorBoundary>
+              <Suspense
+                fallback={
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                    <div className="text-white">Loading...</div>
+                  </div>
+                }
+              >
+                <PaperTradingPanel
+                  isOpen={isPaperTradingOpen}
+                  onClose={closeModal}
+                  onCreateSession={() => {
+                    setPaperTradingSessionId(undefined);
+                  }}
+                  onViewSession={(sessionId) => {
+                    setPaperTradingSessionId(sessionId);
+                  }}
+                />
+              </Suspense>
+            </ErrorBoundary>
+          )}
+          {paperTradingSessionId !== undefined && (
+            <ErrorBoundary>
+              <Suspense
+                fallback={
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                    <div className="text-white">Loading...</div>
+                  </div>
+                }
+              >
+                <PaperTradingModal
+                  isOpen={paperTradingSessionId !== undefined}
+                  onClose={() => setPaperTradingSessionId(undefined)}
+                  blocks={blocks}
+                  sessionId={paperTradingSessionId}
+                />
+              </Suspense>
+            </ErrorBoundary>
+          )}
+          {isOptimizationOpen && (
+            <ErrorBoundary>
+              <OptimizationPanel
+                isOpen={isOptimizationOpen}
+                onClose={closeModal}
+                blocks={blocks}
+                onApplySolution={(updatedBlocks) => {
+                  setBlocks(updatedBlocks);
+                  showSuccess('Optimized parameters applied to strategy');
+                }}
+              />
+            </ErrorBoundary>
+          )}
+        </Suspense>
       </div>
-
-      <ZoomControls zoomLevel={zoomLevel} onZoomChange={setZoomLevel} />
-
-      {/* Palette Toggle - Left Edge */}
-      <button
-        onClick={() => setShowLeftPanel(true)}
-        className="fixed left-0 top-1/2 -translate-y-1/2 w-12 h-32 bg-white border-r border-y border-gray-300 flex items-center justify-center hover:w-14 hover:border-ink transition-all z-30 shadow-sm group"
-        aria-label="Open block palette"
-      >
-        <span className="transform -rotate-90 font-mono text-xs font-bold whitespace-nowrap text-gray-400 group-hover:text-ink">
-          + AI
-        </span>
-      </button>
-
-      {/* 3. On-Demand Panels Layer */}
-      <AIBlockSuggester
-        isOpen={showLeftPanel}
-        onClose={() => setShowLeftPanel(false)}
-        currentBlocks={blocks}
-        onAddBlock={handleAddBlock}
-      />
-
-      <BlockConfigPanel
-        isOpen={showRightPanel}
-        block={selectedBlock}
-        onClose={() => setShowRightPanel(false)}
-        onUpdate={handleUpdateBlock}
-        onDelete={() => selectedBlock && handleDeleteBlock(selectedBlock.id)}
-      />
-
-      {/* Modals - Lazy loaded with error boundaries */}
-      <Suspense fallback={null}>
-        {showSimulation && (
-          <ErrorBoundary>
-            <SimulationModal
-              isOpen={showSimulation}
-              onClose={() => setShowSimulation(false)}
-              onProceed={handleProceedWithExecution}
-              result={simulationResult}
-            />
-          </ErrorBoundary>
-        )}
-        {isBacktestOpen && (
-          <ErrorBoundary>
-            <BacktestModal isOpen={isBacktestOpen} onClose={closeModal} result={backtestResult} />
-          </ErrorBoundary>
-        )}
-        {isPortfolioOpen && (
-          <ErrorBoundary>
-            <PortfolioModal isOpen={isPortfolioOpen} onClose={closeModal} />
-          </ErrorBoundary>
-        )}
-        {isLibraryOpen && (
-          <ErrorBoundary>
-            <StrategyLibraryModal
-              isOpen={isLibraryOpen}
-              onClose={closeModal}
-              currentBlocks={blocks}
-              onLoadStrategy={(loadedBlocks) => {
-                setBlocks(loadedBlocks);
-                showSuccess('Strategy loaded successfully');
-              }}
-            />
-          </ErrorBoundary>
-        )}
-        {isSettingsOpen && (
-          <ErrorBoundary>
-            <SettingsModal isOpen={isSettingsOpen} onClose={closeModal} />
-          </ErrorBoundary>
-        )}
-        {isOptimizationOpen && (
-          <ErrorBoundary>
-            <OptimizationPanel
-              isOpen={isOptimizationOpen}
-              onClose={closeModal}
-              blocks={blocks}
-              onApplySolution={(updatedBlocks) => {
-                setBlocks(updatedBlocks);
-                showSuccess('Optimized parameters applied to strategy');
-              }}
-            />
-          </ErrorBoundary>
-        )}
-      </Suspense>
-    </div>
+    </ReactFlowProvider>
   );
 };
 

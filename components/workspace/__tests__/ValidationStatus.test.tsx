@@ -1,8 +1,8 @@
-import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { ValidationStatus } from '../ValidationStatus';
+import { describe, expect, it } from 'vitest';
 import type { ValidationResult } from '../../../types';
+import { ValidationStatus } from '../ValidationStatus';
 
 describe('ValidationStatus', () => {
   it('renders nothing when validationResult is null', () => {
@@ -46,10 +46,10 @@ describe('ValidationStatus', () => {
       errors: [{ blockId: '1', message: 'Test error message' }],
     };
     render(<ValidationStatus validationResult={invalidResult} />);
-    
+
     const button = screen.getByRole('button');
     await user.click(button);
-    
+
     // Error details should be visible (may be in a tooltip or panel)
     const errorText = screen.queryByText('Test error message');
     if (errorText) {
@@ -64,9 +64,9 @@ describe('ValidationStatus', () => {
       errors: [{ blockId: '1', message: 'Test error' }],
     };
     render(<ValidationStatus validationResult={invalidResult} />);
-    
+
     const button = screen.getByRole('button');
-    
+
     // Click to show
     await user.click(button);
     // Error details may be in a panel that appears
@@ -76,4 +76,3 @@ describe('ValidationStatus', () => {
     }
   });
 });
-

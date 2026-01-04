@@ -1,4 +1,4 @@
-import type { LegoBlock } from '../../types';
+import type { LegoBlock } from '../../../../types';
 import type { ParameterDefinition } from './types';
 
 export class ParameterExtractor {

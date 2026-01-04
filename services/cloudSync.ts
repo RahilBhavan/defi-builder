@@ -4,9 +4,9 @@
  */
 
 import type { Strategy } from '../types';
-import { trpc } from '../utils/trpc';
-import { logger } from '../utils/logger';
-import { retryWithBackoff, isRetryableError } from '../utils/retry';
+import { logger } from '../lib/monitoring/logger';
+import { isRetryableError, retryWithBackoff } from '../lib/error/retry';
+import { trpc } from '../lib/api/trpc';
 
 /**
  * Convert blocks to nodeGraph format for backend storage
@@ -37,28 +37,32 @@ export function nodeGraphToBlocks(nodeGraph: unknown): Strategy['blocks'] {
       return graph.blocks as Strategy['blocks'];
     }
   } catch (error) {
-    logger.error('Error parsing nodeGraph', error instanceof Error ? error : new Error(String(error)), 'CloudSync');
+    logger.error(
+      'Error parsing nodeGraph',
+      error instanceof Error ? error : new Error(String(error)),
+      'CloudSync'
+    );
   }
   return [];
 }
 
 /**
  * Hook for using cloud sync in components
- * 
+ *
  * Provides functions to sync strategies to/from the backend cloud storage.
  * Requires user to be authenticated (protectedProcedure).
- * 
+ *
  * @returns Object containing:
  * - `strategies`: Array of strategies from cloud
  * - `isLoading`: Loading state
  * - `syncStrategy`: Function to sync a strategy to cloud
  * - `updateStrategy`: Function to update a strategy in cloud
  * - `deleteStrategy`: Function to delete a strategy from cloud
- * 
+ *
  * @example
  * ```typescript
  * const { strategies, syncStrategy, isLoading } = useCloudSync();
- * 
+ *
  * const handleSave = async () => {
  *   await syncStrategy(currentStrategy);
  * };
@@ -66,7 +70,7 @@ export function nodeGraphToBlocks(nodeGraph: unknown): Strategy['blocks'] {
  */
 export function useCloudSync() {
   const utils = trpc.useUtils();
-  
+
   const createMutation = trpc.strategies.create.useMutation();
   const updateMutation = trpc.strategies.update.useMutation();
   const deleteMutation = trpc.strategies.delete.useMutation();
@@ -90,8 +94,14 @@ export function useCloudSync() {
       );
       await utils.strategies.list.invalidate();
     } catch (error) {
-      logger.error('Failed to sync strategy to cloud', error instanceof Error ? error : new Error(String(error)), 'CloudSync');
-      throw new Error('Failed to sync strategy. Please check your internet connection and try again.');
+      logger.error(
+        'Failed to sync strategy to cloud',
+        error instanceof Error ? error : new Error(String(error)),
+        'CloudSync'
+      );
+      throw new Error(
+        'Failed to sync strategy. Please check your internet connection and try again.'
+      );
     }
   };
 
@@ -114,8 +124,14 @@ export function useCloudSync() {
       );
       await utils.strategies.list.invalidate();
     } catch (error) {
-      logger.error('Failed to update strategy in cloud', error instanceof Error ? error : new Error(String(error)), 'CloudSync');
-      throw new Error('Failed to update strategy. Please check your internet connection and try again.');
+      logger.error(
+        'Failed to update strategy in cloud',
+        error instanceof Error ? error : new Error(String(error)),
+        'CloudSync'
+      );
+      throw new Error(
+        'Failed to update strategy. Please check your internet connection and try again.'
+      );
     }
   };
 
@@ -132,19 +148,25 @@ export function useCloudSync() {
       );
       await utils.strategies.list.invalidate();
     } catch (error) {
-      logger.error('Failed to delete strategy from cloud', error instanceof Error ? error : new Error(String(error)), 'CloudSync');
-      throw new Error('Failed to delete strategy. Please check your internet connection and try again.');
+      logger.error(
+        'Failed to delete strategy from cloud',
+        error instanceof Error ? error : new Error(String(error)),
+        'CloudSync'
+      );
+      throw new Error(
+        'Failed to delete strategy. Please check your internet connection and try again.'
+      );
     }
   };
 
   const cloudStrategies: Strategy[] = strategies
-    ? strategies.map((s: { id: string; name: string; description: string | null; nodeGraph: unknown; createdAt: Date; updatedAt: Date }) => ({
+    ? strategies.map((s) => ({
         id: s.id,
         name: s.name,
         description: s.description || '',
         blocks: nodeGraphToBlocks(s.nodeGraph),
-        createdAt: s.createdAt.getTime(),
-        updatedAt: s.updatedAt.getTime(),
+        createdAt: new Date(s.createdAt).getTime(),
+        updatedAt: new Date(s.updatedAt).getTime(),
       }))
     : [];
 

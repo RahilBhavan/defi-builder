@@ -3,9 +3,9 @@
  * Tracks portfolio state from executed strategies and backtests
  */
 
-import { logger } from '../utils/logger';
-import type { DeFiBacktestResult } from './defiBacktestEngine';
-import type { Trade } from './backtest/portfolio';
+import type { Trade } from '../../../features/backtesting/services/backtest/portfolio';
+import { logger } from '../../../lib/monitoring/logger';
+import type { DeFiBacktestResult } from '../../../services/defiBacktestEngine';
 
 export interface PortfolioSnapshot {
   id: string;
@@ -45,20 +45,22 @@ class PortfolioTracker {
     holdings.set('USDC', result.initialCapital);
 
     // Process trades to calculate final holdings
-    result.trades.forEach((trade) => {
-      if (trade.type === 'SWAP') {
+    result.trades.forEach((trade: Trade) => {
+      if (trade.type === 'swap') {
         // Update holdings based on swap
         const inputAmount = holdings.get(trade.inputToken) || 0;
         holdings.set(trade.inputToken, Math.max(0, inputAmount - trade.inputAmount));
 
-        const outputAmount = holdings.get(trade.outputToken) || 0;
-        holdings.set(trade.outputToken, outputAmount + trade.outputAmount);
-      } else if (trade.type === 'SUPPLY') {
-        const current = holdings.get(trade.token) || 0;
-        holdings.set(trade.token, Math.max(0, current - trade.amount));
-      } else if (trade.type === 'WITHDRAW') {
-        const current = holdings.get(trade.token) || 0;
-        holdings.set(trade.token, current + trade.amount);
+        if (trade.outputToken && trade.outputAmount !== undefined) {
+          const outputAmount = holdings.get(trade.outputToken) || 0;
+          holdings.set(trade.outputToken, outputAmount + trade.outputAmount);
+        }
+      } else if (trade.type === 'supply') {
+        const current = holdings.get(trade.inputToken) || 0;
+        holdings.set(trade.inputToken, Math.max(0, current - trade.inputAmount));
+      } else if (trade.type === 'withdraw') {
+        const current = holdings.get(trade.inputToken) || 0;
+        holdings.set(trade.inputToken, current + (trade.outputAmount ?? trade.inputAmount));
       }
     });
 
@@ -73,7 +75,10 @@ class PortfolioTracker {
 
     // Calculate total equity from final equity curve
     if (result.equityCurve.length > 0) {
-      totalValue = result.equityCurve[result.equityCurve.length - 1].equity;
+      const lastPoint = result.equityCurve[result.equityCurve.length - 1];
+      if (lastPoint) {
+        totalValue = lastPoint.equity;
+      }
     }
 
     // Create snapshot
@@ -90,7 +95,7 @@ class PortfolioTracker {
     this.currentHoldings = new Map(holdings);
 
     // Convert trades to transactions
-    result.trades.forEach((trade) => {
+    result.trades.forEach((trade: Trade) => {
       const transaction = this.tradeToTransaction(trade, strategyId);
       if (transaction) {
         this.transactions.push(transaction);
@@ -104,33 +109,30 @@ class PortfolioTracker {
   /**
    * Convert a trade to a transaction
    */
-  private tradeToTransaction(
-    trade: Trade,
-    strategyId?: string
-  ): PortfolioTransaction | null {
+  private tradeToTransaction(trade: Trade, strategyId?: string): PortfolioTransaction | null {
     let type: PortfolioTransaction['type'] | null = null;
     let description = '';
     let amount = '';
     let token = '';
 
     switch (trade.type) {
-      case 'SWAP':
+      case 'swap':
         type = 'SWAP';
-        description = `${trade.inputToken} → ${trade.outputToken}`;
+        description = `${trade.inputToken} → ${trade.outputToken ?? 'unknown'}`;
         amount = `${trade.inputAmount} ${trade.inputToken}`;
         token = trade.inputToken;
         break;
-      case 'SUPPLY':
+      case 'supply':
         type = 'SUPPLY';
-        description = `Supply ${trade.token} to Aave`;
-        amount = `${trade.amount} ${trade.token}`;
-        token = trade.token;
+        description = `Supply ${trade.inputToken} to Aave`;
+        amount = `${trade.inputAmount} ${trade.inputToken}`;
+        token = trade.inputToken;
         break;
-      case 'WITHDRAW':
+      case 'withdraw':
         type = 'WITHDRAW';
-        description = `Withdraw ${trade.token} from Aave`;
-        amount = `${trade.amount} ${trade.token}`;
-        token = trade.token;
+        description = `Withdraw ${trade.inputToken} from Aave`;
+        amount = `${trade.outputAmount ?? trade.inputAmount} ${trade.inputToken}`;
+        token = trade.inputToken;
         break;
       default:
         return null;
@@ -168,7 +170,8 @@ class PortfolioTracker {
    */
   getLatestSnapshot(): PortfolioSnapshot | null {
     if (this.snapshots.length === 0) return null;
-    return this.snapshots[this.snapshots.length - 1];
+    const latest = this.snapshots[this.snapshots.length - 1];
+    return latest ?? null;
   }
 
   /**
@@ -203,7 +206,11 @@ class PortfolioTracker {
       };
       localStorage.setItem('defi-builder-portfolio', JSON.stringify(data));
     } catch (error) {
-      logger.error('Error persisting portfolio data', error instanceof Error ? error : new Error(String(error)), 'PortfolioTracker');
+      logger.error(
+        'Error persisting portfolio data',
+        error instanceof Error ? error : new Error(String(error)),
+        'PortfolioTracker'
+      );
     }
   }
 
@@ -223,7 +230,11 @@ class PortfolioTracker {
       this.transactions = data.transactions || [];
       this.currentHoldings = new Map(data.currentHoldings || []);
     } catch (error) {
-      logger.error('Error loading portfolio data', error instanceof Error ? error : new Error(String(error)), 'PortfolioTracker');
+      logger.error(
+        'Error loading portfolio data',
+        error instanceof Error ? error : new Error(String(error)),
+        'PortfolioTracker'
+      );
     }
   }
 }
@@ -235,4 +246,3 @@ export const portfolioTracker = new PortfolioTracker();
 if (typeof window !== 'undefined') {
   portfolioTracker.load();
 }
-

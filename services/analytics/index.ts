@@ -6,4 +6,3 @@
 export * from './monteCarlo';
 export * from './stressTester';
 export * from './varCalculator';
-

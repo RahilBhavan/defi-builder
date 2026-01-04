@@ -1,10 +1,15 @@
-import type { LegoBlock, Strategy } from '../types';
-import { logger } from '../utils/logger';
-import { autoBackup } from './storage/backup';
-import { CURRENT_VERSION, type VersionedData, wrapWithVersion } from './storage/versioning';
+import { logger } from '../../../lib/monitoring/logger';
+import { safeJsonParse } from '../../../lib/storage/json';
+import { autoBackup } from '../../../lib/storage/services/backup';
+import {
+  CURRENT_VERSION,
+  type VersionedData,
+  wrapWithVersion,
+} from '../../../lib/storage/services/versioning';
+import type { LegoBlock, Strategy } from '../../../types';
 
 const STRATEGY_STORAGE_KEY = 'defi-builder-strategies';
-const CURRENT_STRATEGY_KEY = 'defi-builder-current-strategy';
+// const CURRENT_STRATEGY_KEY = 'defi-builder-current-strategy'; // Reserved for future use
 
 /**
  * Save a strategy to localStorage with versioning and auto-backup
@@ -29,7 +34,11 @@ export function saveStrategy(strategy: Strategy, createBackup = true): void {
     const versioned = wrapWithVersion(strategies, CURRENT_VERSION);
     localStorage.setItem(STRATEGY_STORAGE_KEY, JSON.stringify(versioned));
   } catch (error) {
-    logger.error('Error saving strategy', error instanceof Error ? error : new Error(String(error)), 'StrategyStorage');
+    logger.error(
+      'Error saving strategy',
+      error instanceof Error ? error : new Error(String(error)),
+      'StrategyStorage'
+    );
     throw new Error('Failed to save strategy. Please try again.');
   }
 }
@@ -53,12 +62,17 @@ export function getStrategies(): Strategy[] {
     // Old unversioned data
     return Array.isArray(parsed) ? parsed : [];
   } catch (error) {
-    const { logger } = await import('../../../lib/monitoring/logger');
-    logger.error(
-      'Error loading strategies',
-      error instanceof Error ? error : new Error(String(error)),
-      'StrategyStorage'
-    );
+    // Use dynamic import in async IIFE to avoid await in non-async function
+    (async () => {
+      const { logger } = await import('../../../lib/monitoring/logger');
+      logger.error(
+        'Error loading strategies',
+        error instanceof Error ? error : new Error(String(error)),
+        'StrategyStorage'
+      );
+    })().catch(() => {
+      // Silently fail if logger import fails
+    });
     return [];
   }
 }
@@ -85,7 +99,11 @@ export function deleteStrategy(id: string, createBackup = true): void {
     const versioned = wrapWithVersion(strategies, CURRENT_VERSION);
     localStorage.setItem(STRATEGY_STORAGE_KEY, JSON.stringify(versioned));
   } catch (error) {
-    logger.error('Error deleting strategy', error instanceof Error ? error : new Error(String(error)), 'StrategyStorage');
+    logger.error(
+      'Error deleting strategy',
+      error instanceof Error ? error : new Error(String(error)),
+      'StrategyStorage'
+    );
     throw new Error('Failed to delete strategy');
   }
 }
@@ -115,7 +133,11 @@ export function importStrategy(json: string): Strategy {
 
     return strategy;
   } catch (error) {
-    logger.error('Error importing strategy', error instanceof Error ? error : new Error(String(error)), 'StrategyStorage');
+    logger.error(
+      'Error importing strategy',
+      error instanceof Error ? error : new Error(String(error)),
+      'StrategyStorage'
+    );
     throw new Error('Failed to import strategy. Invalid JSON format.');
   }
 }
@@ -156,7 +178,11 @@ export function importBlocks(json: string): LegoBlock[] {
       id: crypto.randomUUID(),
     }));
   } catch (error) {
-    logger.error('Error importing blocks', error instanceof Error ? error : new Error(String(error)), 'StrategyStorage');
+    logger.error(
+      'Error importing blocks',
+      error instanceof Error ? error : new Error(String(error)),
+      'StrategyStorage'
+    );
     throw new Error('Failed to import blocks. Invalid JSON format.');
   }
 }

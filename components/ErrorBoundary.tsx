@@ -55,19 +55,14 @@ export class ErrorBoundary extends Component<Props, State> {
     });
 
     // Enhanced logging with context
-    logger.error(
-      'ErrorBoundary caught an error',
-      error,
-      'ErrorBoundary',
-      {
-        errorInfo: {
-          componentStack: errorInfo.componentStack,
-        },
-        timestamp: errorEntry.timestamp,
-        userAgent: navigator.userAgent,
-        url: window.location.href,
-      }
-    );
+    logger.error('ErrorBoundary caught an error', error, 'ErrorBoundary', {
+      errorInfo: {
+        componentStack: errorInfo.componentStack,
+      },
+      timestamp: errorEntry.timestamp,
+      userAgent: navigator.userAgent,
+      url: window.location.href,
+    });
 
     // Call optional error callback
     if (this.props.onError) {
@@ -94,7 +89,11 @@ export class ErrorBoundary extends Component<Props, State> {
       url: window.location.href,
     };
 
-    logger.info('Error report data (would be sent to error reporting service)', 'ErrorBoundary', errorData);
+    logger.info(
+      'Error report data (would be sent to error reporting service)',
+      'ErrorBoundary',
+      errorData
+    );
 
     // In a real implementation, this would send to an error reporting service
     // For now, we'll just log it
@@ -152,14 +151,15 @@ export class ErrorBoundary extends Component<Props, State> {
 
             {recoverySuggestions.length > 0 && (
               <ul className="list-disc list-inside mb-4 text-sm text-gray-600 space-y-1">
-                {recoverySuggestions.map((suggestion, index) => (
-                  <li key={index}>{suggestion}</li>
+                {recoverySuggestions.map((suggestion) => (
+                  <li key={suggestion}>{suggestion}</li>
                 ))}
               </ul>
             )}
 
             <div className="flex gap-3 mt-4">
               <button
+                type="button"
                 onClick={() => {
                   this.setState({ hasError: false, error: null, errorInfo: null });
                   if (this.props.onReset) {
@@ -171,6 +171,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 Try Again
               </button>
               <button
+                type="button"
                 onClick={() => {
                   window.location.reload();
                 }}
@@ -218,8 +219,11 @@ export class ErrorBoundary extends Component<Props, State> {
                   Error History ({this.state.errorHistory.length} errors)
                 </summary>
                 <div className="text-xs bg-gray-100 p-3 rounded max-h-32 overflow-auto space-y-2">
-                  {this.state.errorHistory.map((entry, index) => (
-                    <div key={index} className="border-b border-gray-300 pb-2 last:border-0">
+                  {this.state.errorHistory.map((entry) => (
+                    <div
+                      key={`${entry.timestamp}-${entry.errorType}`}
+                      className="border-b border-gray-300 pb-2 last:border-0"
+                    >
                       <div className="font-bold">{entry.errorType}</div>
                       <div className="text-gray-600">{entry.error}</div>
                       <div className="text-gray-400 text-[10px]">{entry.timestamp}</div>

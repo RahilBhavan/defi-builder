@@ -4,10 +4,10 @@
  */
 
 import { z } from 'zod';
-import { publicProcedure, router } from '../index';
-import { syncSecrets } from '../../utils/secrets';
-import { auditApiKey, AuditEventType } from '../../utils/auditLogger';
+import { AuditEventType, auditApiKey } from '../../utils/auditLogger';
 import { logger } from '../../utils/logger';
+import { syncSecrets } from '../../utils/secrets';
+import { publicProcedure, router } from '../index';
 
 /**
  * Doppler webhook for secret rotation
@@ -47,8 +47,12 @@ export const webhooksRouter = router({
 
         return { success: true, message: 'Secrets synced successfully' };
       } catch (error) {
-        logger.error('Failed to sync secrets from Doppler webhook', error instanceof Error ? error : new Error(String(error)), 'Webhooks');
-        
+        logger.error(
+          'Failed to sync secrets from Doppler webhook',
+          error instanceof Error ? error : new Error(String(error)),
+          'Webhooks'
+        );
+
         auditApiKey(AuditEventType.SECRET_SYNCED, {
           keyName: input.secret || 'all',
           success: false,
@@ -61,4 +65,3 @@ export const webhooksRouter = router({
       }
     }),
 });
-

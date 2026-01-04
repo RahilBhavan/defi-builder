@@ -1,5 +1,5 @@
 import type React from 'react';
-import { trpc } from '../utils/trpc';
+import { trpc } from '../lib/api/trpc';
 
 export const HealthCheck: React.FC = () => {
   const { data, isLoading, error } = trpc.health.useQuery();

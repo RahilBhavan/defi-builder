@@ -5,6 +5,11 @@
 import { trpc } from '../../../lib/api/trpc';
 import { logger } from '../../../lib/monitoring/logger';
 
+// Type assertion to work around TypeScript inference issue with nested routers
+// Biome-ignore lint/suspicious/noExplicitAny: tRPC version mismatch (backend v10, frontend v11) - see lib/api/helpers.ts
+// TODO: Upgrade backend to @trpc/server v11 to match frontend and remove type assertion
+const typedTrpc = trpc as any;
+
 export interface MarketplaceStrategy {
   id: string;
   name: string;
@@ -38,9 +43,13 @@ export async function searchStrategies(query: {
   limit?: number;
 }) {
   try {
-    return await trpc.marketplace.discover.query(query);
+    return await typedTrpc.marketplace.discover.query(query);
   } catch (error) {
-    logger.error('Error searching strategies', error instanceof Error ? error : new Error(String(error)), 'Marketplace');
+    logger.error(
+      'Error searching strategies',
+      error instanceof Error ? error : new Error(String(error)),
+      'Marketplace'
+    );
     throw error;
   }
 }
@@ -50,9 +59,13 @@ export async function searchStrategies(query: {
  */
 export async function getFeaturedStrategies() {
   try {
-    return await trpc.marketplace.featured.query();
+    return await typedTrpc.marketplace.featured.query();
   } catch (error) {
-    logger.error('Error fetching featured strategies', error instanceof Error ? error : new Error(String(error)), 'Marketplace');
+    logger.error(
+      'Error fetching featured strategies',
+      error instanceof Error ? error : new Error(String(error)),
+      'Marketplace'
+    );
     throw error;
   }
 }
@@ -62,9 +75,13 @@ export async function getFeaturedStrategies() {
  */
 export async function getStrategyDetails(strategyId: string) {
   try {
-    return await trpc.marketplace.getStrategy.query({ id: strategyId });
+    return await typedTrpc.marketplace.getStrategy.query({ id: strategyId });
   } catch (error) {
-    logger.error('Error fetching strategy details', error instanceof Error ? error : new Error(String(error)), 'Marketplace');
+    logger.error(
+      'Error fetching strategy details',
+      error instanceof Error ? error : new Error(String(error)),
+      'Marketplace'
+    );
     throw error;
   }
 }
@@ -74,13 +91,17 @@ export async function getStrategyDetails(strategyId: string) {
  */
 export async function forkStrategy(originalId: string, name: string, description?: string) {
   try {
-    return await trpc.marketplace.forkStrategy.mutate({
+    return await typedTrpc.marketplace.forkStrategy.mutate({
       originalId,
       name,
       description,
     });
   } catch (error) {
-    logger.error('Error forking strategy', error instanceof Error ? error : new Error(String(error)), 'Marketplace');
+    logger.error(
+      'Error forking strategy',
+      error instanceof Error ? error : new Error(String(error)),
+      'Marketplace'
+    );
     throw error;
   }
 }
@@ -90,12 +111,16 @@ export async function forkStrategy(originalId: string, name: string, description
  */
 export async function rateStrategy(strategyId: string, rating: number) {
   try {
-    return await trpc.marketplace.rateStrategy.mutate({
+    return await typedTrpc.marketplace.rateStrategy.mutate({
       strategyId,
       rating,
     });
   } catch (error) {
-    logger.error('Error rating strategy', error instanceof Error ? error : new Error(String(error)), 'Marketplace');
+    logger.error(
+      'Error rating strategy',
+      error instanceof Error ? error : new Error(String(error)),
+      'Marketplace'
+    );
     throw error;
   }
 }
@@ -105,12 +130,16 @@ export async function rateStrategy(strategyId: string, rating: number) {
  */
 export async function addReview(strategyId: string, content: string) {
   try {
-    return await trpc.marketplace.addReview.mutate({
+    return await typedTrpc.marketplace.addReview.mutate({
       strategyId,
       content,
     });
   } catch (error) {
-    logger.error('Error adding review', error instanceof Error ? error : new Error(String(error)), 'Marketplace');
+    logger.error(
+      'Error adding review',
+      error instanceof Error ? error : new Error(String(error)),
+      'Marketplace'
+    );
     throw error;
   }
 }
@@ -125,15 +154,18 @@ export async function updateStrategyVisibility(
   tags?: string[]
 ) {
   try {
-    return await trpc.marketplace.updateVisibility.mutate({
+    return await typedTrpc.marketplace.updateVisibility.mutate({
       strategyId,
       isPublic,
       category,
       tags,
     });
   } catch (error) {
-    logger.error('Error updating strategy visibility', error instanceof Error ? error : new Error(String(error)), 'Marketplace');
+    logger.error(
+      'Error updating strategy visibility',
+      error instanceof Error ? error : new Error(String(error)),
+      'Marketplace'
+    );
     throw error;
   }
 }
-

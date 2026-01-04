@@ -33,8 +33,7 @@ export function calculateSortinoRatio(returns: number[], riskFreeRate = 0): numb
 
   const downsideMean = negativeReturns.reduce((sum, r) => sum + r, 0) / negativeReturns.length;
   const downsideVariance =
-    negativeReturns.reduce((sum, r) => sum + Math.pow(r - downsideMean, 2), 0) /
-    negativeReturns.length;
+    negativeReturns.reduce((sum, r) => sum + (r - downsideMean) ** 2, 0) / negativeReturns.length;
   const downsideDeviation = Math.sqrt(downsideVariance);
   const annualizedDownsideDev = downsideDeviation * Math.sqrt(365);
 
@@ -82,8 +81,7 @@ export function calculateInformationRatio(
 
   // Calculate tracking error (std dev of excess returns)
   const variance =
-    excessReturns.reduce((sum, r) => sum + Math.pow(r - meanExcessReturn, 2), 0) /
-    excessReturns.length;
+    excessReturns.reduce((sum, r) => sum + (r - meanExcessReturn) ** 2, 0) / excessReturns.length;
   const trackingError = Math.sqrt(variance) * Math.sqrt(365); // Annualized
 
   if (trackingError === 0) return 0;
@@ -117,7 +115,7 @@ export function calculateBeta(portfolioReturns: number[], marketReturns: number[
 
   // Calculate market variance
   const marketVariance =
-    marketReturns.reduce((sum, r) => sum + Math.pow(r - marketMean, 2), 0) / marketReturns.length;
+    marketReturns.reduce((sum, r) => sum + (r - marketMean) ** 2, 0) / marketReturns.length;
 
   if (marketVariance === 0) return 1;
 
@@ -132,7 +130,7 @@ export function calculateAlpha(
   portfolioReturn: number,
   marketReturn: number,
   beta: number,
-  riskFreeRate = 0,
+  riskFreeRate: number,
   days: number
 ): number {
   // Annualize returns
@@ -167,10 +165,7 @@ export function calculateValueAtRisk(returns: number[], confidenceLevel = 0.95):
  * CVaR: Expected loss in the worst (1 - confidenceLevel) scenarios
  * Average of returns below VaR threshold
  */
-export function calculateConditionalVaR(
-  returns: number[],
-  confidenceLevel = 0.95
-): number {
+export function calculateConditionalVaR(returns: number[], confidenceLevel = 0.95): number {
   if (returns.length === 0) return 0;
 
   // Sort returns in ascending order
@@ -186,8 +181,7 @@ export function calculateConditionalVaR(
   if (tailReturns.length === 0) return 0;
 
   // Calculate average of tail returns
-  const averageTailReturn =
-    tailReturns.reduce((sum, r) => sum + r, 0) / tailReturns.length;
+  const averageTailReturn = tailReturns.reduce((sum, r) => sum + r, 0) / tailReturns.length;
 
   // Return as positive percentage (expected loss)
   return Math.abs(averageTailReturn) * 100;
@@ -195,14 +189,14 @@ export function calculateConditionalVaR(
 
 /**
  * Calculate all advanced financial metrics for a backtest result
- * 
+ *
  * Computes Sortino Ratio, Calmar Ratio, Information Ratio, Beta, Alpha,
  * Volatility, Downside Volatility, Value at Risk (VaR), and Conditional VaR (CVaR).
- * 
+ *
  * @param result - DeFi backtest result containing equity curve and trades
  * @param benchmarkReturns - Optional benchmark returns for comparison (e.g., HODL, BTC, ETH)
  * @returns AdvancedMetrics object with all calculated metrics
- * 
+ *
  * @example
  * ```typescript
  * const metrics = calculateAdvancedMetrics(backtestResult, benchmarkReturns);
@@ -230,7 +224,7 @@ export function calculateAdvancedMetrics(
     returns.length > 0 ? returns.reduce((sum, r) => sum + r, 0) / returns.length : 0;
   const variance =
     returns.length > 0
-      ? returns.reduce((sum, r) => sum + Math.pow(r - meanReturn, 2), 0) / returns.length
+      ? returns.reduce((sum, r) => sum + (r - meanReturn) ** 2, 0) / returns.length
       : 0;
   const volatility = Math.sqrt(variance) * Math.sqrt(365) * 100; // Annualized
 
@@ -238,7 +232,7 @@ export function calculateAdvancedMetrics(
   const negativeReturns = returns.filter((r) => r < 0);
   const downsideVariance =
     negativeReturns.length > 0
-      ? negativeReturns.reduce((sum, r) => sum + Math.pow(r, 2), 0) / negativeReturns.length
+      ? negativeReturns.reduce((sum, r) => sum + r ** 2, 0) / negativeReturns.length
       : 0;
   const downsideVolatility = Math.sqrt(downsideVariance) * Math.sqrt(365) * 100;
 
@@ -272,8 +266,8 @@ export function calculateAdvancedMetrics(
       benchmarkFirst !== undefined &&
       benchmarkLast !== undefined &&
       benchmarkFirst !== 0 &&
-      !isNaN(benchmarkFirst) &&
-      !isNaN(benchmarkLast)
+      !Number.isNaN(benchmarkFirst) &&
+      !Number.isNaN(benchmarkLast)
     ) {
       const benchmarkTotalReturn = ((benchmarkLast - benchmarkFirst) / benchmarkFirst) * 100;
       alpha = calculateAlpha(result.metrics.totalReturn, benchmarkTotalReturn, beta, 0, days);

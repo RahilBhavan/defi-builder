@@ -1,27 +1,41 @@
 import { motion } from 'framer-motion';
-import { AlertCircle, BookOpen, Copy, ExternalLink, Save, Search, Share2, Sparkles, Star, X } from 'lucide-react';
+import {
+  AlertCircle,
+  BookOpen,
+  Copy,
+  ExternalLink,
+  Globe,
+  Lock,
+  Save,
+  Search,
+  Share2,
+  Sparkles,
+  Star,
+  X,
+} from 'lucide-react';
 import type React from 'react';
 import { useEffect, useMemo, useState } from 'react';
+import { generateShareLink } from '../../features/strategy-builder/services/sharing';
 import { useToast } from '../../hooks/useToast';
 import { logger } from '../../lib/monitoring/logger';
+import { useCloudSync } from '../../services/cloudSync';
 import {
   createStrategyFromBlocks,
   deleteStrategy,
   getStrategies,
   saveStrategy,
 } from '../../services/strategyStorage';
-import { useCloudSync } from '../../services/cloudSync';
 import {
   STRATEGY_TEMPLATES,
   type StrategyTemplate,
   getTemplatesByCategory,
   searchTemplates,
 } from '../../services/strategyTemplates';
-import { generateShareLink } from '../../services/strategySharing';
 import type { LegoBlock, Strategy } from '../../types';
-import { getUserFriendlyErrorMessage } from '../../utils/errorHandler';
+import { getUserFriendlyErrorMessage } from '../../lib/error/handler';
 import { Button } from '../ui/Button';
 import { ConfirmationDialog } from '../ui/ConfirmationDialog';
+import { StrategyVisibilityDialog } from './StrategyVisibilityDialog';
 
 interface StrategyLibraryModalProps {
   isOpen: boolean;
@@ -50,7 +64,14 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
   const [templateCategory, setTemplateCategory] = useState<string>('all');
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
   const [shareStrategy, setShareStrategy] = useState<Strategy | null>(null);
+  const [shareLink, setShareLink] = useState<string>('');
   const [syncToCloud, setSyncToCloud] = useState(false);
+  const [visibilityStrategy, setVisibilityStrategy] = useState<{
+    id: string;
+    isPublic: boolean;
+    category?: string | null;
+    tags: string[];
+  } | null>(null);
   const { strategies: cloudStrategies, syncStrategy, isLoading: isLoadingCloud } = useCloudSync();
 
   // Load strategies from storage and cloud
@@ -60,9 +81,7 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
       // Merge local and cloud strategies
       const allStrategies = [...loaded, ...cloudStrategies];
       // Remove duplicates by ID
-      const uniqueStrategies = Array.from(
-        new Map(allStrategies.map((s) => [s.id, s])).values()
-      );
+      const uniqueStrategies = Array.from(new Map(allStrategies.map((s) => [s.id, s])).values());
       setStrategies(uniqueStrategies);
     }
   }, [isOpen, cloudStrategies]);
@@ -125,7 +144,11 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
       onClose();
     } catch (error) {
       showError(getUserFriendlyErrorMessage(error, 'load'));
-      logger.error('Error loading strategy', error instanceof Error ? error : new Error(String(error)), 'StrategyLibrary');
+      logger.error(
+        'Error loading strategy',
+        error instanceof Error ? error : new Error(String(error)),
+        'StrategyLibrary'
+      );
     }
   };
 
@@ -146,7 +169,11 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
       onClose();
     } catch (error) {
       showError(getUserFriendlyErrorMessage(error, 'load'));
-      logger.error('Error loading template', error instanceof Error ? error : new Error(String(error)), 'StrategyLibrary');
+      logger.error(
+        'Error loading template',
+        error instanceof Error ? error : new Error(String(error)),
+        'StrategyLibrary'
+      );
     }
   };
 
@@ -169,7 +196,9 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
     }
     if (!/^[a-zA-Z0-9\s\-_]+$/.test(saveStrategyName)) {
       setNameError('Strategy name contains invalid characters');
-      showError('Strategy name can only contain letters, numbers, spaces, hyphens, and underscores');
+      showError(
+        'Strategy name can only contain letters, numbers, spaces, hyphens, and underscores'
+      );
       return;
     }
     if (nameError) {
@@ -180,19 +209,21 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
     try {
       const strategy = createStrategyFromBlocks(currentBlocks, saveStrategyName.trim());
       saveStrategy(strategy);
-      
+
       // Sync to cloud if enabled
       if (syncToCloud) {
         try {
           await syncStrategy(strategy);
           showSuccess(`Strategy "${strategy.name}" saved and synced to cloud`);
         } catch (error) {
-          showWarning(`Strategy saved locally but cloud sync failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          showWarning(
+            `Strategy saved locally but cloud sync failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+          );
         }
       } else {
         showSuccess(`Strategy "${strategy.name}" saved successfully`);
       }
-      
+
       setStrategies(getStrategies());
       setShowSaveDialog(false);
       setSaveStrategyName('');
@@ -200,7 +231,11 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
       setSyncToCloud(false);
     } catch (error) {
       showError(getUserFriendlyErrorMessage(error, 'save'));
-      logger.error('Error saving strategy', error instanceof Error ? error : new Error(String(error)), 'StrategyLibrary');
+      logger.error(
+        'Error saving strategy',
+        error instanceof Error ? error : new Error(String(error)),
+        'StrategyLibrary'
+      );
     }
   };
 
@@ -218,25 +253,53 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
       setDeleteConfirm(null);
     } catch (error) {
       showError(getUserFriendlyErrorMessage(error, 'delete'));
-      logger.error('Error deleting strategy', error instanceof Error ? error : new Error(String(error)), 'StrategyLibrary');
+      logger.error(
+        'Error deleting strategy',
+        error instanceof Error ? error : new Error(String(error)),
+        'StrategyLibrary'
+      );
       setDeleteConfirm(null);
     }
   };
 
-  const handleShareStrategy = (strategy: Strategy) => {
+  const handleShareStrategy = async (strategy: Strategy) => {
     setShareStrategy(strategy);
+    try {
+      const link = await generateShareLink(strategy);
+      setShareLink(link);
+    } catch (error) {
+      showError('Failed to generate share link. Please try again.');
+      logger.error(
+        'Error generating share link',
+        error instanceof Error ? error : new Error(String(error)),
+        'StrategyLibrary'
+      );
+    }
   };
 
-  const copyShareLink = async (strategy: Strategy) => {
-    try {
-      // Use secure sharing service with validation and sanitization (async)
-      const link = await generateShareLink(strategy);
-      await navigator.clipboard.writeText(link);
-      showSuccess('Share link copied to clipboard!');
-      setShareStrategy(null);
-    } catch (error) {
-      showError('Failed to generate or copy share link. Please try again.');
-      logger.error('Error generating/copying share link', error instanceof Error ? error : new Error(String(error)), 'StrategyLibrary');
+  const copyShareLink = async () => {
+    if (!shareLink && shareStrategy) {
+      try {
+        const link = await generateShareLink(shareStrategy);
+        setShareLink(link);
+        await navigator.clipboard.writeText(link);
+        showSuccess('Share link copied to clipboard!');
+        setShareStrategy(null);
+        setShareLink('');
+      } catch (_error) {
+        showError('Failed to generate or copy share link. Please try again.');
+      }
+      return;
+    }
+    if (shareLink) {
+      try {
+        await navigator.clipboard.writeText(shareLink);
+        showSuccess('Share link copied to clipboard!');
+        setShareStrategy(null);
+        setShareLink('');
+      } catch (_error) {
+        showError('Failed to copy share link. Please try again.');
+      }
     }
   };
 
@@ -395,14 +458,16 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
                   onChange={(e) => {
                     const newValue = e.target.value;
                     setSaveStrategyName(newValue);
-                    
+
                     // Real-time validation
                     if (newValue.trim().length === 0) {
                       setNameError('Strategy name is required');
                     } else if (newValue.length > 100) {
                       setNameError('Strategy name must be 100 characters or less');
                     } else if (!/^[a-zA-Z0-9\s\-_]+$/.test(newValue)) {
-                      setNameError('Strategy name can only contain letters, numbers, spaces, hyphens, and underscores');
+                      setNameError(
+                        'Strategy name can only contain letters, numbers, spaces, hyphens, and underscores'
+                      );
                     } else {
                       setNameError(null);
                     }
@@ -415,11 +480,10 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
                   }}
                   placeholder="Enter strategy name..."
                   className={`w-full h-10 px-3 border font-mono text-sm focus:outline-none mb-1 ${
-                    nameError 
-                      ? 'border-alert-red focus:border-alert-red text-alert-red' 
+                    nameError
+                      ? 'border-alert-red focus:border-alert-red text-alert-red'
                       : 'border-gray-300 focus:border-orange'
                   }`}
-                  autoFocus
                   aria-invalid={nameError ? 'true' : 'false'}
                   aria-describedby={nameError ? 'strategy-name-error' : undefined}
                   onKeyDown={(e) => {
@@ -433,7 +497,11 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
                   }}
                 />
                 {nameError && (
-                  <div id="strategy-name-error" className="text-xs text-alert-red mb-3 flex items-center gap-1" role="alert">
+                  <div
+                    id="strategy-name-error"
+                    className="text-xs text-alert-red mb-3 flex items-center gap-1"
+                    role="alert"
+                  >
                     <AlertCircle size={12} /> {nameError}
                   </div>
                 )}
@@ -569,7 +637,7 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
           ) : isLoadingCloud && filteredStrategies.length === 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
               {[1, 2, 3, 4, 5, 6].map((i) => (
-                <CardSkeleton key={i} />
+                <div key={i} className="h-32 w-full bg-gray-200 animate-pulse" />
               ))}
             </div>
           ) : filteredStrategies.length === 0 ? (
@@ -612,8 +680,34 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
                         </p>
                       </div>
                       <div className="flex gap-2">
-                        {blockCount >= 4 && (
-                          <Star size={16} className="text-orange fill-orange" />
+                        {blockCount >= 4 && <Star size={16} className="text-orange fill-orange" />}
+                        {/* Visibility toggle - only show for cloud-synced strategies */}
+                        {cloudStrategies.some((s) => s.id === strategy.id) && (
+                          <button
+                            onClick={() => {
+                              const cloudStrategy = cloudStrategies.find((s) => s.id === strategy.id);
+                              const tags = (cloudStrategy as any)?.tags
+                                ? JSON.parse((cloudStrategy as any).tags || '[]') : [];
+                              setVisibilityStrategy({
+                                id: strategy.id,
+                                isPublic: (cloudStrategy as any)?.isPublic || false,
+                                category: (cloudStrategy as any)?.category || null,
+                                tags: Array.isArray(tags) ? tags : [],
+                              });
+                            }}
+                            className="text-gray-400 hover:text-orange transition-colors"
+                            title={
+                              (cloudStrategies.find((s) => s.id === strategy.id) as any)?.isPublic
+                                ? 'Public - Change visibility'
+                                : 'Private - Make public'
+                            }
+                          >
+                            {(cloudStrategies.find((s) => s.id === strategy.id) as any)?.isPublic ? (
+                              <Globe size={16} className="text-blue-500" />
+                            ) : (
+                              <Lock size={16} />
+                            )}
+                          </button>
                         )}
                         <button
                           onClick={() => handleShareStrategy(strategy)}
@@ -685,6 +779,27 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
           onCancel={() => setDeleteConfirm(null)}
         />
 
+        {/* Visibility Dialog */}
+        {visibilityStrategy && (
+          <StrategyVisibilityDialog
+            isOpen={visibilityStrategy !== null}
+            onClose={() => setVisibilityStrategy(null)}
+            strategyId={visibilityStrategy.id}
+            currentVisibility={visibilityStrategy.isPublic}
+            currentCategory={visibilityStrategy.category}
+            currentTags={visibilityStrategy.tags}
+            onSuccess={() => {
+              // Refresh strategies after visibility change
+              const loaded = getStrategies();
+              const allStrategies = [...loaded, ...cloudStrategies];
+              const uniqueStrategies = Array.from(
+                new Map(allStrategies.map((s) => [s.id, s])).values()
+              );
+              setStrategies(uniqueStrategies);
+            }}
+          />
+        )}
+
         {/* Share Dialog */}
         {shareStrategy && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50">
@@ -712,13 +827,13 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
                 <div className="flex gap-2">
                   <input
                     type="text"
-                    value={createShareLink(shareStrategy)}
+                    value={shareLink}
                     readOnly
                     className="flex-1 h-10 px-3 border border-gray-300 font-mono text-xs focus:border-orange focus:outline-none bg-gray-50"
                   />
                   <Button
                     variant="secondary"
-                    onClick={() => copyShareLink(shareStrategy)}
+                    onClick={copyShareLink}
                     className="flex items-center gap-2"
                   >
                     <Copy size={14} />
@@ -736,7 +851,7 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
                 <Button
                   variant="primary"
                   onClick={() => {
-                    window.open(createShareLink(shareStrategy), '_blank');
+                    window.open(shareLink, '_blank');
                     setShareStrategy(null);
                   }}
                   className="flex items-center gap-2"

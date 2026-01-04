@@ -1,6 +1,6 @@
 /**
  * Portfolio Feature
- * 
+ *
  * All components, services, and types related to portfolio tracking
  */
 
@@ -9,4 +9,3 @@ export { PortfolioModal } from './components/PortfolioModal';
 
 // Services
 export { portfolioTracker } from './services/tracker';
-

@@ -29,15 +29,24 @@ export class BayesianOptimizer {
           sample[param.blockId] = {};
         }
 
+        if (!sample[param.blockId]) {
+          sample[param.blockId] = {};
+        }
+
         if (param.type === 'discrete') {
           const values = param.values || [];
-          const randomIndex = Math.floor(Math.random() * values.length);
-          sample[param.blockId][param.paramName] = values[randomIndex];
+          if (values.length > 0) {
+            const randomIndex = Math.floor(Math.random() * values.length);
+            const selectedValue = values[randomIndex];
+            if (selectedValue !== undefined) {
+              sample[param.blockId]![param.paramName] = selectedValue;
+            }
+          }
         } else {
-          const min = param.min || 0;
-          const max = param.max || 100;
+          const min = param.min ?? 0;
+          const max = param.max ?? 100;
           const value = min + Math.random() * (max - min);
-          sample[param.blockId][param.paramName] = value;
+          sample[param.blockId]![param.paramName] = value;
         }
       }
 
@@ -53,15 +62,25 @@ export class BayesianOptimizer {
 
   suggestNext(): ParameterSet {
     if (this.observations.length === 0) {
-      return this.generateInitialSamples(1)[0];
+      const samples = this.generateInitialSamples(1);
+      const firstSample = samples[0];
+      if (!firstSample) {
+        throw new Error('Failed to generate initial sample');
+      }
+      return firstSample;
     }
 
     // Simplified Expected Improvement
     const candidates = this.generateInitialSamples(20);
-    let bestCandidate = candidates[0];
+    const firstCandidate = candidates[0];
+    if (!firstCandidate) {
+      throw new Error('Failed to generate candidates');
+    }
+    let bestCandidate = firstCandidate;
     let bestScore = Number.NEGATIVE_INFINITY;
 
     for (const candidate of candidates) {
+      if (!candidate) continue;
       const score = this.evaluateCandidate(candidate);
       if (score > bestScore) {
         bestScore = score;
@@ -86,10 +105,17 @@ export class BayesianOptimizer {
   private findBestObservation(): Observation | undefined {
     if (this.observations.length === 0) return undefined;
     const primaryObjective = this.objectives[0];
+    if (!primaryObjective) {
+      throw new Error('No objectives defined');
+    }
+
+    if (this.observations.length === 0) {
+      throw new Error('No observations available');
+    }
 
     return this.observations.reduce((best, current) => {
-      const bestValue = best.scores[primaryObjective] || Number.NEGATIVE_INFINITY;
-      const currentValue = current.scores[primaryObjective] || Number.NEGATIVE_INFINITY;
+      const bestValue = best.scores[primaryObjective] ?? Number.NEGATIVE_INFINITY;
+      const currentValue = current.scores[primaryObjective] ?? Number.NEGATIVE_INFINITY;
       return currentValue > bestValue ? current : best;
     });
   }
@@ -111,7 +137,7 @@ export class BayesianOptimizer {
       const aNorm = (aValue - min) / range;
       const bNorm = (bValue - min) / range;
 
-      sumSquaredDiff += Math.pow(aNorm - bNorm, 2);
+      sumSquaredDiff += (aNorm - bNorm) ** 2;
       count++;
     }
 

@@ -16,22 +16,22 @@ NC='\033[0m' # No Color
 # Frontend dependency audit
 echo "📦 Frontend Dependency Audit..."
 cd "$(dirname "$0")/.."
-if npm audit --audit-level=moderate; then
+if bun pm audit; then
     echo -e "${GREEN}✓ Frontend dependencies are secure${NC}"
 else
-    echo -e "${YELLOW}⚠ Frontend has some vulnerabilities (moderate or higher)${NC}"
-    echo "Run 'npm audit fix' to attempt automatic fixes"
+    echo -e "${YELLOW}⚠ Frontend has some vulnerabilities${NC}"
+    echo "Run 'bun pm audit --fix' to attempt automatic fixes"
 fi
 echo ""
 
 # Backend dependency audit
 echo "📦 Backend Dependency Audit..."
 cd backend
-if npm audit --audit-level=moderate; then
+if bun pm audit; then
     echo -e "${GREEN}✓ Backend dependencies are secure${NC}"
 else
-    echo -e "${YELLOW}⚠ Backend has some vulnerabilities (moderate or higher)${NC}"
-    echo "Run 'npm audit fix' to attempt automatic fixes"
+    echo -e "${YELLOW}⚠ Backend has some vulnerabilities${NC}"
+    echo "Run 'bun pm audit --fix' to attempt automatic fixes"
 fi
 echo ""
 
@@ -39,12 +39,12 @@ echo ""
 echo "📊 Checking for outdated packages..."
 cd ..
 echo "Frontend outdated packages:"
-npm outdated || echo "All frontend packages are up to date"
+bun outdated || echo "All frontend packages are up to date"
 echo ""
 
 cd backend
 echo "Backend outdated packages:"
-npm outdated || echo "All backend packages are up to date"
+bun outdated || echo "All backend packages are up to date"
 echo ""
 
 # Summary
@@ -52,7 +52,7 @@ echo -e "${GREEN}✅ Security audit complete!${NC}"
 echo ""
 echo "Next steps:"
 echo "1. Review any vulnerabilities found"
-echo "2. Run 'npm audit fix' to attempt automatic fixes"
+echo "2. Run 'bun pm audit --fix' to attempt automatic fixes"
 echo "3. Update outdated packages if needed"
 echo "4. Consider using Snyk or GitHub Dependabot for continuous monitoring"
 

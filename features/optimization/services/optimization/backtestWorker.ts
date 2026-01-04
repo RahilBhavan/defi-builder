@@ -1,6 +1,6 @@
-import type { LegoBlock } from '../../types';
-import { isRetryableError, retryWithBackoff } from '../../utils/retry';
-import type { DeFiBacktestResult } from '../defiBacktestEngine';
+import { isRetryableError, retryWithBackoff } from '../../../../lib/error/retry';
+import type { DeFiBacktestResult } from '../../../../services/defiBacktestEngine';
+import type { LegoBlock } from '../../../../types';
 import type { BacktestWorkerRequest, BacktestWorkerResponse, ParameterSet } from './types';
 
 interface BacktestTask {

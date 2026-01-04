@@ -108,7 +108,9 @@ export function generateShareToken(strategy: z.infer<typeof StrategyShareSchema>
     };
     return jwt.sign(payload, JWT_SECRET, { expiresIn: SHARE_TOKEN_EXPIRES_IN });
   } catch (error) {
-    throw new Error(`Failed to generate share token: ${error instanceof Error ? error.message : String(error)}`);
+    throw new Error(
+      `Failed to generate share token: ${error instanceof Error ? error.message : String(error)}`
+    );
   }
 }
 
@@ -119,7 +121,7 @@ export function generateShareToken(strategy: z.infer<typeof StrategyShareSchema>
 export function verifyShareToken(token: string): StrategyShareTokenPayload | null {
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as StrategyShareTokenPayload;
-    
+
     // Validate the strategy data structure
     if (!decoded.strategy || !decoded.strategy.blocks) {
       return null;
@@ -127,14 +129,13 @@ export function verifyShareToken(token: string): StrategyShareTokenPayload | nul
 
     // Re-validate with Zod schema
     const validated = validateAndSanitizeStrategy(decoded.strategy);
-    
+
     return {
       ...decoded,
       strategy: validated,
     };
-  } catch (error) {
+  } catch (_error) {
     // Token is invalid, expired, or malformed
     return null;
   }
 }
-

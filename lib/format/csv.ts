@@ -2,8 +2,8 @@
  * CSV export utilities for backtest results
  */
 
-import type { Trade } from '../services/backtest/portfolio';
-import type { DeFiBacktestResult } from '../services/defiBacktestEngine';
+import type { Trade } from '../../services/backtest/portfolio';
+import type { DeFiBacktestResult } from '../../services/defiBacktestEngine';
 
 /**
  * Export equity curve to CSV
@@ -135,7 +135,7 @@ export function exportMetricsToCSV(
       ['Calmar Ratio', advancedMetrics.calmarRatio.toFixed(4)],
       ['Information Ratio', advancedMetrics.informationRatio.toFixed(4)]
     );
-    
+
     if (advancedMetrics.beta !== undefined) {
       rows.push(['Beta', advancedMetrics.beta.toFixed(4)]);
     }

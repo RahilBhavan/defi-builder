@@ -1,5 +1,5 @@
-import type { LegoBlock } from '../../types';
-import type { DeFiBacktestResult } from '../defiBacktestEngine';
+import type { DeFiBacktestResult } from '../../../../services/defiBacktestEngine';
+import type { LegoBlock } from '../../../../types';
 
 // Parameter definitions
 export interface ParameterDefinition {

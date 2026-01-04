@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Strategy Lifecycle', () => {
   test('should create, backtest, and optimize a strategy', async ({ page }) => {
@@ -34,15 +34,19 @@ test.describe('Strategy Lifecycle', () => {
     await page.click('text=Enter Workspace');
 
     // Open backtest modal
-    const backtestButton = page.locator('button:has-text("Backtest")').or(page.locator('[aria-label*="backtest" i]'));
+    const backtestButton = page
+      .locator('button:has-text("Backtest")')
+      .or(page.locator('[aria-label*="backtest" i]'));
     if (await backtestButton.isVisible()) {
       await backtestButton.click();
       await expect(page.locator('text=/backtest/i')).toBeVisible();
-      
+
       // Close modal
-      const closeButton = page.locator('button:has-text("Close")').or(page.locator('[aria-label*="close" i]')).first();
+      const closeButton = page
+        .locator('button:has-text("Close")')
+        .or(page.locator('[aria-label*="close" i]'))
+        .first();
       await closeButton.click();
     }
   });
 });
-

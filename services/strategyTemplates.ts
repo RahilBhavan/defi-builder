@@ -342,11 +342,8 @@ const rebalancingStrategy: StrategyTemplate = {
       protocol: Protocol.GENERIC,
       icon: 'refresh-cw',
       params: {
-        targetAllocation: {
-          ETH: 40,
-          USDC: 30,
-          WBTC: 30,
-        },
+        // targetAllocation stored as JSON string for type compatibility
+        targetAllocation: JSON.stringify({ ETH: 40, USDC: 30, WBTC: 30 }),
         threshold: 5,
         method: 'proportional',
       },

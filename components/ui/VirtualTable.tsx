@@ -33,7 +33,6 @@ export function VirtualTable<T>({
   containerHeight,
   renderRow,
   overscan = 5,
-  'aria-label': ariaLabel,
 }: VirtualTableProps<T>) {
   const context = useContext(VirtualTableContext);
   if (!context) {
@@ -44,7 +43,6 @@ export function VirtualTable<T>({
 
   // Calculate visible range
   const { startIndex, endIndex, totalHeight, offsetY } = useMemo(() => {
-    const visibleCount = Math.ceil(containerHeight / rowHeight);
     const startIndex = Math.max(0, Math.floor(scrollTop / rowHeight) - overscan);
     const endIndex = Math.min(
       items.length - 1,
@@ -74,7 +72,7 @@ export function VirtualTable<T>({
     <>
       {/* Spacer row to maintain scroll height */}
       {startIndex > 0 && (
-        <tr aria-hidden="true">
+        <tr>
           <td colSpan={100} style={{ height: offsetY, padding: 0, border: 0, lineHeight: 0 }} />
         </tr>
       )}
@@ -84,7 +82,7 @@ export function VirtualTable<T>({
       ))}
       {/* Spacer row at the end */}
       {endIndex < items.length - 1 && (
-        <tr aria-hidden="true">
+        <tr>
           <td
             colSpan={100}
             style={{
@@ -143,4 +141,3 @@ export function VirtualTableContainer({
     </VirtualTableContext.Provider>
   );
 }
-

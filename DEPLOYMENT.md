@@ -1,375 +1,272 @@
 # Deployment Guide
 
-This guide covers deploying the DeFi Builder application to production.
+**Last Updated:** 2025-01-03  
+**Status:** Production-Ready
+
+---
+
+## Overview
+
+This guide covers deployment of the DeFi Builder application to staging and production environments.
+
+---
 
 ## Prerequisites
 
-- Node.js 20+
-- PostgreSQL 14+ (or SQLite for development)
-- Redis 6+ (optional, for caching)
-- Domain name and SSL certificate
+- Bun runtime installed
+- Access to deployment server/environment
 - Environment variables configured
+- Database access configured
+- Domain/DNS configured (for production)
 
-## Architecture
+---
 
-```
-┌─────────────┐      ┌─────────────┐      ┌─────────────┐
-│   Frontend  │ ───> │   Backend   │ ───> │  PostgreSQL │
-│  (Vite/React)│      │  (Express)  │      │   Database  │
-└─────────────┘      └─────────────┘      └─────────────┘
-                            │
-                            ▼
-                     ┌─────────────┐
-                     │    Redis     │
-                     │   (Cache)    │
-                     └─────────────┘
-```
+## Environment Setup
 
-## Frontend Deployment
+### Required Environment Variables
 
-### Option 1: Vercel (Recommended)
-
-1. **Connect Repository**
-   ```bash
-   # Install Vercel CLI
-   npm i -g vercel
-   
-   # Login
-   vercel login
-   
-   # Deploy
-   vercel
-   ```
-
-2. **Configure Environment Variables**
-   - Go to Vercel Dashboard > Project Settings > Environment Variables
-   - Add:
-     - `VITE_API_URL` - Your backend API URL
-
-3. **Build Settings**
-   - Build Command: `npm run build`
-   - Output Directory: `dist`
-   - Install Command: `npm ci`
-
-### Option 2: Netlify
-
-1. **Deploy via Netlify Dashboard**
-   - Connect your GitHub repository
-   - Build command: `npm run build`
-   - Publish directory: `dist`
-
-2. **Environment Variables**
-   - Add `VITE_API_URL` in Netlify dashboard
-
-### Option 3: Self-Hosted (Nginx)
-
-1. **Build the application**
-   ```bash
-   npm ci
-   npm run build
-   ```
-
-2. **Configure Nginx**
-   ```nginx
-   server {
-       listen 80;
-       server_name your-domain.com;
-       
-       root /var/www/defi-builder/dist;
-       index index.html;
-       
-       location / {
-           try_files $uri $uri/ /index.html;
-       }
-       
-       # Cache static assets
-       location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)$ {
-           expires 1y;
-           add_header Cache-Control "public, immutable";
-       }
-   }
-   ```
-
-3. **Set up SSL with Let's Encrypt**
-   ```bash
-   sudo certbot --nginx -d your-domain.com
-   ```
-
-## Backend Deployment
-
-### Option 1: Railway (Recommended)
-
-1. **Connect Repository**
-   - Go to Railway dashboard
-   - New Project > Deploy from GitHub
-   - Select your repository
-
-2. **Configure Services**
-   - Add PostgreSQL service
-   - Add Redis service (optional)
-   - Configure environment variables
-
-3. **Environment Variables**
-   ```env
-   DATABASE_URL=postgresql://user:pass@host:5432/dbname
-   REDIS_URL=redis://host:6379
-   JWT_SECRET=your-secret-key-min-32-chars
-   GEMINI_API_KEY=your-gemini-api-key
-   FRONTEND_URL=https://your-frontend-domain.com
-   PORT=3001
-   NODE_ENV=production
-   ```
-
-### Option 2: Render
-
-1. **Create Web Service**
-   - New > Web Service
-   - Connect GitHub repository
-   - Root Directory: `backend`
-   - Build Command: `npm install && npm run build`
-   - Start Command: `npm start`
-
-2. **Add PostgreSQL Database**
-   - New > PostgreSQL
-   - Copy connection string to `DATABASE_URL`
-
-3. **Environment Variables**
-   - Add all required variables in Render dashboard
-
-### Option 3: Self-Hosted (Docker)
-
-1. **Create Dockerfile**
-   ```dockerfile
-   FROM node:20-alpine
-   WORKDIR /app
-   COPY backend/package*.json ./
-   RUN npm ci --production
-   COPY backend/ .
-   RUN npm run build
-   EXPOSE 3001
-   CMD ["npm", "start"]
-   ```
-
-2. **Docker Compose**
-   ```yaml
-   version: '3.8'
-   services:
-     backend:
-       build: ./backend
-       ports:
-         - "3001:3001"
-       environment:
-         - DATABASE_URL=${DATABASE_URL}
-         - REDIS_URL=${REDIS_URL}
-         - JWT_SECRET=${JWT_SECRET}
-         - GEMINI_API_KEY=${GEMINI_API_KEY}
-         - FRONTEND_URL=${FRONTEND_URL}
-       depends_on:
-         - postgres
-         - redis
-     
-     postgres:
-       image: postgres:14-alpine
-       environment:
-         - POSTGRES_DB=defi_builder
-         - POSTGRES_USER=defi_user
-         - POSTGRES_PASSWORD=${DB_PASSWORD}
-       volumes:
-         - postgres_data:/var/lib/postgresql/data
-     
-     redis:
-       image: redis:6-alpine
-       volumes:
-         - redis_data:/data
-   
-   volumes:
-     postgres_data:
-     redis_data:
-   ```
-
-3. **Deploy**
-   ```bash
-   docker-compose up -d
-   ```
-
-## Environment Variables
-
-### Option 1: Doppler (Recommended)
-
-Use Doppler for secure secrets management. See [Doppler Setup Guide](./DOPPLER_SETUP.md) for details.
-
-**Quick Setup:**
+#### Frontend (.env)
 ```bash
-# Install Doppler CLI
-brew install dopplerhq/cli/doppler  # macOS
-# or visit: https://docs.doppler.com/docs/install-cli
-
-# Authenticate
-doppler login
-
-# Set up project
-doppler setup
-
-# Add secrets
-doppler secrets set DATABASE_URL="postgresql://..."
-doppler secrets set JWT_SECRET="your-secret-key"
-# ... etc
-
-# Run with Doppler
-doppler run -- npm start
+VITE_API_URL=https://api.yourdomain.com
+VITE_SENTRY_DSN=your-sentry-dsn
 ```
 
-### Option 2: Environment Variables (Fallback)
-
-### Frontend (.env.production)
-```env
-VITE_API_URL=https://api.your-domain.com
-```
-
-### Backend (.env)
-```env
+#### Backend (.env)
+```bash
 # Database
-DATABASE_URL=postgresql://user:password@host:5432/database
+DATABASE_URL=postgresql://user:password@host:5432/defi_builder
 
-# Redis (optional)
-REDIS_URL=redis://host:6379
+# Authentication
+JWT_SECRET=your-jwt-secret
+JWT_EXPIRES_IN=7d
 
-# Security
-JWT_SECRET=your-secret-key-minimum-32-characters-long
-NODE_ENV=production
-
-# API Keys
-GEMINI_API_KEY=your-gemini-api-key
+# API Keys (from Doppler or similar)
+GEMINI_API_KEY=your-gemini-key
+COINGECKO_API_KEY=your-coingecko-key
 
 # CORS
-FRONTEND_URL=https://your-frontend-domain.com
+CORS_ORIGIN=https://yourdomain.com
 
-# Server
-PORT=3001
-
-# Monitoring (optional)
-SENTRY_DSN=https://your-sentry-dsn@sentry.io/project-id
+# Sentry
+SENTRY_DSN=your-sentry-dsn
 ```
 
-**Note:** The application supports both Doppler and environment variables. Doppler is recommended for production.
+---
 
-## Database Setup
+## Deployment Steps
 
-1. **Create Database**
-   ```sql
-   CREATE DATABASE defi_builder;
-   CREATE USER defi_user WITH PASSWORD 'secure_password';
-   GRANT ALL PRIVILEGES ON DATABASE defi_builder TO defi_user;
-   ```
+### 1. Staging Deployment
 
-2. **Run Migrations**
+#### Manual Deployment
+```bash
+# Build frontend
+bun install
+bun run build
+
+# Build backend
+cd backend
+bun install
+bun run build
+
+# Deploy (example with rsync)
+rsync -avz dist/ user@staging-server:/var/www/defi-builder-frontend/
+rsync -avz backend/dist/ user@staging-server:/var/www/defi-builder-backend/
+```
+
+#### Automated Deployment (GitHub Actions)
+1. Push to `main` branch
+2. GitHub Actions will:
+   - Run tests
+   - Build frontend and backend
+   - Deploy to staging environment
+   - Run smoke tests
+
+### 2. Production Deployment
+
+#### Pre-Deployment Checklist
+- [ ] All tests passing
+- [ ] Code reviewed and approved
+- [ ] Database migrations tested
+- [ ] Environment variables configured
+- [ ] Backup database
+- [ ] Monitor staging for issues
+
+#### Manual Deployment
    ```bash
-   cd backend
-   npm run migrate
+# Build for production
+NODE_ENV=production bun run build
+cd backend && NODE_ENV=production bun run build
+
+# Deploy to production
+# (Use your preferred deployment method)
    ```
 
-## SSL/TLS Configuration
+#### Automated Deployment (GitHub Actions)
+1. Go to Actions tab
+2. Select "Deploy to Production" workflow
+3. Click "Run workflow"
+4. Monitor deployment progress
+5. Verify deployment with smoke tests
 
-Always use HTTPS in production:
+---
 
-1. **Get SSL Certificate** (Let's Encrypt)
+## CI/CD Pipeline
+
+### GitHub Actions Workflows
+
+#### 1. CI Workflow (`.github/workflows/ci.yml`)
+- Runs on every PR and push
+- Lint and type check
+- Run tests
+- Build application
+- Upload artifacts
+
+#### 2. Deploy Workflow (`.github/workflows/deploy.yml`)
+- Runs on push to `main` (staging)
+- Manual trigger for production
+- Builds frontend and backend
+- Deploys to staging/production
+- Runs smoke tests
+
+---
+
+## Deployment Environments
+
+### Staging
+- **URL:** `https://staging.yourdomain.com`
+- **Purpose:** Pre-production testing
+- **Auto-deploy:** Yes (on push to main)
+- **Database:** Staging database
+
+### Production
+- **URL:** `https://yourdomain.com`
+- **Purpose:** Live application
+- **Auto-deploy:** No (manual trigger)
+- **Database:** Production database
+
+---
+
+## Smoke Tests
+
+After deployment, run smoke tests:
+
    ```bash
-   certbot certonly --standalone -d your-domain.com
-   ```
+# Frontend health check
+curl -f https://yourdomain.com
 
-2. **Configure Backend** (if self-hosting)
-   - Use reverse proxy (Nginx) with SSL termination
-   - Or configure Node.js with HTTPS directly
+# Backend health check
+curl -f https://api.yourdomain.com/health
+
+# API endpoint check
+curl -f https://api.yourdomain.com/trpc/health.check
+```
+
+---
 
 ## Monitoring
 
-### Recommended Services
+### Post-Deployment Monitoring
 
-1. **Error Tracking**: Sentry
-   - Sign up at sentry.io
-   - Add DSN to environment variables
-   - Install SDK in frontend/backend
+1. **Application Health**
+   - Check Sentry for errors
+   - Monitor API response times
+   - Check database connections
 
-2. **Analytics**: PostHog or Mixpanel
-   - Track user events
-   - Monitor feature usage
+2. **User Impact**
+   - Monitor error rates
+   - Check user sessions
+   - Verify critical features
 
-3. **Uptime Monitoring**: UptimeRobot or Pingdom
-   - Monitor API endpoints
-   - Set up alerts
+3. **Performance**
+   - Check bundle sizes
+   - Monitor API latency
+   - Verify caching
 
-## Health Checks
+---
 
-The backend includes a health check endpoint:
+## Rollback Procedure
 
+If deployment fails:
+
+1. **Immediate Rollback**
 ```bash
-curl https://api.your-domain.com/health
-```
-
-Configure your deployment platform to use this for health checks.
-
-## Scaling
-
-### Horizontal Scaling
-
-1. **Frontend**: Use CDN (Cloudflare, CloudFront)
-2. **Backend**: Use load balancer with multiple instances
-3. **Database**: Use connection pooling (PgBouncer)
-
-### Vertical Scaling
-
-- Increase server resources (CPU, RAM)
-- Optimize database queries
-- Add caching layer (Redis)
-
-## Backup Strategy
-
-1. **Database Backups**
-   ```bash
-   # Daily automated backups
-   pg_dump -h host -U user -d database > backup_$(date +%Y%m%d).sql
+   # Restore previous build
+   # (Method depends on your deployment setup)
    ```
 
-2. **Store Backups**
-   - AWS S3
-   - Google Cloud Storage
-   - Backblaze B2
+2. **Database Rollback**
+   ```bash
+   # Restore database backup
+   # Run previous migrations if needed
+   ```
 
-## Security Checklist
+3. **Verify Rollback**
+   - Check application is working
+   - Verify database state
+   - Monitor for issues
 
-- [ ] All API keys in environment variables (not in code)
-- [ ] HTTPS enabled
-- [ ] CORS configured correctly
-- [ ] Rate limiting enabled
-- [ ] Input validation on all endpoints
-- [ ] SQL injection prevention (parameterized queries)
-- [ ] XSS protection (Content Security Policy)
-- [ ] Regular security audits (`npm audit`)
-- [ ] Dependencies kept up to date
-- [ ] Error messages don't leak sensitive info
+---
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **CORS Errors**
-   - Check `FRONTEND_URL` matches frontend domain
-   - Verify CORS configuration in backend
+#### Build Fails
+- Check environment variables
+- Verify dependencies
+- Check build logs
 
-2. **Database Connection Issues**
-   - Verify `DATABASE_URL` format
-   - Check database is accessible
-   - Verify credentials
+#### Deployment Fails
+- Check server access
+- Verify file permissions
+- Check disk space
 
-3. **Build Failures**
-   - Check Node.js version (must be 20+)
-   - Clear `node_modules` and reinstall
-   - Check environment variables are set
+#### Application Errors
+- Check Sentry for errors
+- Verify environment variables
+- Check database connection
+- Review application logs
+
+---
+
+## Security Considerations
+
+1. **Environment Variables**
+   - Never commit secrets
+   - Use Doppler or similar service
+   - Rotate keys regularly
+
+2. **Database**
+   - Use strong passwords
+   - Enable SSL connections
+   - Regular backups
+
+3. **API Keys**
+   - Store server-side only
+   - Rotate regularly
+   - Monitor usage
+
+---
+
+## Best Practices
+
+1. **Always test in staging first**
+2. **Deploy during low-traffic periods**
+3. **Monitor closely after deployment**
+4. **Keep deployment logs**
+5. **Document any issues**
+6. **Have rollback plan ready**
+
+---
 
 ## Support
 
-For deployment issues, check:
-- [GitHub Issues](https://github.com/your-repo/issues)
-- [Documentation](./README.md)
-- [Troubleshooting Guide](./TROUBLESHOOTING.md)
+For deployment issues:
+1. Check deployment logs
+2. Review GitHub Actions logs
+3. Check Sentry for errors
+4. Contact DevOps team
 
+---
+
+**Last Updated:** 2025-01-03

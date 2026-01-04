@@ -102,8 +102,8 @@ export async function simulateStrategyExecution(
   const processedTokens = new Set<string>();
 
   for (const block of blocks) {
-    // Estimate gas for this block
-    const blockGas = GAS_ESTIMATES[block.type] ?? GAS_ESTIMATES.default;
+    // Estimate gas for this block (default to 100000n if not found)
+    const blockGas = GAS_ESTIMATES[block.type] ?? GAS_ESTIMATES.default ?? 100000n;
     totalGas += blockGas;
 
     // Estimate cost (assuming 20 gwei gas price)
@@ -137,21 +137,55 @@ export async function simulateStrategyExecution(
     // Check balances
     if (block.params.amount || block.params.amount0) {
       const token = getTokenFromBlock(block);
-      const required = getAmountFromBlock(block) || '0';
+      const requiredRaw = getAmountFromBlock(block) || '0';
       const current = userBalances.get(token || '') || '0';
 
       if (token) {
-        const sufficient = BigInt(current) >= BigInt(required);
+        // Convert amount to wei (18 decimals) if it's a decimal number
+        // This handles cases where amounts are in human-readable format (e.g., "0.01", "0.1")
+        let required: string;
+        try {
+          const amountNum = Number.parseFloat(requiredRaw);
+          if (Number.isNaN(amountNum)) {
+            // If it's not a number, try to parse as BigInt directly
+            required = requiredRaw;
+          } else if (amountNum % 1 !== 0) {
+            // It's a decimal, convert to wei (multiply by 10^18)
+            const amountWei = BigInt(Math.floor(amountNum * 10 ** 18));
+            required = amountWei.toString();
+          } else {
+            // It's already an integer, assume it's in wei
+            required = requiredRaw;
+          }
+        } catch {
+          // If conversion fails, use raw value and let BigInt handle it
+          required = requiredRaw;
+        }
+
+        // Ensure both values are valid BigInt strings
+        let sufficient = false;
+        try {
+          const requiredBigInt = BigInt(required);
+          const currentBigInt = BigInt(current);
+          sufficient = currentBigInt >= requiredBigInt;
+        } catch (error) {
+          // If BigInt conversion fails, log error and mark as insufficient
+          errors.push(
+            `Invalid amount format for ${block.label}: ${requiredRaw}. Please use a valid number.`
+          );
+          sufficient = false;
+        }
+
         balanceChecks.push({
           token,
-          required,
+          required: requiredRaw, // Keep original format for display
           current,
           sufficient,
         });
 
         if (!sufficient) {
           errors.push(
-            `Insufficient balance for ${block.label}: Need ${required} ${token}, have ${current}`
+            `Insufficient balance for ${block.label}: Need ${requiredRaw} ${token}, have ${current}`
           );
         }
       }

@@ -73,6 +73,7 @@ class RateLimiter {
       if (this.requestHistory.length >= this.config.maxRequests) {
         // Wait until we can make more requests
         const oldestRequest = this.requestHistory[0];
+        if (oldestRequest === undefined) continue;
         const waitTime = this.config.windowMs - (now - oldestRequest);
         if (waitTime > 0) {
           await this.sleep(waitTime);
@@ -100,7 +101,7 @@ class RateLimiter {
         if (isRateLimit && request.retries < (this.config.maxRetries || 3)) {
           // Exponential backoff for rate limit errors
           request.retries++;
-          const delay = (this.config.retryDelay || 1000) * Math.pow(2, request.retries - 1);
+          const delay = (this.config.retryDelay || 1000) * 2 ** (request.retries - 1);
           await this.sleep(delay);
           this.queue.unshift(request); // Add back to front of queue
         } else {
@@ -190,4 +191,3 @@ class RequestDeduplicator {
 }
 
 export const requestDeduplicator = new RequestDeduplicator();
-

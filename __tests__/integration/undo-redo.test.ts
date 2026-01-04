@@ -1,7 +1,7 @@
-import { describe, expect, it, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { validateStrategy } from '../../services/strategyValidator';
 import { BlockCategory, Protocol } from '../../types';
 import type { LegoBlock } from '../../types';
-import { validateStrategy } from '../../services/strategyValidator';
 
 describe('Undo/Redo Operations', () => {
   let initialBlocks: LegoBlock[];
@@ -65,14 +65,13 @@ describe('Undo/Redo Operations', () => {
   });
 
   it('should preserve block order through undo/redo', () => {
-    const initialOrder = initialBlocks.map(b => b.id);
-    const modifiedOrder = modifiedBlocks.map(b => b.id);
+    const initialOrder = initialBlocks.map((b) => b.id);
+    const modifiedOrder = modifiedBlocks.map((b) => b.id);
 
     // After undo
-    expect(initialBlocks.map(b => b.id)).toEqual(initialOrder);
+    expect(initialBlocks.map((b) => b.id)).toEqual(initialOrder);
 
     // After redo
-    expect(modifiedBlocks.map(b => b.id)).toEqual(modifiedOrder);
+    expect(modifiedBlocks.map((b) => b.id)).toEqual(modifiedOrder);
   });
 });
-

@@ -53,7 +53,9 @@ export async function getTokenPrices(tokens: string[]): Promise<Record<string, n
   const now = Date.now();
   const timeSinceLastRequest = now - lastRequestTime;
   if (timeSinceLastRequest < MIN_REQUEST_INTERVAL) {
-    await new Promise((resolve) => setTimeout(resolve, MIN_REQUEST_INTERVAL - timeSinceLastRequest));
+    await new Promise((resolve) =>
+      setTimeout(resolve, MIN_REQUEST_INTERVAL - timeSinceLastRequest)
+    );
   }
 
   try {
@@ -72,7 +74,7 @@ export async function getTokenPrices(tokens: string[]): Promise<Record<string, n
 
     const response = await fetch(url, {
       headers: {
-        'Accept': 'application/json',
+        Accept: 'application/json',
       },
     });
 
@@ -90,7 +92,7 @@ export async function getTokenPrices(tokens: string[]): Promise<Record<string, n
 
     // Map CoinGecko IDs back to token symbols
     const result: Record<string, number> = {};
-    tokens.forEach((token) => {
+    for (const token of tokens) {
       const tokenId = TOKEN_IDS[token];
       if (tokenId && data[tokenId]?.usd) {
         result[token] = data[tokenId].usd;
@@ -98,7 +100,7 @@ export async function getTokenPrices(tokens: string[]): Promise<Record<string, n
         // Fallback for unmapped tokens
         result[token] = getFallbackPrices([token])[token] || 0;
       }
-    });
+    }
 
     // Cache the result
     cache.set(cacheKey, {
@@ -108,7 +110,11 @@ export async function getTokenPrices(tokens: string[]): Promise<Record<string, n
 
     return result;
   } catch (error) {
-    logger.error('Failed to fetch prices from CoinGecko', error instanceof Error ? error : new Error(String(error)), 'PriceFeed');
+    logger.error(
+      'Failed to fetch prices from CoinGecko',
+      error instanceof Error ? error : new Error(String(error)),
+      'PriceFeed'
+    );
     // Return cached data or fallback
     return cached?.data || getFallbackPrices(tokens);
   }
@@ -130,9 +136,9 @@ function getFallbackPrices(tokens: string[]): Record<string, number> {
   };
 
   const result: Record<string, number> = {};
-  tokens.forEach((token) => {
+  for (const token of tokens) {
     result[token] = fallbackPrices[token] ?? 0;
-  });
+  }
 
   return result;
 }
@@ -143,4 +149,3 @@ function getFallbackPrices(tokens: string[]): Record<string, number> {
 export function clearPriceCache(): void {
   cache.clear();
 }
-

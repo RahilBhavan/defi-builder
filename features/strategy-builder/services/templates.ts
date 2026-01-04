@@ -3,7 +3,7 @@
  * Provides ready-to-use strategies for common DeFi use cases
  */
 
-import { BlockCategory, type LegoBlock, Protocol } from '../types';
+import { BlockCategory, type LegoBlock, Protocol } from '../../../types';
 
 export interface StrategyTemplate {
   id: string;
@@ -349,7 +349,7 @@ const rebalancingStrategy: StrategyTemplate = {
         },
         threshold: 5,
         method: 'proportional',
-      },
+      } as any, // Type assertion needed as BlockParams doesn't support nested objects
     },
     {
       id: 'rebal_position_sizing',

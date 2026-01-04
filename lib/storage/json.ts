@@ -5,19 +5,24 @@
 
 import { logger } from '../monitoring/logger';
 
-import { logger } from '../monitoring/logger';
-
 /**
  * Safely parse JSON string with error handling
  * @param jsonString - The JSON string to parse
  * @param fallback - Value to return if parsing fails (default: null)
  * @returns Parsed object or fallback value
  */
-export function safeJsonParse<T = unknown>(jsonString: string, fallback: T | null = null): T | null {
+export function safeJsonParse<T = unknown>(
+  jsonString: string,
+  fallback: T | null = null
+): T | null {
   try {
     return JSON.parse(jsonString) as T;
   } catch (error) {
-    logger.error('JSON parse error', error instanceof Error ? error : new Error(String(error)), 'JSON');
+    logger.error(
+      'JSON parse error',
+      error instanceof Error ? error : new Error(String(error)),
+      'JSON'
+    );
     return fallback;
   }
 }
@@ -32,7 +37,11 @@ export function safeJsonStringify(value: unknown, fallback = '{}'): string {
   try {
     return JSON.stringify(value);
   } catch (error) {
-    logger.error('JSON stringify error', error instanceof Error ? error : new Error(String(error)), 'JSON');
+    logger.error(
+      'JSON stringify error',
+      error instanceof Error ? error : new Error(String(error)),
+      'JSON'
+    );
     return fallback;
   }
 }
@@ -46,7 +55,10 @@ export function safeJsonStringify(value: unknown, fallback = '{}'): string {
  */
 export function safeJsonParseWithSchema<T>(
   jsonString: string,
-  schema: { parse: (data: unknown) => T; safeParse: (data: unknown) => { success: boolean; data?: T; error?: unknown } },
+  schema: {
+    parse: (data: unknown) => T;
+    safeParse: (data: unknown) => { success: boolean; data?: T; error?: unknown };
+  },
   fallback: T | null = null
 ): T | null {
   try {
@@ -55,11 +67,18 @@ export function safeJsonParseWithSchema<T>(
     if (result.success && result.data) {
       return result.data;
     }
-    logger.error('Schema validation failed', result.error instanceof Error ? result.error : new Error(String(result.error)), 'JSON');
+    logger.error(
+      'Schema validation failed',
+      result.error instanceof Error ? result.error : new Error(String(result.error)),
+      'JSON'
+    );
     return fallback;
   } catch (error) {
-    logger.error('JSON parse error', error instanceof Error ? error : new Error(String(error)), 'JSON');
+    logger.error(
+      'JSON parse error',
+      error instanceof Error ? error : new Error(String(error)),
+      'JSON'
+    );
     return fallback;
   }
 }
-

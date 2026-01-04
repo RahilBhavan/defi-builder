@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { trpc } from '../utils/trpc';
-import { logger } from '../utils/logger';
+import { logger } from '../lib/monitoring/logger';
+import { trpc } from '../lib/api/trpc';
 import { useWallet } from './useWallet';
 
 export function useAuth() {
@@ -23,7 +23,11 @@ export function useAuth() {
       setIsAuthenticated(false);
     },
     onError: (error: unknown) => {
-      logger.error('Logout error', error instanceof Error ? error : new Error(String(error)), 'Auth');
+      logger.error(
+        'Logout error',
+        error instanceof Error ? error : new Error(String(error)),
+        'Auth'
+      );
     },
   });
 
@@ -48,9 +52,20 @@ export function useAuth() {
   }, [logoutMutation]);
 
   // Check authentication status using me query
-  const { data: userData } = trpc.auth.me.useQuery(undefined, {
+  const { data: userData, error: meError } = trpc.auth.me.useQuery(undefined, {
     enabled: isConnected,
     retry: false,
+    // Don't treat errors as failures - user might just not be authenticated
+    onError: (error) => {
+      // Only log unexpected errors (not UNAUTHORIZED)
+      if (error.data?.code !== 'UNAUTHORIZED') {
+        logger.error(
+          'Auth check error',
+          error instanceof Error ? error : new Error(String(error)),
+          'Auth'
+        );
+      }
+    },
   });
 
   // Token refresh mechanism
@@ -96,8 +111,10 @@ export function useAuth() {
   }, [isAuthenticated, userData, refreshMutation, logout]);
 
   useEffect(() => {
-    if (userData) {
-      setIsAuthenticated(true);
+    // userData will be null if not authenticated (due to optionalAuthProcedure)
+    // or undefined if query hasn't completed yet
+    if (userData !== undefined) {
+      setIsAuthenticated(userData !== null);
     } else if (!isConnected) {
       setIsAuthenticated(false);
     }

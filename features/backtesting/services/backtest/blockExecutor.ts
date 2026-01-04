@@ -3,9 +3,8 @@
  * Executes each block type with real logic
  */
 
-import type { LegoBlock } from '../../types';
-import { PriceDataPoint, getPriceAtTimestamp } from './dataFetcher';
-import { type PortfolioManager, Trade } from './portfolio';
+import type { LegoBlock } from '../../../../types';
+import type { PortfolioManager } from './portfolio';
 
 export interface ExecutionContext {
   timestamp: number;
@@ -189,7 +188,7 @@ function executeUniswapSwap(block: LegoBlock, context: ExecutionContext): Execut
  * Execute an Aave supply block
  */
 function executeAaveSupply(block: LegoBlock, context: ExecutionContext): ExecutionResult {
-  const { asset, amount, collateral } = block.params;
+  const { asset, amount } = block.params;
   const token = String(asset);
   const supplyAmount = Number(amount) || 0;
 
@@ -356,7 +355,7 @@ function executeTimeTrigger(block: LegoBlock, context: ExecutionContext): Execut
  * Execute a volume trigger block
  */
 function executeVolumeTrigger(block: LegoBlock, context: ExecutionContext): ExecutionResult {
-  const { asset, minVolume, timeframe } = block.params;
+  const { asset, minVolume } = block.params;
   // Simplified: would need historical volume data
   // For now, simulate based on price movement
   const price = context.prices.get(String(asset)) || 0;
@@ -387,7 +386,7 @@ function executeTechnicalIndicatorTrigger(
   block: LegoBlock,
   context: ExecutionContext
 ): ExecutionResult {
-  const { asset, indicator, condition, value, period } = block.params;
+  const { asset, indicator, condition, value } = block.params;
   const price = context.prices.get(String(asset)) || 0;
 
   // Simplified indicator calculation
@@ -443,7 +442,7 @@ function executeTechnicalIndicatorTrigger(
  * Execute an Aave borrow block
  */
 function executeAaveBorrow(block: LegoBlock, context: ExecutionContext): ExecutionResult {
-  const { asset, amount, interestRateMode } = block.params;
+  const { asset, amount } = block.params;
   const token = String(asset);
   const borrowAmount = Number(amount) || 0;
 
@@ -473,7 +472,7 @@ function executeAaveBorrow(block: LegoBlock, context: ExecutionContext): Executi
 
     // Add debt position
     context.portfolio.addPosition({
-      type: 'borrow',
+      type: 'supply', // Borrow operations use supply type in portfolio
       asset: token,
       amount: borrowAmount,
       entryPrice: price,
@@ -484,7 +483,7 @@ function executeAaveBorrow(block: LegoBlock, context: ExecutionContext): Executi
     const gasCost = GAS_COSTS.borrow * price;
     context.portfolio.recordTrade({
       timestamp: context.timestamp,
-      type: 'borrow',
+      type: 'supply', // Borrow operations use supply type in portfolio
       inputToken: token,
       inputAmount: borrowAmount,
       price,
@@ -496,7 +495,7 @@ function executeAaveBorrow(block: LegoBlock, context: ExecutionContext): Executi
       success: true,
       executed: true,
       message: `Borrowed ${borrowAmount} ${token} from Aave`,
-      data: { amount: borrowAmount, interestRateMode, gasCost },
+      data: { amount: borrowAmount, gasCost },
     };
   } catch (error) {
     return {
@@ -511,7 +510,7 @@ function executeAaveBorrow(block: LegoBlock, context: ExecutionContext): Executi
  * Execute an Aave repay block
  */
 function executeAaveRepay(block: LegoBlock, context: ExecutionContext): ExecutionResult {
-  const { asset, amount, interestRateMode } = block.params;
+  const { asset, amount } = block.params;
   const token = String(asset);
   const repayAmount = Number(amount) || 0;
 
@@ -546,7 +545,7 @@ function executeAaveRepay(block: LegoBlock, context: ExecutionContext): Executio
     const gasCost = GAS_COSTS.repay * price;
     context.portfolio.recordTrade({
       timestamp: context.timestamp,
-      type: 'repay',
+      type: 'withdraw', // Repay operations use withdraw type in portfolio
       inputToken: token,
       inputAmount: repayAmount,
       price,
@@ -645,7 +644,7 @@ function executeUniswapV3Liquidity(block: LegoBlock, context: ExecutionContext):
     return {
       success: false,
       executed: false,
-      message: `Insufficient balance for liquidity provision`,
+      message: 'Insufficient balance for liquidity provision',
     };
   }
 
@@ -658,7 +657,7 @@ function executeUniswapV3Liquidity(block: LegoBlock, context: ExecutionContext):
 
     // Add liquidity position
     context.portfolio.addPosition({
-      type: 'liquidity',
+      type: 'supply', // Liquidity operations use supply type in portfolio
       asset: `${t0}/${t1}`,
       amount: amt0 + amt1, // Simplified
       entryPrice: (price0 + price1) / 2,
@@ -669,7 +668,7 @@ function executeUniswapV3Liquidity(block: LegoBlock, context: ExecutionContext):
     const gasCost = GAS_COSTS.liquidity * price0;
     context.portfolio.recordTrade({
       timestamp: context.timestamp,
-      type: 'liquidity',
+      type: 'supply', // Liquidity operations use supply type in portfolio
       inputToken: `${t0}/${t1}`,
       inputAmount: amt0 + amt1,
       price: (price0 + price1) / 2,
@@ -771,7 +770,7 @@ function executeCompoundBorrow(block: LegoBlock, context: ExecutionContext): Exe
   try {
     context.portfolio.addBalance(token, borrowAmount);
     context.portfolio.addPosition({
-      type: 'borrow',
+      type: 'supply', // Borrow operations use supply type in portfolio
       asset: token,
       amount: borrowAmount,
       entryPrice: price,
@@ -782,7 +781,7 @@ function executeCompoundBorrow(block: LegoBlock, context: ExecutionContext): Exe
     const gasCost = GAS_COSTS.borrow * price;
     context.portfolio.recordTrade({
       timestamp: context.timestamp,
-      type: 'borrow',
+      type: 'supply', // Borrow operations use supply type in portfolio
       inputToken: token,
       inputAmount: borrowAmount,
       price,
@@ -831,7 +830,7 @@ function executeCurveSwap(block: LegoBlock, context: ExecutionContext): Executio
     return {
       success: false,
       executed: false,
-      message: `Missing price data`,
+      message: 'Missing price data',
     };
   }
 
@@ -903,7 +902,7 @@ function executeBalancerSwap(block: LegoBlock, context: ExecutionContext): Execu
     return {
       success: false,
       executed: false,
-      message: `Missing price data`,
+      message: 'Missing price data',
     };
   }
 
@@ -975,7 +974,7 @@ function executeOneInchSwap(block: LegoBlock, context: ExecutionContext): Execut
     return {
       success: false,
       executed: false,
-      message: `Missing price data`,
+      message: 'Missing price data',
     };
   }
 
@@ -1042,7 +1041,7 @@ function executeFlashLoan(block: LegoBlock, context: ExecutionContext): Executio
     const gasCost = GAS_COSTS.flashLoan * price;
     context.portfolio.recordTrade({
       timestamp: context.timestamp,
-      type: 'flash_loan',
+      type: 'swap', // Flash loan operations use swap type in portfolio
       inputToken: token,
       inputAmount: loanAmount,
       price,
@@ -1184,9 +1183,9 @@ function executeTakeProfit(block: LegoBlock, context: ExecutionContext): Executi
  * Execute a time exit block
  */
 function executeTimeExit(block: LegoBlock, context: ExecutionContext): ExecutionResult {
-  const { duration, from } = block.params;
+  const { duration } = block.params;
   const durationMs = Number(duration) || 86400000;
-  const startPoint = from === 'entry' ? 'entry' : 'position';
+  // const startPoint = from === 'entry' ? 'entry' : 'position'; // Unused for now
 
   const positions = context.portfolio.getPositions();
   if (positions.length === 0) {
@@ -1253,14 +1252,15 @@ function executeConditionalExit(block: LegoBlock, context: ExecutionContext): Ex
   }
 
   // Simplified condition evaluation
-  const shouldExit = condition.includes('profit') || condition.includes('>');
+  const conditionStr = typeof condition === 'string' ? condition : String(condition ?? '');
+  const shouldExit = conditionStr.includes('profit') || conditionStr.includes('>');
 
   if (!shouldExit) {
     return {
       success: true,
       executed: false,
-      message: `Conditional exit not met: ${condition}`,
-      data: { condition },
+      message: `Conditional exit not met: ${conditionStr}`,
+      data: { condition: conditionStr },
     };
   }
 
@@ -1300,7 +1300,7 @@ function executeConditionalExit(block: LegoBlock, context: ExecutionContext): Ex
 /**
  * Execute a position sizing block
  */
-function executePositionSizing(block: LegoBlock, context: ExecutionContext): ExecutionResult {
+function executePositionSizing(block: LegoBlock, _context: ExecutionContext): ExecutionResult {
   const { method, value, maxPosition } = block.params;
   // Position sizing affects future block execution
   // Store sizing rules in context for use by subsequent blocks
@@ -1318,10 +1318,11 @@ function executePositionSizing(block: LegoBlock, context: ExecutionContext): Exe
 /**
  * Execute a risk limits block
  */
-function executeRiskLimits(block: LegoBlock, context: ExecutionContext): ExecutionResult {
+function executeRiskLimits(block: LegoBlock, _context: ExecutionContext): ExecutionResult {
   const { maxDrawdown, maxPositionSize, maxLeverage, maxDailyLoss } = block.params;
   // Risk limits affect strategy execution
   // Store limits in context for validation
+  // Using _context prefix to indicate intentionally unused for now
 
   return {
     success: true,
@@ -1348,6 +1349,13 @@ function executeRebalancing(block: LegoBlock, context: ExecutionContext): Execut
   for (const position of context.portfolio.getPositions()) {
     const price = context.prices.get(position.asset) || 0;
     totalValue += position.amount * price;
+  }
+  if (typeof targetAllocation !== 'object' || targetAllocation === null) {
+    return {
+      success: false,
+      executed: false,
+      message: 'Invalid target allocation: must be an object',
+    };
   }
   const allocations = targetAllocation as Record<string, number>;
 

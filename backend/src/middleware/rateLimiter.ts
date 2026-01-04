@@ -14,14 +14,17 @@ interface RateLimitEntry {
 const rateLimitStore = new Map<string, RateLimitEntry>();
 
 // Clean up old entries every 5 minutes
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, entry] of rateLimitStore.entries()) {
-    if (now > entry.resetTime) {
-      rateLimitStore.delete(key);
+setInterval(
+  () => {
+    const now = Date.now();
+    for (const [key, entry] of rateLimitStore.entries()) {
+      if (now > entry.resetTime) {
+        rateLimitStore.delete(key);
+      }
     }
-  }
-}, 5 * 60 * 1000);
+  },
+  5 * 60 * 1000
+);
 
 /**
  * Create a rate limiter middleware
@@ -81,4 +84,3 @@ export const rateLimiters = {
   // Auth endpoints: 5 requests per minute (prevent brute force)
   auth: createRateLimiter(60 * 1000, 5),
 };
-

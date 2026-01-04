@@ -9,6 +9,7 @@ interface SecondaryMenuProps {
   onOpenPortfolio: () => void;
   onOpenLibrary: () => void;
   onOpenSettings: () => void;
+  onOpenPaperTrading: () => void;
   onExport: () => void;
   onImport: () => void;
 }
@@ -18,6 +19,7 @@ export const SecondaryMenu: React.FC<SecondaryMenuProps> = ({
   onOpenPortfolio,
   onOpenLibrary,
   onOpenSettings,
+  onOpenPaperTrading,
   onExport,
   onImport,
 }) => {
@@ -46,6 +48,7 @@ export const SecondaryMenu: React.FC<SecondaryMenuProps> = ({
           >
             {[
               { label: 'Backtest', action: onOpenBacktest },
+              { label: 'Paper Trading', action: onOpenPaperTrading },
               { label: 'Portfolio', action: onOpenPortfolio },
               { label: 'Strategy Library', action: onOpenLibrary },
               { label: 'Settings', action: onOpenSettings },
