@@ -17,8 +17,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { AVAILABLE_BLOCKS } from '../../../../constants';
 import { useDebounce } from '../../../../hooks/useDebounce';
 import { useToast } from '../../../../hooks/useToast';
-import type { LegoBlock } from '../../../../types';
 import { trpc } from '../../../../lib/api/trpc';
+import type { LegoBlock } from '../../../../types';
 import { suggestNextBlocks } from '../../../ai/services/gemini';
 
 interface AIBlockSuggesterProps {

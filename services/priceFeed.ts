@@ -4,8 +4,8 @@
  * All API calls go through backend proxy for security
  */
 
-import { priceFeedRateLimiter, requestDeduplicator } from '../lib/monitoring/rateLimiter';
 import { logger } from '../lib/monitoring/logger';
+import { priceFeedRateLimiter, requestDeduplicator } from '../lib/monitoring/rateLimiter';
 
 export interface PriceUpdate {
   token: string;

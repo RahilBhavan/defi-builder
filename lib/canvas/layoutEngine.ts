@@ -52,4 +52,3 @@ export function smartLayout(nodes: BlockNode[], edges: FlowEdge[]): void {
     }
   });
 }
-

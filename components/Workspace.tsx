@@ -1,13 +1,14 @@
+import { ReactFlowProvider } from '@xyflow/react';
 import type React from 'react';
 import { Suspense, lazy, useCallback, useState } from 'react';
-import { ReactFlowProvider } from '@xyflow/react';
-import { getUserFriendlyErrorMessage } from '../lib/error/handler';
 import { smartLayout } from '../lib/canvas/layoutEngine';
+import { getUserFriendlyErrorMessage } from '../lib/error/handler';
 import { blocksToCanvasElements } from '../lib/spine/canvas';
 import { ErrorBoundary } from './ErrorBoundary';
 import { CanvasToolbar, StrategyCanvas } from './canvas';
 import { AIBlockSuggester } from './workspace/AIBlockSuggester';
 import { BlockConfigPanel } from './workspace/BlockConfigPanel';
+import { ExecuteButton } from './workspace/ExecuteButton';
 
 // Lazy load modals and heavy components
 const BacktestModal = lazy(() =>
@@ -25,14 +26,14 @@ const SettingsModal = lazy(() =>
 const OptimizationPanel = lazy(() =>
   import('@/features/optimization').then((m) => ({ default: m.OptimizationPanel }))
 );
-const SimulationModal = lazy(() =>
-  import('./modals/SimulationModal').then((m) => ({ default: m.SimulationModal }))
-);
 const PaperTradingPanel = lazy(() =>
   import('./paperTrading/PaperTradingPanel').then((m) => ({ default: m.PaperTradingPanel }))
 );
 const PaperTradingModal = lazy(() =>
   import('./modals/PaperTradingModal').then((m) => ({ default: m.PaperTradingModal }))
+);
+const MarketplaceModal = lazy(() =>
+  import('./marketplace/MarketplaceModal').then((m) => ({ default: m.MarketplaceModal }))
 );
 
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
@@ -41,10 +42,7 @@ import { useToast } from '../hooks/useToast';
 import { useWallet } from '../hooks/useWallet';
 import { useWorkspaceState } from '../hooks/useWorkspaceState';
 import type { DeFiBacktestResult } from '../services/defiBacktestEngine';
-import { BacktestExecutionError, executeStrategy } from '../services/executionEngine';
-import { portfolioTracker } from '../services/portfolioTracker';
 import { exportBlocks, importBlocks } from '../services/strategyStorage';
-import { simulateStrategyExecution } from '../services/web3/transactionSimulator';
 
 const Workspace: React.FC = () => {
   const { error: showError, success: showSuccess } = useToast();
@@ -72,18 +70,14 @@ const Workspace: React.FC = () => {
   } = useWorkspaceState();
 
   // Local UI state
-  const [isExecuting, setIsExecuting] = useState(false);
+  const [isExecuting] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(100);
-  const [backtestResult, setBacktestResult] = useState<DeFiBacktestResult | null>(null);
-  const [showSimulation, setShowSimulation] = useState(false);
-  const [simulationResult, setSimulationResult] = useState<
-    import('../services/web3/transactionSimulator').SimulationResult | null
-  >(null);
+  const [backtestResult] = useState<DeFiBacktestResult | null>(null);
   const [showGrid, setShowGrid] = useState(true);
   const [showMinimap, setShowMinimap] = useState(true);
 
   // Wallet connection
-  const { address, isConnected } = useWallet();
+  const { isConnected } = useWallet();
 
   // Consolidated modal state
   const {
@@ -93,6 +87,7 @@ const Workspace: React.FC = () => {
     isLibraryOpen,
     isOptimizationOpen,
     isPaperTradingOpen,
+    isMarketplaceOpen,
     openModal,
     closeModal,
   } = useModalState();
@@ -163,53 +158,15 @@ const Workspace: React.FC = () => {
   }, [openModal]);
 
   const handleExecute = async () => {
-    if (!isConnected) {
-      showError('Please connect your wallet before executing a strategy');
+    // Instead of executing directly, open paper trading
+    if (blocks.length === 0) {
+      showError('Please add blocks to your strategy before starting paper trading');
       return;
     }
 
-    try {
-      const simulation = await simulateStrategyExecution(
-        blocks,
-        address as `0x${string}` | undefined
-      );
-      setSimulationResult(simulation);
-      setShowSimulation(true);
-    } catch (error) {
-      const { logger } = await import('../lib/monitoring/logger');
-      logger.error(
-        'Simulation failed',
-        error instanceof Error ? error : new Error(String(error)),
-        'Workspace'
-      );
-      const { getUserFriendlyErrorMessage } = await import('../utils/errorHandler');
-      showError(getUserFriendlyErrorMessage(error, 'simulation'));
-    }
-  };
-
-  const handleProceedWithExecution = async () => {
-    setShowSimulation(false);
-    setIsExecuting(true);
-    try {
-      const result = await executeStrategy(blocks);
-      setBacktestResult(result);
-
-      const strategyName = blocks.length > 0 ? `Strategy with ${blocks.length} blocks` : 'Strategy';
-      portfolioTracker.recordBacktestResult(result, undefined, strategyName);
-
-      openModal('backtest');
-      showSuccess('Strategy executed successfully');
-    } catch (error) {
-      if (error instanceof BacktestExecutionError) {
-        const message = error.actionable ? `${error.message}. ${error.actionable}` : error.message;
-        showError(message);
-      } else {
-        const { getUserFriendlyErrorMessage } = await import('../utils/errorHandler');
-        showError(getUserFriendlyErrorMessage(error, 'execution'));
-      }
-    } finally {
-      setIsExecuting(false);
-    }
+    // Open paper trading modal
+    setPaperTradingSessionId(undefined);
+    openModal('paperTrading');
   };
 
   const handleAutoLayout = useCallback(() => {
@@ -299,7 +256,7 @@ const Workspace: React.FC = () => {
         />
 
         {/* Main Canvas Area */}
-        <main className="flex-1 pt-14 relative">
+        <main className="flex-1 pt-14 relative overflow-y-auto overflow-x-hidden">
           <StrategyCanvas
             blocks={blocks}
             selectedBlockId={selectedBlockId}
@@ -326,6 +283,15 @@ const Workspace: React.FC = () => {
           </button>
         </main>
 
+        {/* Execute Button - Fixed at bottom center */}
+        {blocks.length > 0 && (
+          <ExecuteButton
+            isValid={(validationResult?.valid ?? false) && isConnected}
+            isExecuting={isExecuting}
+            onClick={handleExecute}
+          />
+        )}
+
         {/* Side Panels */}
         <AIBlockSuggester
           isOpen={showLeftPanel}
@@ -344,16 +310,6 @@ const Workspace: React.FC = () => {
 
         {/* Modals - Lazy loaded with error boundaries */}
         <Suspense fallback={null}>
-          {showSimulation && (
-            <ErrorBoundary>
-              <SimulationModal
-                isOpen={showSimulation}
-                onClose={() => setShowSimulation(false)}
-                onProceed={handleProceedWithExecution}
-                result={simulationResult}
-              />
-            </ErrorBoundary>
-          )}
           {isBacktestOpen && (
             <ErrorBoundary>
               <BacktestModal isOpen={isBacktestOpen} onClose={closeModal} result={backtestResult} />
@@ -382,6 +338,27 @@ const Workspace: React.FC = () => {
               <SettingsModal isOpen={isSettingsOpen} onClose={closeModal} />
             </ErrorBoundary>
           )}
+          {isMarketplaceOpen && (
+            <ErrorBoundary>
+              <Suspense
+                fallback={
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                    <div className="text-white">Loading...</div>
+                  </div>
+                }
+              >
+                <MarketplaceModal
+                  isOpen={isMarketplaceOpen}
+                  onClose={closeModal}
+                  onLoadStrategy={(_strategyId) => {
+                    // Load strategy from marketplace
+                    // This will be handled by the marketplace modal's fork functionality
+                    showSuccess('Strategy loaded from marketplace');
+                  }}
+                />
+              </Suspense>
+            </ErrorBoundary>
+          )}
           {isPaperTradingOpen && (
             <ErrorBoundary>
               <Suspense
@@ -395,9 +372,13 @@ const Workspace: React.FC = () => {
                   isOpen={isPaperTradingOpen}
                   onClose={closeModal}
                   onCreateSession={() => {
-                    setPaperTradingSessionId(undefined);
+                    // Close the panel and open the modal to create a new session
+                    closeModal();
+                    // Set a temporary ID to trigger the modal
+                    setPaperTradingSessionId('new');
                   }}
                   onViewSession={(sessionId) => {
+                    closeModal();
                     setPaperTradingSessionId(sessionId);
                   }}
                 />
@@ -415,9 +396,11 @@ const Workspace: React.FC = () => {
               >
                 <PaperTradingModal
                   isOpen={paperTradingSessionId !== undefined}
-                  onClose={() => setPaperTradingSessionId(undefined)}
+                  onClose={() => {
+                    setPaperTradingSessionId(undefined);
+                  }}
                   blocks={blocks}
-                  sessionId={paperTradingSessionId}
+                  sessionId={paperTradingSessionId === 'new' ? undefined : paperTradingSessionId}
                 />
               </Suspense>
             </ErrorBoundary>

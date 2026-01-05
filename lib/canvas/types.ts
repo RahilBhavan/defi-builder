@@ -1,4 +1,4 @@
-import type { Node, Edge } from '@xyflow/react';
+import type { Edge, Node } from '@xyflow/react';
 import type { LegoBlock } from '../../types';
 
 /**
@@ -35,4 +35,3 @@ export interface FlowEdgeData {
  * A React Flow edge connecting strategy blocks
  */
 export type FlowEdge = Edge<FlowEdgeData>;
-

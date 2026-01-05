@@ -85,8 +85,12 @@ export class PaperTradingStorage {
       return (data.sessions || []).map((session) => ({
         ...session,
         startTime: new Date(session.startTime),
-        lastExecutionTime: session.lastExecutionTime ? new Date(session.lastExecutionTime) : undefined,
-        nextExecutionTime: session.nextExecutionTime ? new Date(session.nextExecutionTime) : undefined,
+        lastExecutionTime: session.lastExecutionTime
+          ? new Date(session.lastExecutionTime)
+          : undefined,
+        nextExecutionTime: session.nextExecutionTime
+          ? new Date(session.nextExecutionTime)
+          : undefined,
         config: {
           ...session.config,
           startDate: new Date(session.config.startDate),
@@ -135,4 +139,3 @@ export class PaperTradingStorage {
 
 // Singleton instance
 export const paperTradingStorage = new PaperTradingStorage();
-

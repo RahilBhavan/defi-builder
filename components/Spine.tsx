@@ -1,9 +1,10 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowDown } from 'lucide-react';
 import React, { useState } from 'react';
-import type { LegoBlock } from '../types';
 import { safeJsonParse } from '../lib/storage/json';
+import type { LegoBlock } from '../types';
 import { Block } from './Block';
+import { EmptyWorkspaceState } from './EmptyWorkspaceState';
 
 interface SpineProps {
   blocks: LegoBlock[];
@@ -64,7 +65,7 @@ export const Spine: React.FC<SpineProps> = ({
     setDragOverIndex(null);
   };
 
-  const handleDropFromExternal = (e: React.DragEvent<HTMLElement>, targetIndex?: number) => {
+  const handleDropFromExternal = (e: React.DragEvent, targetIndex?: number) => {
     e.preventDefault();
     e.stopPropagation();
 
@@ -82,7 +83,7 @@ export const Spine: React.FC<SpineProps> = ({
   return (
     <main
       data-onboarding="spine"
-      className="w-full min-h-screen flex flex-col items-center py-8 sm:py-20 px-4 sm:px-6"
+      className="w-full min-h-screen flex flex-col items-center"
       onClick={() => onSelectBlock(null)}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -99,50 +100,24 @@ export const Spine: React.FC<SpineProps> = ({
       onDrop={(e) => handleDropFromExternal(e)}
       aria-label="Strategy builder workspace"
     >
-      <div className="w-full max-w-[750px] flex flex-col gap-4 sm:gap-8 items-center">
-        {/* Empty State */}
-        {blocks.length === 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ duration: 0.3 }}
-            className="w-full h-96 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange hover:bg-gradient-to-br hover:from-orange/5 hover:to-transparent transition-all bg-white/90 shadow-lg group"
-            onClick={(e) => {
-              e.stopPropagation();
-              onOpenSuggester();
-            }}
-            onDragOver={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              e.dataTransfer.dropEffect = 'copy';
-            }}
-            onDrop={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              handleDropFromExternal(e, 0);
-            }}
-          >
-            <motion.div
-              initial={{ scale: 1 }}
-              animate={{ scale: [1, 1.15, 1] }}
-              transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, repeatDelay: 1 }}
-              className="text-7xl mb-8 text-gray-300 group-hover:text-orange font-thin transition-colors"
-            >
-              +
-            </motion.div>
-            <p className="text-lg font-bold text-gray-700 group-hover:text-ink uppercase tracking-widest mb-3 transition-colors">
-              Add Your First Block
-            </p>
-            <p className="text-sm text-gray-500 font-mono group-hover:text-gray-600 transition-colors mb-4">
-              Click to open AI Palette or drag a block here
-            </p>
-            <div className="flex items-center gap-2 text-xs text-gray-400 mt-2">
-              <span className="px-2 py-1 bg-gray-100 rounded text-gray-500">⌘K</span>
-              <span>or</span>
-              <span className="px-2 py-1 bg-gray-100 rounded text-gray-500">Click + AI</span>
-            </div>
-          </motion.div>
-        )}
+      {/* Empty State - Full Featured */}
+      {blocks.length === 0 ? (
+        <EmptyWorkspaceState
+          onOpenSuggester={onOpenSuggester}
+          onAddBlock={onAddBlock}
+          onDragOver={(e: React.DragEvent) => {
+            e.preventDefault();
+            e.stopPropagation();
+            e.dataTransfer.dropEffect = 'copy';
+          }}
+          onDrop={(e: React.DragEvent) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleDropFromExternal(e, 0);
+          }}
+        />
+      ) : (
+        <div className="w-full max-w-[750px] mx-auto flex flex-col gap-4 sm:gap-8 items-center py-8 sm:py-20 px-4 sm:px-6">
 
         <AnimatePresence>
           {blocks.map((block, index) => (
@@ -295,10 +270,11 @@ export const Spine: React.FC<SpineProps> = ({
             <p className="text-xs text-gray-400 text-center mt-3 font-mono">Add another block</p>
           </motion.div>
         )}
-      </div>
 
-      {/* Bottom padding for scrolling */}
-      <div className="h-64 flex-shrink-0" />
+          {/* Bottom padding for scrolling */}
+          <div className="h-64 flex-shrink-0" />
+        </div>
+      )}
     </main>
   );
 };

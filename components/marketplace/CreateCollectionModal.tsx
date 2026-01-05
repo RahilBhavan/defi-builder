@@ -7,8 +7,8 @@ import { motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
-import { trpc } from '../../lib/api/trpc';
 import { useToast } from '../../hooks/useToast';
+import { trpc } from '../../lib/api/trpc';
 import { Button } from '../ui/Button';
 
 interface CreateCollectionModalProps {
@@ -57,9 +57,7 @@ export const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
       onSuccess?.(collection.id);
       onClose();
     } catch (error) {
-      showError(
-        error instanceof Error ? error.message : 'Failed to create collection'
-      );
+      showError(error instanceof Error ? error.message : 'Failed to create collection');
     } finally {
       setIsSubmitting(false);
     }
@@ -152,12 +150,7 @@ export const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
 
           {/* Actions */}
           <div className="flex gap-3 justify-end pt-4">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={onClose}
-              disabled={isSubmitting}
-            >
+            <Button type="button" variant="secondary" onClick={onClose} disabled={isSubmitting}>
               Cancel
             </Button>
             <Button type="submit" variant="primary" disabled={isSubmitting}>
@@ -169,4 +162,3 @@ export const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
     </div>
   );
 };
-

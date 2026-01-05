@@ -52,7 +52,7 @@ const TOKEN_MAPPINGS: Record<string, Record<string, string>> = {
  */
 class BinanceProvider implements PriceProvider {
   name = 'Binance';
-  private readonly API_BASE = import.meta.env.DEV 
+  private readonly API_BASE = import.meta.env.DEV
     ? '/api/binance'
     : 'https://api.binance.com/api/v3';
   private readonly FETCH_TIMEOUT_MS = 10000;
@@ -70,7 +70,7 @@ class BinanceProvider implements PriceProvider {
 
     // Binance uses kline intervals: 1h for hourly, 1d for daily
     const binanceInterval = interval === 'hourly' ? '1h' : '1d';
-    
+
     // Binance requires timestamps in milliseconds
     const startTime = startDate.getTime();
     const endTime = endDate.getTime();
@@ -97,11 +97,11 @@ class BinanceProvider implements PriceProvider {
       }
 
       const data = await response.json();
-      
+
       // Binance klines format: [timestamp, open, high, low, close, volume, ...]
       const prices: PriceDataPoint[] = data.map((kline: number[]) => ({
         timestamp: kline[0], // Open time
-        price: parseFloat(kline[4] as unknown as string), // Close price
+        price: Number.parseFloat(kline[4] as unknown as string), // Close price
       }));
 
       return prices;
@@ -124,7 +124,7 @@ class BinanceProvider implements PriceProvider {
  */
 class CoinGeckoProvider implements PriceProvider {
   name = 'CoinGecko';
-  private readonly API_BASE = import.meta.env.DEV 
+  private readonly API_BASE = import.meta.env.DEV
     ? '/api/coingecko'
     : 'https://api.coingecko.com/api/v3';
   private readonly FETCH_TIMEOUT_MS = 10000;
@@ -142,7 +142,7 @@ class CoinGeckoProvider implements PriceProvider {
 
     const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
     const maxDays = 90;
-    
+
     if (days > maxDays) {
       // For longer periods, fetch in chunks
       return this.fetchChunked(coinId, startDate, endDate, interval);
@@ -170,7 +170,7 @@ class CoinGeckoProvider implements PriceProvider {
       }
 
       const data = await response.json();
-      
+
       // CoinGecko format: { prices: [[timestamp, price], ...] }
       const prices: PriceDataPoint[] = (data.prices || []).map(
         ([timestamp, price]: [number, number]) => ({
@@ -207,9 +207,8 @@ class CoinGeckoProvider implements PriceProvider {
       }
 
       const chunkPrices = await this.fetchHistoricalPrices(
-        Object.keys(TOKEN_MAPPINGS.coingecko).find(
-          (k) => TOKEN_MAPPINGS.coingecko[k] === coinId
-        ) || coinId,
+        Object.keys(TOKEN_MAPPINGS.coingecko).find((k) => TOKEN_MAPPINGS.coingecko[k] === coinId) ||
+          coinId,
         currentStart,
         currentEnd,
         interval
@@ -226,9 +225,9 @@ class CoinGeckoProvider implements PriceProvider {
     }
 
     // Remove duplicates and sort
-    const uniquePrices = Array.from(
-      new Map(allPrices.map((p) => [p.timestamp, p])).values()
-    ).sort((a, b) => a.timestamp - b.timestamp);
+    const uniquePrices = Array.from(new Map(allPrices.map((p) => [p.timestamp, p])).values()).sort(
+      (a, b) => a.timestamp - b.timestamp
+    );
 
     return uniquePrices;
   }
@@ -239,8 +238,8 @@ class CoinGeckoProvider implements PriceProvider {
  */
 class PriceProviderManager {
   private providers: PriceProvider[] = [
-    new BinanceProvider(),      // Primary: 1200 req/min (via proxy in dev)
-    new CoinGeckoProvider(),    // Fallback: 10-50 req/min
+    new BinanceProvider(), // Primary: 1200 req/min (via proxy in dev)
+    new CoinGeckoProvider(), // Fallback: 10-50 req/min
   ];
 
   async fetchHistoricalPrices(
@@ -254,23 +253,18 @@ class PriceProviderManager {
     for (const provider of this.providers) {
       try {
         logger.debug(`Trying ${provider.name} for ${token}`, 'PriceProvider');
-        const prices = await provider.fetchHistoricalPrices(
-          token,
-          startDate,
-          endDate,
-          interval
-        );
-        
+        const prices = await provider.fetchHistoricalPrices(token, startDate, endDate, interval);
+
         if (prices.length > 0) {
-          logger.info(`Successfully fetched ${prices.length} price points from ${provider.name}`, 'PriceProvider');
+          logger.info(
+            `Successfully fetched ${prices.length} price points from ${provider.name}`,
+            'PriceProvider'
+          );
           return prices;
         }
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
-        logger.warn(
-          `${provider.name} failed for ${token}: ${lastError.message}`,
-          'PriceProvider'
-        );
+        logger.warn(`${provider.name} failed for ${token}: ${lastError.message}`, 'PriceProvider');
         // Continue to next provider
       }
     }
@@ -283,4 +277,3 @@ class PriceProviderManager {
 }
 
 export const priceProviderManager = new PriceProviderManager();
-

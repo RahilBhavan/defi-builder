@@ -9,6 +9,7 @@ import {
   Save,
   Search,
   Share2,
+  ShoppingBag,
   Sparkles,
   Star,
   X,
@@ -17,6 +18,7 @@ import type React from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { generateShareLink } from '../../features/strategy-builder/services/sharing';
 import { useToast } from '../../hooks/useToast';
+import { getUserFriendlyErrorMessage } from '../../lib/error/handler';
 import { logger } from '../../lib/monitoring/logger';
 import { useCloudSync } from '../../services/cloudSync';
 import {
@@ -32,7 +34,6 @@ import {
   searchTemplates,
 } from '../../services/strategyTemplates';
 import type { LegoBlock, Strategy } from '../../types';
-import { getUserFriendlyErrorMessage } from '../../lib/error/handler';
 import { Button } from '../ui/Button';
 import { ConfirmationDialog } from '../ui/ConfirmationDialog';
 import { StrategyVisibilityDialog } from './StrategyVisibilityDialog';
@@ -42,6 +43,7 @@ interface StrategyLibraryModalProps {
   onClose: () => void;
   currentBlocks?: LegoBlock[];
   onLoadStrategy?: (blocks: LegoBlock[]) => void;
+  onOpenMarketplace?: () => void;
 }
 
 type FilterType = 'all' | 'popular' | 'newest' | 'mySaved';
@@ -52,6 +54,7 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
   onClose,
   currentBlocks = [],
   onLoadStrategy,
+  onOpenMarketplace,
 }) => {
   const { success: showSuccess, error: showError, warning: showWarning } = useToast();
   const [strategies, setStrategies] = useState<Strategy[]>([]);
@@ -362,6 +365,15 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
             <BookOpen size={14} />
             My Strategies ({strategies.length})
           </button>
+          {onOpenMarketplace && (
+            <button
+              onClick={onOpenMarketplace}
+              className="px-4 py-2 text-xs font-bold uppercase transition-colors flex items-center gap-2 bg-orange text-white hover:bg-orange/90 ml-auto"
+            >
+              <ShoppingBag size={14} />
+              Browse Marketplace
+            </button>
+          )}
         </div>
 
         {/* Toolbar */}
@@ -685,9 +697,12 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
                         {cloudStrategies.some((s) => s.id === strategy.id) && (
                           <button
                             onClick={() => {
-                              const cloudStrategy = cloudStrategies.find((s) => s.id === strategy.id);
+                              const cloudStrategy = cloudStrategies.find(
+                                (s) => s.id === strategy.id
+                              );
                               const tags = (cloudStrategy as any)?.tags
-                                ? JSON.parse((cloudStrategy as any).tags || '[]') : [];
+                                ? JSON.parse((cloudStrategy as any).tags || '[]')
+                                : [];
                               setVisibilityStrategy({
                                 id: strategy.id,
                                 isPublic: (cloudStrategy as any)?.isPublic || false,
@@ -702,7 +717,8 @@ export const StrategyLibraryModal: React.FC<StrategyLibraryModalProps> = ({
                                 : 'Private - Make public'
                             }
                           >
-                            {(cloudStrategies.find((s) => s.id === strategy.id) as any)?.isPublic ? (
+                            {(cloudStrategies.find((s) => s.id === strategy.id) as any)
+                              ?.isPublic ? (
                               <Globe size={16} className="text-blue-500" />
                             ) : (
                               <Lock size={16} />

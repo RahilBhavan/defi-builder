@@ -33,7 +33,7 @@ export const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
   const [sortBy, setSortBy] = useState<SortBy>('newest');
   const [category, setCategory] = useState<Category>('all');
   const [page, setPage] = useState(1);
-  const [addToCollectionStrategyId, setAddToCollectionStrategyId] = useState<string | null>(null);
+  // const [addToCollectionStrategyId, setAddToCollectionStrategyId] = useState<string | null>(null); // Reserved for future use
   // const [selectedStrategyId, setSelectedStrategyId] = useState<string | null>(null); // Reserved for future use
 
   const { data: discoverData, isLoading: isLoadingDiscover } =
@@ -50,7 +50,7 @@ export const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
       enabled: page === 1 && !searchQuery,
     });
 
-  const { data: trendingStrategies, isLoading: isLoadingTrending } =
+  const { data: trendingStrategies } =
     typedTrpc.marketplace.trending.useQuery(
       { limit: 10 },
       {
@@ -217,18 +217,26 @@ export const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {strategies.map((strategy: any) => ( // biome-ignore lint/suspicious/noExplicitAny: Strategy type from tRPC is complex
-                <StrategyCard
-                  key={strategy.id}
-                  strategy={strategy}
-                  onFork={() => handleFork(strategy.id, strategy.name)}
-                  onRate={(rating) => handleRate(strategy.id, rating)}
-                  onSelect={() => {
-                    // Reserved for future use
-                    // setSelectedStrategyId(strategy.id);
-                  }}
-                />
-              ))}
+              {strategies.map(
+                (
+                  strategy: any // biome-ignore lint/suspicious/noExplicitAny: Strategy type from tRPC is complex
+                ) => (
+                  <StrategyCard
+                    key={strategy.id}
+                    strategy={strategy}
+                    onFork={() => handleFork(strategy.id, strategy.name)}
+                    onRate={(rating) => handleRate(strategy.id, rating)}
+                    onSelect={() => {
+                      // Reserved for future use
+                      // setSelectedStrategyId(strategy.id);
+                    }}
+                    onAddToCollection={() => {
+                      // Reserved for future use
+                      // setAddToCollectionStrategyId(strategy.id);
+                    }}
+                  />
+                )
+              )}
             </div>
           )}
 
@@ -269,7 +277,7 @@ const StrategyCard: React.FC<StrategyCardProps> = ({
   strategy,
   onFork,
   onRate,
-  onAddToCollection,
+  onAddToCollection: _onAddToCollection, // Reserved for future use
   onSelect,
 }) => {
   const avgRating = strategy.averageRating || 0;

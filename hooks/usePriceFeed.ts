@@ -1,45 +1,51 @@
 /**
- * usePriceFeed Hook
- * Subscribe to real-time price updates for tokens
+ * Price Feed Hook
+ * Provides real-time price updates via WebSocket
  */
 
-import { useCallback, useEffect, useState } from 'react';
-import { type PriceUpdate, priceFeedService } from '../services/priceFeed';
+import { useEffect, useRef, useState } from 'react';
+import { logger } from '../lib/monitoring/logger';
+import { type ConnectionStatus, webSocketClient } from '../lib/websocket/client';
 
 export interface UsePriceFeedResult {
   price: number | undefined;
-  update: PriceUpdate | null;
   isLoading: boolean;
   error: Error | null;
-  subscribe: (token: string) => void;
+  connectionStatus: ConnectionStatus;
+  subscribe: () => void;
   unsubscribe: () => void;
 }
 
 /**
- * Hook to subscribe to real-time price updates for a single token
- *
- * Automatically subscribes to price feed service and updates when price changes.
- *
- * @param token - Token symbol (e.g., 'ETH', 'USDC') or null to unsubscribe
- * @returns UsePriceFeedResult with current price, update info, loading state, and error
- *
- * @example
- * ```typescript
- * const { price, isLoading, error } = usePriceFeed('ETH');
- *
- * if (isLoading) return <div>Loading price...</div>;
- * if (error) return <div>Error: {error.message}</div>;
- * return <div>ETH Price: ${price}</div>;
- * ```
+ * Hook for subscribing to real-time price updates for a single token
  */
 export function usePriceFeed(token: string | null): UsePriceFeedResult {
   const [price, setPrice] = useState<number | undefined>(undefined);
-  const [update, setUpdate] = useState<PriceUpdate | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
+  const unsubscribeRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    // Connect WebSocket if not connected
+    if (webSocketClient.getStatus() === 'disconnected') {
+      webSocketClient.connect();
+    }
+
+    // Subscribe to connection status changes
+    const statusUnsubscribe = webSocketClient.onStatusChange((status) => {
+      setConnectionStatus(status);
+      setIsLoading(status === 'connecting' || status === 'reconnecting');
+    });
+
+    return () => {
+      statusUnsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     if (!token) {
+      setPrice(undefined);
       setIsLoading(false);
       return;
     }
@@ -47,73 +53,110 @@ export function usePriceFeed(token: string | null): UsePriceFeedResult {
     setIsLoading(true);
     setError(null);
 
-    const callback = (update: PriceUpdate) => {
+    // Subscribe to price updates
+    const unsubscribe = webSocketClient.onPriceUpdate(token, (update) => {
       setPrice(update.price);
-      setUpdate(update);
       setIsLoading(false);
-    };
+      setError(null);
+    });
 
-    const unsubscribe = priceFeedService.subscribe(token, callback);
-
-    // Get initial price
-    const initialPrice = priceFeedService.getPrice(token);
-    if (initialPrice !== undefined) {
-      setPrice(initialPrice);
-      setIsLoading(false);
-    }
+    unsubscribeRef.current = unsubscribe;
 
     return () => {
-      unsubscribe();
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+        unsubscribeRef.current = null;
+      }
     };
   }, [token]);
 
-  const subscribe = useCallback((_newToken: string) => {
-    // This will trigger the useEffect above
-  }, []);
+  const subscribe = () => {
+    if (token) {
+      webSocketClient.subscribe([token]);
+    }
+  };
 
-  const unsubscribe = useCallback(() => {
-    // Cleanup handled by useEffect
-  }, []);
+  const unsubscribe = () => {
+    if (token && unsubscribeRef.current) {
+      unsubscribeRef.current();
+    }
+  };
 
   return {
     price,
-    update,
     isLoading,
     error,
+    connectionStatus,
     subscribe,
     unsubscribe,
   };
 }
 
 /**
- * Hook to subscribe to multiple tokens
+ * Hook for subscribing to real-time price updates for multiple tokens
  */
 export function useMultiPriceFeed(tokens: string[]): Map<string, number | undefined> {
   const [prices, setPrices] = useState<Map<string, number | undefined>>(new Map());
+  const unsubscribeRefs = useRef<Map<string, () => void>>(new Map());
 
   useEffect(() => {
-    if (tokens.length === 0) return;
+    // Connect WebSocket if not connected
+    if (webSocketClient.getStatus() === 'disconnected') {
+      webSocketClient.connect();
+    }
+  }, []);
 
-    const callbacks = new Map<string, (update: PriceUpdate) => void>();
-    const unsubscribes: Array<() => void> = [];
-
+  useEffect(() => {
+    // Initialize prices map
+    const newPrices = new Map<string, number | undefined>();
     tokens.forEach((token) => {
-      const callback = (update: PriceUpdate) => {
+      newPrices.set(token, undefined);
+    });
+    setPrices(newPrices);
+
+    // Subscribe to all tokens
+    tokens.forEach((token) => {
+      const unsubscribe = webSocketClient.onPriceUpdate(token, (update) => {
         setPrices((prev) => {
-          const next = new Map(prev);
-          next.set(token, update.price);
-          return next;
+          const updated = new Map(prev);
+          updated.set(update.token, update.price);
+          return updated;
         });
-      };
-      callbacks.set(token, callback);
-      const unsubscribe = priceFeedService.subscribe(token, callback);
-      unsubscribes.push(unsubscribe);
+      });
+
+      unsubscribeRefs.current.set(token, unsubscribe);
     });
 
     return () => {
-      unsubscribes.forEach((unsub) => unsub());
+      // Unsubscribe from all tokens
+      unsubscribeRefs.current.forEach((unsubscribe) => unsubscribe());
+      unsubscribeRefs.current.clear();
     };
-  }, [tokens.join(',')]);
+  }, [tokens.join(',')]); // Re-run when token list changes
 
   return prices;
+}
+
+/**
+ * Hook for WebSocket connection status
+ */
+export function useWebSocketStatus(): ConnectionStatus {
+  const [status, setStatus] = useState<ConnectionStatus>(webSocketClient.getStatus());
+
+  useEffect(() => {
+    // Connect if disconnected
+    if (status === 'disconnected') {
+      webSocketClient.connect();
+    }
+
+    const unsubscribe = webSocketClient.onStatusChange((newStatus) => {
+      setStatus(newStatus);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  return status;
 }

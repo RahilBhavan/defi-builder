@@ -3,12 +3,12 @@ import { AlertCircle, ChevronDown, Info, Trash2, X } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useState } from 'react';
 import { PROTOCOL_COLORS } from '../../constants';
-import type { BlockParams, LegoBlock } from '../../types';
 import {
   validateJsonObject,
   validateNumberRange,
   validateStringLength,
 } from '../../lib/validation';
+import type { BlockParams, LegoBlock } from '../../types';
 import { Button } from '../ui/Button';
 
 interface BlockConfigPanelProps {

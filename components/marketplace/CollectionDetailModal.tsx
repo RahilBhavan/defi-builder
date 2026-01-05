@@ -168,4 +168,3 @@ export const CollectionDetailModal: React.FC<CollectionDetailModalProps> = ({
     </div>
   );
 };
-

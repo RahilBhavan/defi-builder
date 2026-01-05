@@ -2,7 +2,7 @@
  * Tests for logger utility
  */
 
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { logger } from '../logger';
 
 describe('logger', () => {
@@ -60,4 +60,3 @@ describe('logger', () => {
     expect(consoleSpy.error).toHaveBeenCalled();
   });
 });
-

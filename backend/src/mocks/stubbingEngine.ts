@@ -2,8 +2,8 @@
  * Stubbing Engine for Request/Response Matching
  */
 
-import type { MockRoute, MockRequest, MockMatcher } from './types';
 import { logger } from '../utils/logger';
+import type { MockMatcher, MockRequest, MockRoute } from './types';
 
 export class StubbingEngine {
   private stubs: Map<string, MockRoute & { id: string; callCount: number }> = new Map();
@@ -17,7 +17,7 @@ export class StubbingEngine {
       id,
       callCount: 0,
       priority: stub.priority ?? 0,
-      times: stub.times ?? -1 // -1 means unlimited
+      times: stub.times ?? -1, // -1 means unlimited
     });
 
     logger.info(`Created stub ${id}: ${stub.method} ${stub.path}`);
@@ -103,9 +103,7 @@ export class StubbingEngine {
 
     // Wildcard match
     if (stubPath.includes('*')) {
-      const pattern = stubPath
-        .replace(/\*/g, '.*')
-        .replace(/\//g, '\\/');
+      const pattern = stubPath.replace(/\*/g, '.*').replace(/\//g, '\\/');
       const regex = new RegExp(`^${pattern}$`);
       return regex.test(requestPath);
     }
@@ -232,17 +230,14 @@ export class StubbingEngine {
     return true;
   }
 
-  private matchPathParams(
-    requestPath: string,
-    expectedParams: Record<string, string>
-  ): boolean {
+  private matchPathParams(requestPath: string, expectedParams: Record<string, string>): boolean {
     // Extract path parameters from request
     // This is a simplified implementation
     const parts = requestPath.split('/');
 
     for (const [key, value] of Object.entries(expectedParams)) {
       // Find the parameter in the path
-      const found = parts.some(part => part === value);
+      const found = parts.some((part) => part === value);
       if (!found) {
         return false;
       }
@@ -258,12 +253,12 @@ export class StubbingEngine {
     callCount: number;
     remainingCalls: number;
   }> {
-    return Array.from(this.stubs.values()).map(stub => ({
+    return Array.from(this.stubs.values()).map((stub) => ({
       id: stub.id,
       method: stub.method,
       path: stub.path,
       callCount: stub.callCount,
-      remainingCalls: stub.times === -1 ? -1 : stub.times - stub.callCount
+      remainingCalls: stub.times === -1 ? -1 : stub.times - stub.callCount,
     }));
   }
 }
@@ -274,7 +269,7 @@ export class StubbingEngine {
 export class StubBuilder {
   private stub: Partial<MockRoute> = {
     priority: 0,
-    times: -1
+    times: -1,
   };
 
   public when(method: string, path: string): this {
@@ -289,7 +284,7 @@ export class StubBuilder {
     }
     this.stub.matchers.push({
       type: 'query_params',
-      params
+      params,
     });
     return this;
   }
@@ -300,7 +295,7 @@ export class StubBuilder {
     }
     this.stub.matchers.push({
       type: 'headers',
-      headers
+      headers,
     });
     return this;
   }
@@ -312,7 +307,7 @@ export class StubBuilder {
     this.stub.matchers.push({
       type: 'body',
       body,
-      matchType
+      matchType,
     });
     return this;
   }
@@ -321,7 +316,7 @@ export class StubBuilder {
     this.stub.response = {
       status,
       body,
-      headers
+      headers,
     };
     return this;
   }

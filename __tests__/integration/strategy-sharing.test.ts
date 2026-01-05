@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  validateAndSanitizeStrategy,
-  sanitizeStrategyName,
   sanitizeStrategyDescription,
+  sanitizeStrategyName,
+  validateAndSanitizeStrategy,
 } from '../../features/strategy-builder/services/sharing';
 import { BlockCategory, Protocol } from '../../types';
 import type { LegoBlock, Strategy } from '../../types';
@@ -85,7 +85,7 @@ describe('Strategy Sharing Flow', () => {
   describe('validateAndSanitizeStrategy', () => {
     it('should validate and sanitize a valid strategy', () => {
       const sanitized = validateAndSanitizeStrategy(mockStrategy);
-      
+
       expect(sanitized.name).toBe('Test Strategy');
       expect(sanitized.blocks).toHaveLength(2);
       expect(sanitized.blocks[0].id).toBe('1');
@@ -100,7 +100,7 @@ describe('Strategy Sharing Flow', () => {
         ...mockStrategy,
         name: '<script>alert("xss")</script>Test Strategy',
       };
-      
+
       const sanitized = validateAndSanitizeStrategy(strategyWithHtml);
       expect(sanitized.name).not.toContain('<script>');
       expect(sanitized.name).not.toContain('</script>');
@@ -122,14 +122,14 @@ describe('Strategy Sharing Flow', () => {
           },
         ],
       };
-      
+
       const sanitized = validateAndSanitizeStrategy(strategyWithHtmlParams);
       expect(sanitized.blocks[0].params.asset).not.toContain('<script>');
     });
 
     it('should preserve non-string param values', () => {
       const sanitized = validateAndSanitizeStrategy(mockStrategy);
-      
+
       expect(typeof sanitized.blocks[0].params.targetPrice).toBe('number');
       expect(sanitized.blocks[0].params.targetPrice).toBe(3000);
       expect(typeof sanitized.blocks[1].params.amount).toBe('number');
@@ -146,7 +146,7 @@ describe('Strategy Sharing Flow', () => {
         ...mockStrategy,
         name: '', // Empty name should fail validation
       };
-      
+
       expect(() => {
         validateAndSanitizeStrategy(invalidStrategy);
       }).toThrow();
@@ -157,7 +157,7 @@ describe('Strategy Sharing Flow', () => {
         ...mockStrategy,
         name: 'a'.repeat(150), // Too long, will be truncated
       };
-      
+
       const sanitized = validateAndSanitizeStrategy(longNameStrategy);
       // Name is truncated to 100 chars by sanitization, then validated
       expect(sanitized.name.length).toBeLessThanOrEqual(100);
@@ -167,12 +167,12 @@ describe('Strategy Sharing Flow', () => {
   describe('Strategy sharing workflow', () => {
     it('should prepare strategy for sharing', () => {
       const sanitized = validateAndSanitizeStrategy(mockStrategy);
-      
+
       // Should have all required fields
       expect(sanitized).toHaveProperty('name');
       expect(sanitized).toHaveProperty('blocks');
       expect(sanitized).toHaveProperty('createdAt');
-      
+
       // Blocks should be properly formatted
       expect(Array.isArray(sanitized.blocks)).toBe(true);
       sanitized.blocks.forEach((block) => {
@@ -187,7 +187,7 @@ describe('Strategy Sharing Flow', () => {
         ...mockStrategy,
         name: 'Strategy & Co. <Test> "Quote"',
       };
-      
+
       const sanitized = validateAndSanitizeStrategy(specialCharStrategy);
       expect(sanitized.name).not.toContain('<');
       expect(sanitized.name).not.toContain('>');
@@ -199,10 +199,9 @@ describe('Strategy Sharing Flow', () => {
         ...mockStrategy,
         blocks: [],
       };
-      
+
       const sanitized = validateAndSanitizeStrategy(emptyStrategy);
       expect(sanitized.blocks).toEqual([]);
     });
   });
 });
-

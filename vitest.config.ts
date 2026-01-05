@@ -9,7 +9,10 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: './vitest.setup.ts',
     css: true,
-    isolate: true,
+    isolate: false, // Allow shared state for mocks
+    pool: 'threads',
+    testTimeout: 10000, // 10 second timeout for tests
+    hookTimeout: 10000, // 10 second timeout for hooks
     include: [
       '**/__tests__/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
       '**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
@@ -24,7 +27,7 @@ export default defineConfig({
     ],
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'json', 'html'],
+      reporter: ['text', 'json', 'html', 'lcov'],
       exclude: [
         'node_modules/',
         'dist/',
@@ -34,6 +37,12 @@ export default defineConfig({
         '**/__mocks__/**',
         'e2e/**',
       ],
+      thresholds: {
+        lines: 80,
+        functions: 80,
+        branches: 75,
+        statements: 80,
+      },
     },
   },
   resolve: {

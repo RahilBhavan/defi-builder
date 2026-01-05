@@ -8,6 +8,8 @@ import { getTokenPrices } from '../services/priceFeed';
 import { AuditEventType, auditAuth, auditStrategy } from '../utils/auditLogger';
 import { logger } from '../utils/logger';
 import { optionalAuthProcedure, protectedProcedure, publicProcedure, router } from './index';
+import { alertsRouter } from './routes/alerts';
+import { dashboardsRouter } from './routes/dashboards';
 import { marketplaceRouter } from './routes/marketplace';
 import { webhooksRouter } from './routes/webhooks';
 
@@ -306,7 +308,17 @@ export const appRouter = router({
         })
       )
       .query(async ({ input }) => {
-        return getAISuggestions(input.currentBlocks, input.query);
+        try {
+          return await getAISuggestions(input.currentBlocks, input.query);
+        } catch (error) {
+          logger.error(
+            'Error in getSuggestions',
+            error instanceof Error ? error : new Error(String(error)),
+            'AI'
+          );
+          // Return empty suggestions on error instead of crashing
+          return [];
+        }
       }),
 
     getProtocolDocs: publicProcedure
@@ -334,6 +346,8 @@ export const appRouter = router({
 
   // Marketplace endpoints
   marketplace: marketplaceRouter,
+  alerts: alertsRouter,
+  dashboards: dashboardsRouter,
 
   // Strategy sharing endpoints
   sharing: router({

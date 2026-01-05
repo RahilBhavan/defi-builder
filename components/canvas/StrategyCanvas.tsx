@@ -1,7 +1,7 @@
-import type React from 'react';
 import { ReactFlowProvider } from '@xyflow/react';
-import type { LegoBlock } from '../../types';
+import type React from 'react';
 import type { ValidationResult } from '../../services/strategyValidator';
+import type { LegoBlock } from '../../types';
 import { Spine } from '../Spine';
 
 interface StrategyCanvasProps {
@@ -34,10 +34,11 @@ export const StrategyCanvas: React.FC<StrategyCanvasProps> = ({
     // Create new array with reordered blocks
     const newBlocks = [...blocks];
     const [removed] = newBlocks.splice(draggedIndex, 1);
-    newBlocks.splice(targetIndex, 0, removed);
-
-    // Update blocks via parent callback
-    onBlocksChange(newBlocks);
+    if (removed) {
+      newBlocks.splice(targetIndex, 0, removed);
+      // Update blocks via parent callback
+      onBlocksChange(newBlocks);
+    }
   };
 
   return (
@@ -55,4 +56,3 @@ export const StrategyCanvas: React.FC<StrategyCanvasProps> = ({
     </ReactFlowProvider>
   );
 };
-

@@ -57,48 +57,58 @@ export async function getAISuggestions(
   currentBlocks: unknown[],
   userQuery?: string
 ): Promise<AISuggestion[]> {
-  // Always start with rule-based suggestions
-  const suggestions = getRuleBasedSuggestions(currentBlocks, userQuery);
+  try {
+    // Always start with rule-based suggestions
+    const suggestions = getRuleBasedSuggestions(currentBlocks, userQuery);
 
-  // If Gemini API is available, enhance with AI suggestions
-  if (ai && apiKey) {
-    try {
-      // Audit API key usage
-      auditApiKey(AuditEventType.API_KEY_ACCESSED, {
-        keyName: 'GEMINI_API_KEY',
-        success: true,
-        metadata: {
-          operation: 'getAISuggestions',
-          blockCount: Array.isArray(currentBlocks) ? currentBlocks.length : 0,
-        },
-      });
+    // If Gemini API is available, enhance with AI suggestions
+    if (ai && apiKey) {
+      try {
+        // Audit API key usage
+        auditApiKey(AuditEventType.API_KEY_ACCESSED, {
+          keyName: 'GEMINI_API_KEY',
+          success: true,
+          metadata: {
+            operation: 'getAISuggestions',
+            blockCount: Array.isArray(currentBlocks) ? currentBlocks.length : 0,
+          },
+        });
 
-      const aiSuggestions = await getGeminiSuggestions(currentBlocks, userQuery);
-      // Merge AI suggestions with rule-based ones
-      return [...suggestions, ...aiSuggestions];
-    } catch (error) {
-      logger.error(
-        'Gemini API error (falling back to rule-based)',
-        error instanceof Error ? error : new Error(String(error)),
-        'AI'
-      );
+        const aiSuggestions = await getGeminiSuggestions(currentBlocks, userQuery);
+        // Merge AI suggestions with rule-based ones
+        return [...suggestions, ...aiSuggestions];
+      } catch (error) {
+        logger.error(
+          'Gemini API error (falling back to rule-based)',
+          error instanceof Error ? error : new Error(String(error)),
+          'AI'
+        );
 
-      // Audit failed API key usage
-      auditApiKey(AuditEventType.API_KEY_ACCESSED, {
-        keyName: 'GEMINI_API_KEY',
-        success: false,
-        metadata: {
-          operation: 'getAISuggestions',
-          error: error instanceof Error ? error.message : String(error),
-        },
-      });
+        // Audit failed API key usage
+        auditApiKey(AuditEventType.API_KEY_ACCESSED, {
+          keyName: 'GEMINI_API_KEY',
+          success: false,
+          metadata: {
+            operation: 'getAISuggestions',
+            error: error instanceof Error ? error.message : String(error),
+          },
+        });
 
-      // Return rule-based suggestions on error
-      return suggestions;
+        // Return rule-based suggestions on error
+        return suggestions;
+      }
     }
-  }
 
-  return suggestions;
+    return suggestions;
+  } catch (error) {
+    logger.error(
+      'Error in getAISuggestions',
+      error instanceof Error ? error : new Error(String(error)),
+      'AI'
+    );
+    // Return empty array on error to prevent crashes
+    return [];
+  }
 }
 
 /**

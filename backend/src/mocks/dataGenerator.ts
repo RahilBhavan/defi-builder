@@ -4,11 +4,11 @@
  */
 
 import type {
-  DataGeneratorSchema,
-  PriceData,
-  PoolData,
   BacktestData,
-  TransactionData
+  DataGeneratorSchema,
+  PoolData,
+  PriceData,
+  TransactionData,
 } from './types';
 
 interface PriceHistory {
@@ -40,7 +40,7 @@ export class MockDataGenerator {
       MKR: 1500,
       SNX: 2.5,
       CRV: 0.8,
-      SUSHI: 1.2
+      SUSHI: 1.2,
     };
 
     const now = Date.now();
@@ -48,7 +48,7 @@ export class MockDataGenerator {
     for (const [token, basePrice] of Object.entries(basePrices)) {
       const history: PriceHistory = {
         token,
-        prices: []
+        prices: [],
       };
 
       // Generate 24 hours of historical data (1-minute candles)
@@ -217,7 +217,7 @@ export class MockDataGenerator {
       timestamp: latestPrice.timestamp,
       change24h: Number.parseFloat(change24h.toFixed(2)),
       volume24h: this.generateVolume(latestPrice.price),
-      marketCap: this.generateMarketCap(selectedToken, latestPrice.price)
+      marketCap: this.generateMarketCap(selectedToken, latestPrice.price),
     };
   }
 
@@ -254,7 +254,7 @@ export class MockDataGenerator {
       totalSupply: totalSupply.toFixed(18),
       fee: 0.003, // 0.3% fee (Uniswap v2 standard)
       apy: Number.parseFloat(apy.toFixed(2)),
-      tvl: Number.parseFloat(tvl.toFixed(2))
+      tvl: Number.parseFloat(tvl.toFixed(2)),
     };
   }
 
@@ -327,12 +327,12 @@ export class MockDataGenerator {
         token,
         amount: amount / price,
         price,
-        pnl: Number.parseFloat(pnl.toFixed(2))
+        pnl: Number.parseFloat(pnl.toFixed(2)),
       });
 
       equity.push({
         timestamp,
-        value: Number.parseFloat(currentEquity.toFixed(2))
+        value: Number.parseFloat(currentEquity.toFixed(2)),
       });
     }
 
@@ -357,17 +357,16 @@ export class MockDataGenerator {
         sharpeRatio: Number.parseFloat(sharpeRatio.toFixed(2)),
         maxDrawdown: Number.parseFloat(maxDrawdown.toFixed(2)),
         winRate: Number.parseFloat(winRate.toFixed(2)),
-        profitFactor: Number.parseFloat(profitFactor.toFixed(2))
+        profitFactor: Number.parseFloat(profitFactor.toFixed(2)),
       },
       trades,
-      equity
+      equity,
     };
   }
 
   public generateTransactionData(status?: TransactionData['status']): TransactionData {
-    const txStatus = status || (['pending', 'confirmed', 'failed'] as const)[
-      Math.floor(Math.random() * 3)
-    ];
+    const txStatus =
+      status || (['pending', 'confirmed', 'failed'] as const)[Math.floor(Math.random() * 3)];
 
     return {
       hash: this.generateHash(),
@@ -379,7 +378,8 @@ export class MockDataGenerator {
       nonce: Math.floor(Math.random() * 1000),
       status: txStatus,
       timestamp: Date.now(),
-      blockNumber: txStatus === 'confirmed' ? Math.floor(Math.random() * 1000000) + 15000000 : undefined
+      blockNumber:
+        txStatus === 'confirmed' ? Math.floor(Math.random() * 1000000) + 15000000 : undefined,
     };
   }
 
@@ -390,7 +390,7 @@ export class MockDataGenerator {
       name: this.getTokenName(token),
       decimals: 18,
       address: this.generateAddress(),
-      totalSupply: (Math.random() * 1000000000).toFixed(18)
+      totalSupply: (Math.random() * 1000000000).toFixed(18),
     };
   }
 
@@ -408,21 +408,21 @@ export class MockDataGenerator {
       MKR: 'Maker',
       SNX: 'Synthetix',
       CRV: 'Curve DAO',
-      SUSHI: 'SushiSwap'
+      SUSHI: 'SushiSwap',
     };
     return names[symbol] || symbol;
   }
 
   private generateAddress(): string {
-    return `0x${Array.from({ length: 40 }, () =>
-      Math.floor(Math.random() * 16).toString(16)
-    ).join('')}`;
+    return `0x${Array.from({ length: 40 }, () => Math.floor(Math.random() * 16).toString(16)).join(
+      ''
+    )}`;
   }
 
   private generateHash(): string {
-    return `0x${Array.from({ length: 64 }, () =>
-      Math.floor(Math.random() * 16).toString(16)
-    ).join('')}`;
+    return `0x${Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join(
+      ''
+    )}`;
   }
 
   private generateUUID(): string {
@@ -435,9 +435,7 @@ export class MockDataGenerator {
 
   private randomToken(exclude?: string): string {
     const allTokens = [...this.baseTokens, ...this.defiTokens];
-    const availableTokens = exclude
-      ? allTokens.filter(t => t !== exclude)
-      : allTokens;
+    const availableTokens = exclude ? allTokens.filter((t) => t !== exclude) : allTokens;
 
     return availableTokens[Math.floor(Math.random() * availableTokens.length)];
   }
@@ -454,7 +452,7 @@ export class MockDataGenerator {
     // Volume correlates with price (higher priced assets have lower volume)
     const baseVolume = 1000000; // $1M base
     const multiplier = Math.random() * 10 + 1; // 1-11x multiplier
-    return Number.parseFloat((baseVolume * multiplier / Math.sqrt(price)).toFixed(2));
+    return Number.parseFloat(((baseVolume * multiplier) / Math.sqrt(price)).toFixed(2));
   }
 
   private generateMarketCap(token: string, price: number): number {
@@ -472,7 +470,7 @@ export class MockDataGenerator {
       MKR: 1400000000,
       SNX: 500000000,
       CRV: 400000000,
-      SUSHI: 200000000
+      SUSHI: 200000000,
     };
 
     return Number.parseFloat((marketCaps[token] || 100000000).toFixed(2));
@@ -487,18 +485,18 @@ export class MockDataGenerator {
 
     history.prices.push({
       timestamp: Date.now(),
-      price: newPrice
+      price: newPrice,
     });
 
     // Keep only last 24 hours
     const cutoff = Date.now() - 24 * 60 * 60 * 1000;
-    history.prices = history.prices.filter(p => p.timestamp > cutoff);
+    history.prices = history.prices.filter((p) => p.timestamp > cutoff);
   }
 
   /**
    * Simulate market crash scenario
    */
-  public simulateMarketCrash(severity: number = 0.3): void {
+  public simulateMarketCrash(severity = 0.3): void {
     for (const [token, history] of this.priceHistory) {
       if (!this.isStableToken(token)) {
         const latest = history.prices[history.prices.length - 1];

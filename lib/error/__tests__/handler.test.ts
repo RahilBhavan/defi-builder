@@ -40,4 +40,3 @@ describe('getUserFriendlyErrorMessage', () => {
     expect(getUserFriendlyErrorMessage(undefined)).toBeTruthy();
   });
 });
-

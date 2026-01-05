@@ -3,9 +3,9 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import type { LegoBlock } from '../../../types';
 import { smartLayout } from '../layoutEngine';
 import type { BlockNode, FlowEdge } from '../types';
-import type { LegoBlock } from '../../../types';
 
 describe('smartLayout', () => {
   const createMockNode = (id: string, block: LegoBlock): BlockNode => ({
@@ -45,8 +45,20 @@ describe('smartLayout', () => {
     ];
 
     const edges: FlowEdge[] = [
-      { id: 'e1', source: 'block1', target: 'block2', type: 'smoothstep', data: { animated: true } },
-      { id: 'e2', source: 'block2', target: 'block3', type: 'smoothstep', data: { animated: true } },
+      {
+        id: 'e1',
+        source: 'block1',
+        target: 'block2',
+        type: 'smoothstep',
+        data: { animated: true },
+      },
+      {
+        id: 'e2',
+        source: 'block2',
+        target: 'block3',
+        type: 'smoothstep',
+        data: { animated: true },
+      },
     ];
 
     smartLayout(nodes, edges);
@@ -88,8 +100,20 @@ describe('smartLayout', () => {
     ];
 
     const edges: FlowEdge[] = [
-      { id: 'e1', source: 'block1', target: 'block2', type: 'smoothstep', data: { animated: true } },
-      { id: 'e2', source: 'block1', target: 'block3', type: 'smoothstep', data: { animated: true } },
+      {
+        id: 'e1',
+        source: 'block1',
+        target: 'block2',
+        type: 'smoothstep',
+        data: { animated: true },
+      },
+      {
+        id: 'e2',
+        source: 'block1',
+        target: 'block3',
+        type: 'smoothstep',
+        data: { animated: true },
+      },
     ];
 
     smartLayout(nodes, edges);
@@ -100,4 +124,3 @@ describe('smartLayout', () => {
     expect(uniquePositions.size).toBe(3);
   });
 });
-

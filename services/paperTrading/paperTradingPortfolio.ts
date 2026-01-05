@@ -17,7 +17,7 @@ export class PaperTradingPortfolioManager {
     this.sessionId = sessionId;
     this.portfolio = new PortfolioManager(initialCapital);
     this.lastUpdateTime = new Date();
-    
+
     // Initialize equity curve with starting point
     this.equityCurve.push({
       date: new Date().toISOString(),
@@ -38,7 +38,7 @@ export class PaperTradingPortfolioManager {
   updateEquity(prices: Map<string, number>): void {
     const equity = this.portfolio.calculateEquity(prices);
     const now = new Date();
-    
+
     // Validate equity value
     if (isNaN(equity) || !isFinite(equity) || equity < 0) {
       logger.warn(
@@ -106,4 +106,3 @@ export class PaperTradingPortfolioManager {
     };
   }
 }
-

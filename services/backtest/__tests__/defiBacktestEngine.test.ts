@@ -5,13 +5,17 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BlockCategory, type LegoBlock, Protocol } from '../../../types';
 import { runDeFiBacktest } from '../../defiBacktestEngine';
-import * as dataFetcher from '../dataFetcher';
 
-// Mock the data fetcher
+// Mock the data fetcher - the actual import in defiBacktestEngine.ts is './backtest/dataFetcher'
+// From services/defiBacktestEngine.ts, that resolves to services/backtest/dataFetcher.ts
+// From this test file (services/backtest/__tests__/), that's ../dataFetcher
 vi.mock('../dataFetcher', () => ({
   fetchMultipleTokenPrices: vi.fn(),
   getPriceAtTimestamp: vi.fn(),
 }));
+
+// Import after mocking
+import * as dataFetcher from '../dataFetcher';
 
 describe('DeFi Backtest Engine', () => {
   beforeEach(() => {

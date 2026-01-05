@@ -43,7 +43,10 @@ export const BacktestVisualization: React.FC<BacktestVisualizationProps> = ({
 
   // Filter solutions with backtest results
   const solutionsWithBacktests = useMemo(
-    () => solutions.filter((s) => s.backtestResult?.equityCurve && s.backtestResult.equityCurve.length > 0),
+    () =>
+      solutions.filter(
+        (s) => s.backtestResult?.equityCurve && s.backtestResult.equityCurve.length > 0
+      ),
     [solutions]
   );
 
@@ -103,12 +106,14 @@ export const BacktestVisualization: React.FC<BacktestVisualizationProps> = ({
 
     // Find the longest valid equity curve to use as base
     const longestCurve = selected.reduce((longest, current) => {
-      const currentCurve = current.backtestResult?.equityCurve?.filter(
-        (p) => p.date && p.equity !== undefined && !isNaN(p.equity) && isFinite(p.equity)
-      ) || [];
-      const longestCurve = longest.backtestResult?.equityCurve?.filter(
-        (p) => p.date && p.equity !== undefined && !isNaN(p.equity) && isFinite(p.equity)
-      ) || [];
+      const currentCurve =
+        current.backtestResult?.equityCurve?.filter(
+          (p) => p.date && p.equity !== undefined && !isNaN(p.equity) && isFinite(p.equity)
+        ) || [];
+      const longestCurve =
+        longest.backtestResult?.equityCurve?.filter(
+          (p) => p.date && p.equity !== undefined && !isNaN(p.equity) && isFinite(p.equity)
+        ) || [];
       return currentCurve.length > longestCurve.length ? current : longest;
     }, selected[0]);
 
@@ -116,7 +121,12 @@ export const BacktestVisualization: React.FC<BacktestVisualizationProps> = ({
 
     // Validate and align dates across all solutions
     const validBaseCurve = longestCurve.backtestResult.equityCurve.filter(
-      (p) => p.date && p.equity !== undefined && !isNaN(p.equity) && isFinite(p.equity) && !isNaN(new Date(p.date).getTime())
+      (p) =>
+        p.date &&
+        p.equity !== undefined &&
+        !isNaN(p.equity) &&
+        isFinite(p.equity) &&
+        !isNaN(new Date(p.date).getTime())
     );
 
     if (validBaseCurve.length === 0) return [];
@@ -143,14 +153,21 @@ export const BacktestVisualization: React.FC<BacktestVisualizationProps> = ({
           for (const solution of selected) {
             if (solution.backtestResult?.equityCurve) {
               // Find closest matching point by date
-              const solutionPoint = solution.backtestResult.equityCurve.find(
-                (p) => Math.abs(new Date(p.date).getTime() - date.getTime()) < 24 * 60 * 60 * 1000 // within 1 day
-              ) || solution.backtestResult.equityCurve[index];
+              const solutionPoint =
+                solution.backtestResult.equityCurve.find(
+                  (p) => Math.abs(new Date(p.date).getTime() - date.getTime()) < 24 * 60 * 60 * 1000 // within 1 day
+                ) || solution.backtestResult.equityCurve[index];
 
-              if (solutionPoint && solutionPoint.equity !== undefined && !isNaN(solutionPoint.equity) && isFinite(solutionPoint.equity)) {
+              if (
+                solutionPoint &&
+                solutionPoint.equity !== undefined &&
+                !isNaN(solutionPoint.equity) &&
+                isFinite(solutionPoint.equity)
+              ) {
                 const equity = Number(solutionPoint.equity);
                 dataPoint[`${solution.id}-equity`] = equity;
-                dataPoint[`${solution.id}-return`] = ((equity - initialCapital) / initialCapital) * 100;
+                dataPoint[`${solution.id}-return`] =
+                  ((equity - initialCapital) / initialCapital) * 100;
               }
             }
           }
@@ -169,26 +186,35 @@ export const BacktestVisualization: React.FC<BacktestVisualizationProps> = ({
 
     // Show top 5 solutions by Sharpe ratio
     const topSolutions = [...solutionsWithBacktests]
-      .sort((a, b) => (b.outOfSampleScores.sharpeRatio || 0) - (a.outOfSampleScores.sharpeRatio || 0))
+      .sort(
+        (a, b) => (b.outOfSampleScores.sharpeRatio || 0) - (a.outOfSampleScores.sharpeRatio || 0)
+      )
       .slice(0, 5);
 
     if (topSolutions.length === 0) return [];
 
     // Find longest valid curve
     const longestCurve = topSolutions.reduce((longest, current) => {
-      const currentCurve = current.backtestResult?.equityCurve?.filter(
-        (p) => p.date && p.equity !== undefined && !isNaN(p.equity) && isFinite(p.equity)
-      ) || [];
-      const longestCurve = longest.backtestResult?.equityCurve?.filter(
-        (p) => p.date && p.equity !== undefined && !isNaN(p.equity) && isFinite(p.equity)
-      ) || [];
+      const currentCurve =
+        current.backtestResult?.equityCurve?.filter(
+          (p) => p.date && p.equity !== undefined && !isNaN(p.equity) && isFinite(p.equity)
+        ) || [];
+      const longestCurve =
+        longest.backtestResult?.equityCurve?.filter(
+          (p) => p.date && p.equity !== undefined && !isNaN(p.equity) && isFinite(p.equity)
+        ) || [];
       return currentCurve.length > longestCurve.length ? current : longest;
     }, topSolutions[0]);
 
     if (!longestCurve?.backtestResult?.equityCurve) return [];
 
     const validBaseCurve = longestCurve.backtestResult.equityCurve.filter(
-      (p) => p.date && p.equity !== undefined && !isNaN(p.equity) && isFinite(p.equity) && !isNaN(new Date(p.date).getTime())
+      (p) =>
+        p.date &&
+        p.equity !== undefined &&
+        !isNaN(p.equity) &&
+        isFinite(p.equity) &&
+        !isNaN(new Date(p.date).getTime())
     );
 
     if (validBaseCurve.length === 0) return [];
@@ -212,11 +238,17 @@ export const BacktestVisualization: React.FC<BacktestVisualizationProps> = ({
 
           for (const solution of topSolutions) {
             if (solution.backtestResult?.equityCurve) {
-              const curvePoint = solution.backtestResult.equityCurve[index] || 
+              const curvePoint =
+                solution.backtestResult.equityCurve[index] ||
                 solution.backtestResult.equityCurve.find(
                   (p) => Math.abs(new Date(p.date).getTime() - date.getTime()) < 24 * 60 * 60 * 1000
                 );
-              if (curvePoint && curvePoint.equity !== undefined && !isNaN(curvePoint.equity) && isFinite(curvePoint.equity)) {
+              if (
+                curvePoint &&
+                curvePoint.equity !== undefined &&
+                !isNaN(curvePoint.equity) &&
+                isFinite(curvePoint.equity)
+              ) {
                 dataPoint[`solution-${solution.id}`] = Number(curvePoint.equity);
               }
             }
@@ -419,7 +451,10 @@ export const BacktestVisualization: React.FC<BacktestVisualizationProps> = ({
               />
               <Legend wrapperStyle={{ fontFamily: 'IBM Plex Mono', fontSize: '11px' }} />
               {solutionsWithBacktests
-                .sort((a, b) => (b.outOfSampleScores.sharpeRatio || 0) - (a.outOfSampleScores.sharpeRatio || 0))
+                .sort(
+                  (a, b) =>
+                    (b.outOfSampleScores.sharpeRatio || 0) - (a.outOfSampleScores.sharpeRatio || 0)
+                )
                 .slice(0, 5)
                 .map((solution, index) => (
                   <Line
@@ -444,7 +479,9 @@ export const BacktestVisualization: React.FC<BacktestVisualizationProps> = ({
       {/* Solution Selector for Compare Mode */}
       {viewMode === 'compare' && (
         <div className="mt-4 pt-4 border-t border-gray-200">
-          <p className="text-xs font-bold uppercase text-gray-500 mb-2">Select Solutions to Compare</p>
+          <p className="text-xs font-bold uppercase text-gray-500 mb-2">
+            Select Solutions to Compare
+          </p>
           <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
             {solutionsWithBacktests.map((solution, index) => {
               const isSelected = selectedSolutions.has(solution.id);
@@ -518,4 +555,3 @@ export const BacktestVisualization: React.FC<BacktestVisualizationProps> = ({
     </div>
   );
 };
-

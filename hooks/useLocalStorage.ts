@@ -1,8 +1,8 @@
 import { useCallback, useState } from 'react';
+import { logger } from '../lib/monitoring/logger';
 import { migrateData } from '../services/storage/migrations';
 import { type VersionedData, wrapWithVersion } from '../services/storage/versioning';
 import { CURRENT_VERSION } from '../services/storage/versioning';
-import { logger } from '../lib/monitoring/logger';
 
 /**
  * Custom hook for localStorage with type safety and versioning

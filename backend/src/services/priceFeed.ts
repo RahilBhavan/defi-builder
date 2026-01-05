@@ -1,7 +1,7 @@
 /**
  * Price Feed Service (Backend)
  * Proxy service for CoinGecko API to keep API keys server-side
- * Implements rate limiting and caching
+ * Implements rate limiting, caching, and WebSocket subscriptions
  */
 
 import { logger } from '../utils/logger';
@@ -11,6 +11,16 @@ interface PriceResponse {
     usd: number;
   };
 }
+
+export interface PriceUpdate {
+  token: string;
+  price: number;
+  timestamp: number;
+  change24h?: number;
+  volume24h?: number;
+}
+
+export type PriceUpdateCallback = (update: PriceUpdate) => void;
 
 // Token symbol to CoinGecko ID mapping
 const TOKEN_IDS: Record<string, string> = {
@@ -36,6 +46,120 @@ const CACHE_TTL = 60000; // 1 minute
 // Rate limiting state
 let lastRequestTime = 0;
 const MIN_REQUEST_INTERVAL = 1000; // 1 second between requests (CoinGecko free tier: 10-50 calls/minute)
+
+// Subscription management
+const subscribers: Map<string, Set<PriceUpdateCallback>> = new Map();
+const subscribedTokens: Set<string> = new Set();
+let pollingInterval: NodeJS.Timeout | null = null;
+const POLLING_INTERVAL = 10000; // 10 seconds
+
+/**
+ * Subscribe to price updates for tokens
+ */
+export function subscribe(tokens: string[], callback: PriceUpdateCallback): void {
+  tokens.forEach((token) => {
+    if (!subscribers.has(token)) {
+      subscribers.set(token, new Set());
+    }
+    subscribers.get(token)?.add(callback);
+    subscribedTokens.add(token);
+  });
+
+  // Start polling if not already started
+  if (pollingInterval === null && subscribedTokens.size > 0) {
+    startPolling();
+  }
+
+  logger.info(`Subscribed to price updates for: ${tokens.join(', ')}`, 'PriceFeed');
+}
+
+/**
+ * Unsubscribe from price updates for a token
+ */
+export function unsubscribe(token: string): void {
+  subscribers.delete(token);
+  subscribedTokens.delete(token);
+
+  // Stop polling if no subscriptions
+  if (subscribedTokens.size === 0 && pollingInterval !== null) {
+    stopPolling();
+  }
+
+  logger.info(`Unsubscribed from price updates for: ${token}`, 'PriceFeed');
+}
+
+/**
+ * Start polling for price updates
+ */
+function startPolling(): void {
+  if (pollingInterval !== null) return;
+
+  // Initial fetch
+  fetchAndNotifyPrices();
+
+  // Poll every 10 seconds
+  pollingInterval = setInterval(() => {
+    fetchAndNotifyPrices();
+  }, POLLING_INTERVAL);
+
+  logger.info('Started price feed polling', 'PriceFeed');
+}
+
+/**
+ * Stop polling for price updates
+ */
+function stopPolling(): void {
+  if (pollingInterval !== null) {
+    clearInterval(pollingInterval);
+    pollingInterval = null;
+    logger.info('Stopped price feed polling', 'PriceFeed');
+  }
+}
+
+/**
+ * Fetch prices and notify subscribers
+ */
+async function fetchAndNotifyPrices(): Promise<void> {
+  const tokens = Array.from(subscribedTokens);
+  if (tokens.length === 0) return;
+
+  try {
+    const prices = await getTokenPrices(tokens);
+
+    // Notify all subscribers
+    tokens.forEach((token) => {
+      const price = prices[token];
+      if (price !== undefined) {
+        const update: PriceUpdate = {
+          token,
+          price,
+          timestamp: Date.now(),
+        };
+
+        const tokenSubscribers = subscribers.get(token);
+        if (tokenSubscribers) {
+          tokenSubscribers.forEach((callback) => {
+            try {
+              callback(update);
+            } catch (error) {
+              logger.error(
+                'Error in price update callback',
+                error instanceof Error ? error : new Error(String(error)),
+                'PriceFeed'
+              );
+            }
+          });
+        }
+      }
+    });
+  } catch (error) {
+    logger.error(
+      'Error fetching prices for subscribers',
+      error instanceof Error ? error : new Error(String(error)),
+      'PriceFeed'
+    );
+  }
+}
 
 /**
  * Get prices for multiple tokens from CoinGecko API
@@ -149,3 +273,11 @@ function getFallbackPrices(tokens: string[]): Record<string, number> {
 export function clearPriceCache(): void {
   cache.clear();
 }
+
+// Export singleton instance for WebSocket service
+export const priceFeedService = {
+  subscribe,
+  unsubscribe,
+  getTokenPrices,
+  clearPriceCache,
+};

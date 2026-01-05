@@ -1,5 +1,5 @@
-import { BlockCategory, type LegoBlock, type ValidationResult } from '../types';
 import { validateEnum } from '../lib/validation';
+import { BlockCategory, type LegoBlock, type ValidationResult } from '../types';
 
 /**
  * Validates a DeFi strategy by checking all blocks for required parameters and constraints.

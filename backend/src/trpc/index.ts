@@ -1,7 +1,7 @@
 import { TRPCError, initTRPC } from '@trpc/server';
 import { getUserFromToken } from '../auth/middleware';
-import type { Context } from './context';
 import { logger } from '../utils/logger';
+import type { Context } from './context';
 
 const t = initTRPC.context<Context>().create({
   errorFormatter({ shape, error }) {

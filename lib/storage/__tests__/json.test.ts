@@ -48,4 +48,3 @@ describe('safeJsonStringify', () => {
     expect(safeJsonStringify({ func })).toBe(null);
   });
 });
-

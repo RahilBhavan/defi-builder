@@ -6,11 +6,11 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { ToastContainer } from './components/ui/ToastContainer';
 import { useTheme } from './hooks/useTheme';
 import { ToastProvider } from './hooks/useToast';
+import { trpcClient } from './lib/api/client';
+import { trpc } from './lib/api/trpc';
+import { initSentry } from './lib/monitoring/monitoring';
 import { wagmiConfig } from './services/web3/config';
 import type { ViewState } from './types';
-import { trpcClient } from './lib/api/client';
-import { initSentry } from './lib/monitoring/monitoring';
-import { trpc } from './lib/api/trpc';
 
 // Lazy load main views to reduce initial bundle size
 const LandingPage = lazy(() =>
@@ -55,12 +55,12 @@ const App: React.FC = () => {
                   </div>
                 }
               >
-              {view === 'landing' && <LandingPage onEnter={() => setView('workspace')} />}
-              {view === 'workspace' && (
-                <ErrorBoundary>
-                  <Workspace />
-                </ErrorBoundary>
-              )}
+                {view === 'landing' && <LandingPage onEnter={() => setView('workspace')} />}
+                {view === 'workspace' && (
+                  <ErrorBoundary>
+                    <Workspace />
+                  </ErrorBoundary>
+                )}
               </Suspense>
               <ToastContainer />
             </ToastProvider>

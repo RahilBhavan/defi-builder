@@ -7,7 +7,7 @@ import { logger } from '../../lib/monitoring/logger';
 import type { LegoBlock } from '../../types';
 import { type ExecutionContext, executeBlockSequence } from '../backtest/blockExecutor';
 import { calculateMetrics } from '../backtest/metricsCalculator';
-import { priceFeedService, type PriceUpdate } from '../priceFeed';
+import { type PriceUpdate, priceFeedService } from '../priceFeed';
 import { PaperTradingPortfolioManager } from './paperTradingPortfolio';
 import { paperTradingStorage } from './paperTradingStorage';
 import type {
@@ -272,7 +272,7 @@ export class PaperTradingEngine {
 
     try {
       const portfolio = new PaperTradingPortfolioManager(sessionId, session.config.initialCapital);
-      
+
       // Get current prices for all tokens
       const tokens = extractTokens(session.config.blocks);
       const currentPrices = new Map<string, number>();
@@ -282,12 +282,18 @@ export class PaperTradingEngine {
         if (price !== undefined && price > 0) {
           currentPrices.set(token, price);
         } else {
-          logger.warn(`No price available for ${token} in session ${sessionId}`, 'PaperTradingEngine');
+          logger.warn(
+            `No price available for ${token} in session ${sessionId}`,
+            'PaperTradingEngine'
+          );
         }
       }
 
       if (currentPrices.size === 0) {
-        logger.warn(`No prices available for session ${sessionId}, skipping execution`, 'PaperTradingEngine');
+        logger.warn(
+          `No prices available for session ${sessionId}, skipping execution`,
+          'PaperTradingEngine'
+        );
         return;
       }
 
@@ -328,7 +334,11 @@ export class PaperTradingEngine {
       const equityCurve = portfolio.getEquityCurve();
       const trades = portfolio.getTrades();
       const equityValues = equityCurve.map((p) => p.equity);
-      const metrics = calculateMetrics(portfolio.getPortfolio(), session.config.initialCapital, equityValues);
+      const metrics = calculateMetrics(
+        portfolio.getPortfolio(),
+        session.config.initialCapital,
+        equityValues
+      );
 
       session.results = {
         sessionId,
@@ -364,7 +374,7 @@ export class PaperTradingEngine {
   /**
    * Handle price update
    */
-  private handlePriceUpdate(sessionId: string, update: PriceUpdate): void {
+  private handlePriceUpdate(sessionId: string, _update: PriceUpdate): void {
     const session = this.sessions.get(sessionId);
     if (!session || session.status !== 'running') {
       return;
@@ -374,7 +384,7 @@ export class PaperTradingEngine {
     const portfolio = new PaperTradingPortfolioManager(sessionId, session.config.initialCapital);
     const prices = new Map<string, number>();
     const tokens = extractTokens(session.config.blocks);
-    
+
     for (const token of tokens) {
       const price = priceFeedService.getPrice(token);
       if (price !== undefined) {
@@ -398,7 +408,7 @@ export class PaperTradingEngine {
     const portfolio = new PaperTradingPortfolioManager(sessionId, session.config.initialCapital);
     const prices = new Map<string, number>();
     const tokens = extractTokens(session.config.blocks);
-    
+
     for (const token of tokens) {
       const price = priceFeedService.getPrice(token);
       if (price !== undefined) {
@@ -413,7 +423,11 @@ export class PaperTradingEngine {
     const equityCurve = portfolio.getEquityCurve();
     const trades = portfolio.getTrades();
     const equityValues = equityCurve.map((p) => p.equity);
-    const metrics = calculateMetrics(portfolio.getPortfolio(), session.config.initialCapital, equityValues);
+    const metrics = calculateMetrics(
+      portfolio.getPortfolio(),
+      session.config.initialCapital,
+      equityValues
+    );
 
     session.results = {
       ...session.results,
@@ -480,7 +494,7 @@ export class PaperTradingEngine {
     const portfolio = new PaperTradingPortfolioManager(sessionId, session.config.initialCapital);
     const prices = new Map<string, number>();
     const tokens = extractTokens(session.config.blocks);
-    
+
     for (const token of tokens) {
       const price = priceFeedService.getPrice(token);
       if (price !== undefined) {
@@ -488,7 +502,11 @@ export class PaperTradingEngine {
       }
     }
 
-    const equity = prices.size > 0 ? portfolio.getCurrentEquity(prices) : session.results.equityCurve[session.results.equityCurve.length - 1]?.equity || session.config.initialCapital;
+    const equity =
+      prices.size > 0
+        ? portfolio.getCurrentEquity(prices)
+        : session.results.equityCurve[session.results.equityCurve.length - 1]?.equity ||
+          session.config.initialCapital;
 
     const update = {
       sessionId,
@@ -514,4 +532,3 @@ export class PaperTradingEngine {
 
 // Singleton instance
 export const paperTradingEngine = new PaperTradingEngine();
-

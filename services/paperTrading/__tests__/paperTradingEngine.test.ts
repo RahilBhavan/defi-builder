@@ -2,7 +2,7 @@
  * Unit tests for Paper Trading Engine
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { paperTradingEngine } from '../paperTradingEngine';
 import type { PaperTradingConfig } from '../types';
 
@@ -19,7 +19,13 @@ vi.mock('../priceFeed', () => ({
       };
       return prices[token];
     }),
-    getAllPrices: vi.fn(() => new Map([['ETH', 2500], ['USDC', 1.0]])),
+    getAllPrices: vi.fn(
+      () =>
+        new Map([
+          ['ETH', 2500],
+          ['USDC', 1.0],
+        ])
+    ),
   },
 }));
 
@@ -193,4 +199,3 @@ describe('PaperTradingEngine', () => {
     });
   });
 });
-

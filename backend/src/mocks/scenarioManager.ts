@@ -2,8 +2,8 @@
  * Scenario Manager for Test Scenarios
  */
 
-import type { MockScenario, SequenceState, MockResponseTemplate } from './types';
 import { logger } from '../utils/logger';
+import type { MockResponseTemplate, MockScenario, SequenceState } from './types';
 
 export class ScenarioManager {
   private scenarios: Map<string, MockScenario> = new Map();
@@ -20,14 +20,14 @@ export class ScenarioManager {
       name: 'default',
       description: 'Default scenario with successful responses',
       initialState: {},
-      stubs: []
+      stubs: [],
     });
 
     // Happy path - all operations succeed
     this.defineScenario('happy_path', {
       name: 'happy_path',
       description: 'All operations succeed with optimal conditions',
-      stubs: []
+      stubs: [],
     });
 
     // Error scenario
@@ -40,61 +40,61 @@ export class ScenarioManager {
           steps: [
             {
               repeat: 5,
-              response: { status: 200, body: { success: true } }
+              response: { status: 200, body: { success: true } },
             },
             {
               repeat: 10,
               response: {
                 status: 429,
-                body: { error: 'Rate limit exceeded', retry_after: 60 }
-              }
-            }
-          ]
+                body: { error: 'Rate limit exceeded', retry_after: 60 },
+              },
+            },
+          ],
         },
         {
           name: 'intermittent_failures',
           steps: [
             { repeat: 2, response: { status: 200, body: { success: true } } },
             { repeat: 1, response: { status: 500, body: { error: 'Internal server error' } } },
-            { repeat: 2, response: { status: 200, body: { success: true } } }
-          ]
-        }
-      ]
+            { repeat: 2, response: { status: 200, body: { success: true } } },
+          ],
+        },
+      ],
     });
 
     // Performance degradation scenario
     this.defineScenario('slow_responses', {
       name: 'slow_responses',
       description: 'Simulate slow network and processing times',
-      stubs: []
+      stubs: [],
     });
 
     // Market volatility scenario
     this.defineScenario('high_volatility', {
       name: 'high_volatility',
       description: 'High market volatility with rapid price changes',
-      stubs: []
+      stubs: [],
     });
 
     // Low liquidity scenario
     this.defineScenario('low_liquidity', {
       name: 'low_liquidity',
       description: 'Low liquidity pools with high slippage',
-      stubs: []
+      stubs: [],
     });
 
     // Flash crash scenario
     this.defineScenario('flash_crash', {
       name: 'flash_crash',
       description: 'Sudden market crash simulation',
-      stubs: []
+      stubs: [],
     });
 
     // Network congestion
     this.defineScenario('network_congestion', {
       name: 'network_congestion',
       description: 'High gas prices and slow transaction confirmations',
-      stubs: []
+      stubs: [],
     });
   }
 
@@ -124,22 +124,19 @@ export class ScenarioManager {
   }
 
   public listScenarios(): Array<{ name: string; description: string }> {
-    return Array.from(this.scenarios.values()).map(s => ({
+    return Array.from(this.scenarios.values()).map((s) => ({
       name: s.name,
-      description: s.description
+      description: s.description,
     }));
   }
 
-  public getSequenceResponse(
-    sequenceName: string,
-    request: any
-  ): MockResponseTemplate | null {
+  public getSequenceResponse(sequenceName: string, request: any): MockResponseTemplate | null {
     const scenario = this.getScenario();
     if (!scenario?.sequences) {
       return null;
     }
 
-    const sequence = scenario.sequences.find(s => s.name === sequenceName);
+    const sequence = scenario.sequences.find((s) => s.name === sequenceName);
     if (!sequence) {
       return null;
     }
@@ -190,9 +187,9 @@ export class ScenarioManager {
       initialState: {
         priceMultiplier: 1.5, // 50% price increase
         liquidityMultiplier: 2.0,
-        volatility: 0.02
+        volatility: 0.02,
       },
-      stubs: []
+      stubs: [],
     });
 
     // Bear market scenario
@@ -202,9 +199,9 @@ export class ScenarioManager {
       initialState: {
         priceMultiplier: 0.7, // 30% price decrease
         liquidityMultiplier: 0.5,
-        volatility: 0.05
+        volatility: 0.05,
       },
-      stubs: []
+      stubs: [],
     });
 
     // MEV attack scenario
@@ -222,9 +219,9 @@ export class ScenarioManager {
                 body: {
                   transaction: 'pending',
                   position: 'front-run',
-                  estimatedSlippage: 5.2
-                }
-              }
+                  estimatedSlippage: 5.2,
+                },
+              },
             },
             {
               repeat: 1,
@@ -233,13 +230,13 @@ export class ScenarioManager {
                 body: {
                   transaction: 'confirmed',
                   actualSlippage: 8.7,
-                  mevDetected: true
-                }
-              }
-            }
-          ]
-        }
-      ]
+                  mevDetected: true,
+                },
+              },
+            },
+          ],
+        },
+      ],
     });
 
     // Liquidation cascade
@@ -254,33 +251,33 @@ export class ScenarioManager {
               repeat: 1,
               response: {
                 status: 200,
-                body: { priceChange: -5, liquidations: 10 }
-              }
+                body: { priceChange: -5, liquidations: 10 },
+              },
             },
             {
               repeat: 1,
               response: {
                 status: 200,
-                body: { priceChange: -12, liquidations: 50 }
-              }
+                body: { priceChange: -12, liquidations: 50 },
+              },
             },
             {
               repeat: 1,
               response: {
                 status: 200,
-                body: { priceChange: -25, liquidations: 200 }
-              }
+                body: { priceChange: -25, liquidations: 200 },
+              },
             },
             {
               repeat: 1,
               response: {
                 status: 200,
-                body: { priceChange: -15, liquidations: 80, stabilizing: true }
-              }
-            }
-          ]
-        }
-      ]
+                body: { priceChange: -15, liquidations: 80, stabilizing: true },
+              },
+            },
+          ],
+        },
+      ],
     });
 
     // Protocol upgrade scenario
@@ -295,26 +292,26 @@ export class ScenarioManager {
               repeat: 3,
               response: {
                 status: 200,
-                body: { status: 'operational' }
-              }
+                body: { status: 'operational' },
+              },
             },
             {
               repeat: 2,
               response: {
                 status: 503,
-                body: { error: 'Service unavailable - upgrade in progress' }
-              }
+                body: { error: 'Service unavailable - upgrade in progress' },
+              },
             },
             {
               repeat: 1,
               response: {
                 status: 200,
-                body: { status: 'operational', version: '2.0.0' }
-              }
-            }
-          ]
-        }
-      ]
+                body: { status: 'operational', version: '2.0.0' },
+              },
+            },
+          ],
+        },
+      ],
     });
 
     logger.info('Created DeFi-specific scenarios');
@@ -334,7 +331,7 @@ export class ScenarioManager {
       liquidityMultiplier: 1.0,
       volatility: 0.02,
       gasMultiplier: 1.0,
-      latencyMultiplier: 1.0
+      latencyMultiplier: 1.0,
     };
 
     // Apply scenario-specific modifiers
@@ -370,7 +367,7 @@ export class ScenarioManager {
 
     return {
       name: this.currentScenario,
-      modifiers
+      modifiers,
     };
   }
 }

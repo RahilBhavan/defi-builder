@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { logger } from '../lib/monitoring/logger';
 import { trpc } from '../lib/api/trpc';
+import { logger } from '../lib/monitoring/logger';
 import { useWallet } from './useWallet';
 
 export function useAuth() {

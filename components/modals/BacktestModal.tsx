@@ -59,19 +59,19 @@ export const BacktestModal: React.FC<BacktestModalProps> = ({ isOpen, onClose, r
   // Filter equity curve by time period with validation
   const filteredEquityCurve = useMemo(() => {
     if (!result?.equityCurve) return [];
-    
+
     // Validate and filter out invalid data points
     const validEquityCurve = result.equityCurve.filter(
-      (point) => 
-        point.date && 
-        point.equity !== undefined && 
-        !isNaN(point.equity) && 
+      (point) =>
+        point.date &&
+        point.equity !== undefined &&
+        !isNaN(point.equity) &&
         isFinite(point.equity) &&
         !isNaN(new Date(point.date).getTime())
     );
-    
+
     if (validEquityCurve.length === 0) return [];
-    
+
     if (timePeriod === 'ALL') return validEquityCurve;
     if (timePeriod === 'CUSTOM') {
       if (!customDateRange.start || !customDateRange.end) {
@@ -110,13 +110,15 @@ export const BacktestModal: React.FC<BacktestModalProps> = ({ isOpen, onClose, r
     if (!filteredEquityCurve || filteredEquityCurve.length === 0) {
       return [];
     }
-    
+
     // Sample data if too large (>1000 points) for better performance
     const shouldSample = filteredEquityCurve.length > 1000;
     const dataToProcess = shouldSample
-      ? filteredEquityCurve.filter((_, index) => index % Math.ceil(filteredEquityCurve.length / 1000) === 0)
+      ? filteredEquityCurve.filter(
+          (_, index) => index % Math.ceil(filteredEquityCurve.length / 1000) === 0
+        )
       : filteredEquityCurve;
-    
+
     return dataToProcess
       .map((point) => {
         try {

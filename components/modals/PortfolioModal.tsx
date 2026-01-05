@@ -2,9 +2,11 @@ import { motion } from 'framer-motion';
 import { Activity, ArrowDownLeft, ArrowUpRight, Loader2, PieChart, Wallet, X } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useMemo, useState } from 'react';
-import { useMultiPriceFeed } from '../../hooks/usePriceFeed';
+import { useMultiPriceFeed, useWebSocketStatus } from '../../hooks/usePriceFeed';
 import { type PortfolioTransaction, portfolioTracker } from '../../services/portfolioTracker';
+import { LivePositionMonitor, type Position } from '../portfolio/LivePositionMonitor';
 import { Button } from '../ui/Button';
+import { ConnectionStatus } from '../ui/ConnectionStatus';
 import { Skeleton, TableRowSkeleton } from '../ui/Skeleton';
 
 interface PortfolioModalProps {

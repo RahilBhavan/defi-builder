@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { blocksToNodeGraph, nodeGraphToBlocks } from '../../services/cloudSync';
-import { saveStrategy, getStrategies, deleteStrategy } from '../../services/strategyStorage';
+import { deleteStrategy, getStrategies, saveStrategy } from '../../services/strategyStorage';
 import { BlockCategory, Protocol } from '../../types';
 import type { LegoBlock, Strategy } from '../../types';
 
@@ -59,7 +59,7 @@ describe('Cloud Sync Operations', () => {
   describe('blocksToNodeGraph and nodeGraphToBlocks', () => {
     it('should convert blocks to nodeGraph format', () => {
       const nodeGraph = blocksToNodeGraph(mockBlocks);
-      
+
       expect(nodeGraph).toHaveProperty('blocks');
       expect(Array.isArray(nodeGraph.blocks)).toBe(true);
       expect(nodeGraph.blocks).toHaveLength(2);
@@ -70,7 +70,7 @@ describe('Cloud Sync Operations', () => {
     it('should convert nodeGraph back to blocks', () => {
       const nodeGraph = blocksToNodeGraph(mockBlocks);
       const convertedBlocks = nodeGraphToBlocks(nodeGraph);
-      
+
       expect(convertedBlocks).toHaveLength(2);
       expect(convertedBlocks[0].id).toBe('1');
       expect(convertedBlocks[0].type).toBe('price_trigger');
@@ -80,7 +80,7 @@ describe('Cloud Sync Operations', () => {
     it('should handle empty blocks array', () => {
       const nodeGraph = blocksToNodeGraph([]);
       expect(nodeGraph.blocks).toEqual([]);
-      
+
       const convertedBlocks = nodeGraphToBlocks(nodeGraph);
       expect(convertedBlocks).toEqual([]);
     });
@@ -96,7 +96,7 @@ describe('Cloud Sync Operations', () => {
     it('should save strategy locally before syncing', () => {
       saveStrategy(mockStrategy);
       const saved = getStrategies();
-      
+
       expect(saved).toHaveLength(1);
       expect(saved[0].id).toBe(mockStrategy.id);
       expect(saved[0].name).toBe(mockStrategy.name);
@@ -104,16 +104,16 @@ describe('Cloud Sync Operations', () => {
 
     it('should update existing strategy when saving with same ID', () => {
       saveStrategy(mockStrategy);
-      
+
       const updatedStrategy = {
         ...mockStrategy,
         name: 'Updated Strategy Name',
         updatedAt: Date.now(),
       };
-      
+
       saveStrategy(updatedStrategy);
       const saved = getStrategies();
-      
+
       expect(saved).toHaveLength(1);
       expect(saved[0].name).toBe('Updated Strategy Name');
     });
@@ -124,10 +124,10 @@ describe('Cloud Sync Operations', () => {
         id: 'test-strategy-2',
         name: 'Second Strategy',
       };
-      
+
       saveStrategy(mockStrategy);
       saveStrategy(strategy2);
-      
+
       const saved = getStrategies();
       expect(saved).toHaveLength(2);
     });
@@ -135,7 +135,7 @@ describe('Cloud Sync Operations', () => {
     it('should delete strategy from local storage', () => {
       saveStrategy(mockStrategy);
       expect(getStrategies()).toHaveLength(1);
-      
+
       deleteStrategy(mockStrategy.id);
       expect(getStrategies()).toHaveLength(0);
     });
@@ -144,7 +144,7 @@ describe('Cloud Sync Operations', () => {
       expect(() => {
         deleteStrategy('non-existent-id');
       }).not.toThrow();
-      
+
       expect(getStrategies()).toHaveLength(0);
     });
   });
@@ -168,11 +168,10 @@ describe('Cloud Sync Operations', () => {
     it('should handle corrupted localStorage data', () => {
       // Set invalid JSON
       localStorage.setItem('defi-builder-strategies', 'invalid json');
-      
+
       // Should return empty array instead of throwing
       const strategies = getStrategies();
       expect(Array.isArray(strategies)).toBe(true);
     });
   });
 });
-

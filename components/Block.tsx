@@ -30,7 +30,7 @@ export const Block: React.FC<BlockProps> = React.memo(
     const accentColor = PROTOCOL_COLORS[block.protocol] || PROTOCOL_COLORS[Protocol.GENERIC];
 
     return (
-      <div className="relative w-full max-w-[700px] group">
+      <div className="relative w-full max-w-[700px] mx-auto group">
         <button
           type="button"
           onClick={(e) => {
@@ -92,24 +92,28 @@ export const Block: React.FC<BlockProps> = React.memo(
                     {block.protocol}
                   </span>
                 </div>
-                <h3 className="text-lg font-bold text-ink uppercase tracking-wide">{block.label}</h3>
+                <h3 className="text-lg font-bold text-ink uppercase tracking-wide">
+                  {block.label}
+                </h3>
               </div>
             </div>
           </div>
 
           {/* Params Preview */}
           {Object.keys(block.params).length > 0 && (
-            <div className="mt-4 pt-4 border-t border-gray-200 grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-6">
-              {Object.entries(block.params).map(([key, value]) => (
-                <div key={key} className="flex flex-col">
-                  <span className="text-[10px] text-gray-500 uppercase font-mono font-bold mb-1.5 tracking-wider">
-                    {key.replace(/([A-Z])/g, ' $1').trim()}
-                  </span>
-                  <span className="text-sm text-ink font-mono font-semibold truncate bg-gray-50 px-2 py-1 rounded border border-gray-200">
-                    {String(value)}
-                  </span>
-                </div>
-              ))}
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+                {Object.entries(block.params).map(([key, value]) => (
+                  <div key={key} className="flex flex-col">
+                    <span className="text-[10px] text-gray-500 uppercase font-mono font-bold mb-1.5 tracking-wider">
+                      {key.replace(/([A-Z])/g, ' $1').trim()}
+                    </span>
+                    <span className="text-sm text-ink font-mono font-semibold truncate bg-gray-50 px-2 py-1 rounded border border-gray-200">
+                      {String(value)}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </button>

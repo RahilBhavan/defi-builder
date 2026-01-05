@@ -1,6 +1,6 @@
+import { logger } from '../lib/monitoring/logger';
 import { safeJsonParse } from '../lib/storage/json';
 import type { LegoBlock, Strategy } from '../types';
-import { logger } from '../lib/monitoring/logger';
 import { autoBackup } from './storage/backup';
 import { CURRENT_VERSION, type VersionedData, wrapWithVersion } from './storage/versioning';
 

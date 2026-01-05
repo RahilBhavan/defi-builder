@@ -71,4 +71,3 @@ export const SepoliaFaucetLink: React.FC<SepoliaFaucetLinkProps> = ({
     </a>
   );
 };
-

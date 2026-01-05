@@ -45,4 +45,3 @@ export type PaperTradingStatusUpdate = {
 };
 
 export type PaperTradingStatusCallback = (update: PaperTradingStatusUpdate) => void;
-

@@ -3,8 +3,8 @@
  * Pre-configured mocks for common DeFi operations
  */
 
-import type { MockRoute } from './types';
 import { StubBuilder } from './stubbingEngine';
+import type { MockRoute } from './types';
 
 export class DeFiMocks {
   /**
@@ -16,7 +16,7 @@ export class DeFiMocks {
       new StubBuilder()
         .when('GET', '/api/price/:token')
         .thenReturn(200, {
-          $generate: 'price'
+          $generate: 'price',
         })
         .build(),
 
@@ -32,10 +32,10 @@ export class DeFiMocks {
               properties: {
                 timestamp: { type: 'number', min: Date.now() - 86400000, max: Date.now() },
                 price: { type: 'number', min: 1000, max: 3000 },
-                volume: { type: 'number', min: 1000000, max: 10000000 }
-              }
-            }
-          }
+                volume: { type: 'number', min: 1000000, max: 10000000 },
+              },
+            },
+          },
         })
         .build(),
 
@@ -46,10 +46,10 @@ export class DeFiMocks {
           prices: {
             ETH: { $generate: 'price' },
             USDC: { $generate: 'price' },
-            DAI: { $generate: 'price' }
-          }
+            DAI: { $generate: 'price' },
+          },
         })
-        .build()
+        .build(),
     ];
   }
 
@@ -62,7 +62,7 @@ export class DeFiMocks {
       new StubBuilder()
         .when('GET', '/api/pool/:address')
         .thenReturn(200, {
-          $generate: 'pool'
+          $generate: 'pool',
         })
         .build(),
 
@@ -75,9 +75,9 @@ export class DeFiMocks {
             count: 10,
             items: {
               type: 'string',
-              generator: 'pool'
-            }
-          }
+              generator: 'pool',
+            },
+          },
         })
         .build(),
 
@@ -87,7 +87,7 @@ export class DeFiMocks {
         .thenReturn(200, {
           reserve0: '1000000000000000000000',
           reserve1: '2000000000000000000000',
-          blockTimestampLast: Date.now()
+          blockTimestampLast: Date.now(),
         })
         .build(),
 
@@ -96,15 +96,15 @@ export class DeFiMocks {
         .when('POST', '/api/pool/:address/quote')
         .thenReturn(200, (req: any) => {
           const amountIn = req.body?.amountIn || '1000000000000000000';
-          const amountOut = String(BigInt(amountIn) * BigInt(99) / BigInt(100)); // 1% slippage
+          const amountOut = String((BigInt(amountIn) * BigInt(99)) / BigInt(100)); // 1% slippage
           return {
             amountIn,
             amountOut,
             priceImpact: 0.01,
-            fee: String(BigInt(amountIn) * BigInt(3) / BigInt(1000))
+            fee: String((BigInt(amountIn) * BigInt(3)) / BigInt(1000)),
           };
         })
-        .build()
+        .build(),
     ];
   }
 
@@ -117,7 +117,7 @@ export class DeFiMocks {
       new StubBuilder()
         .when('POST', '/api/transaction/submit')
         .thenReturn(200, {
-          $generate: 'transaction'
+          $generate: 'transaction',
         })
         .build(),
 
@@ -125,7 +125,7 @@ export class DeFiMocks {
       new StubBuilder()
         .when('GET', '/api/transaction/:hash')
         .thenReturn(200, {
-          $generate: 'transaction'
+          $generate: 'transaction',
         })
         .build(),
 
@@ -138,9 +138,9 @@ export class DeFiMocks {
             count: 20,
             items: {
               type: 'string',
-              generator: 'transaction'
-            }
-          }
+              generator: 'transaction',
+            },
+          },
         })
         .build(),
 
@@ -157,17 +157,17 @@ export class DeFiMocks {
               type: 'balance',
               token: 'ETH',
               from: '-1.0',
-              to: '0.0'
+              to: '0.0',
             },
             {
               type: 'balance',
               token: 'USDC',
               from: '0.0',
-              to: '2000.0'
-            }
-          ]
+              to: '2000.0',
+            },
+          ],
         })
-        .build()
+        .build(),
     ];
   }
 
@@ -181,7 +181,7 @@ export class DeFiMocks {
         .when('POST', '/api/backtest/run')
         .withDelay(2000) // Simulate processing time
         .thenReturn(200, {
-          $generate: 'backtest'
+          $generate: 'backtest',
         })
         .build(),
 
@@ -189,7 +189,7 @@ export class DeFiMocks {
       new StubBuilder()
         .when('GET', '/api/backtest/:id')
         .thenReturn(200, {
-          $generate: 'backtest'
+          $generate: 'backtest',
         })
         .build(),
 
@@ -211,14 +211,14 @@ export class DeFiMocks {
                   properties: {
                     totalReturn: { type: 'number', min: -50, max: 100 },
                     sharpeRatio: { type: 'number', min: -2, max: 4 },
-                    maxDrawdown: { type: 'number', min: 0, max: 60 }
-                  }
-                }
-              }
-            }
-          }
+                    maxDrawdown: { type: 'number', min: 0, max: 60 },
+                  },
+                },
+              },
+            },
+          },
         })
-        .build()
+        .build(),
     ];
   }
 
@@ -234,7 +234,7 @@ export class DeFiMocks {
           id: { $generate: { type: 'string', format: 'uuid' } },
           name: 'New Strategy',
           createdAt: new Date().toISOString(),
-          blocks: []
+          blocks: [],
         })
         .build(),
 
@@ -252,12 +252,12 @@ export class DeFiMocks {
               config: {
                 tokenIn: 'ETH',
                 tokenOut: 'USDC',
-                amountIn: '1.0'
-              }
-            }
+                amountIn: '1.0',
+              },
+            },
           ],
           createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
+          updatedAt: new Date().toISOString(),
         })
         .build(),
 
@@ -270,16 +270,16 @@ export class DeFiMocks {
               id: 'strategy1',
               name: 'Arbitrage Bot',
               description: 'DEX arbitrage strategy',
-              tags: ['arbitrage', 'automated']
+              tags: ['arbitrage', 'automated'],
             },
             {
               id: 'strategy2',
               name: 'Yield Optimizer',
               description: 'Maximize yield across protocols',
-              tags: ['yield', 'optimization']
-            }
+              tags: ['yield', 'optimization'],
+            },
           ],
-          total: 2
+          total: 2,
         })
         .build(),
 
@@ -289,9 +289,9 @@ export class DeFiMocks {
         .thenReturn(200, {
           valid: true,
           errors: [],
-          warnings: []
+          warnings: [],
         })
-        .build()
+        .build(),
     ];
   }
 
@@ -310,7 +310,7 @@ export class DeFiMocks {
           instant: '100',
           baseFee: '30',
           priorityFee: '2',
-          timestamp: Date.now()
+          timestamp: Date.now(),
         })
         .build(),
 
@@ -322,9 +322,9 @@ export class DeFiMocks {
           gasPrice: '50',
           maxFeePerGas: '60',
           maxPriorityFeePerGas: '2',
-          estimatedCost: '0.0075'
+          estimatedCost: '0.0075',
         })
-        .build()
+        .build(),
     ];
   }
 
@@ -344,8 +344,8 @@ export class DeFiMocks {
               error: 'Insufficient funds',
               code: 'INSUFFICIENT_FUNDS',
               required: '10000000000000000000',
-              available: '1000000000000000000'
-            }
+              available: '1000000000000000000',
+            },
           }
         )
         .thenReturn(200, { $generate: 'transaction' })
@@ -362,8 +362,8 @@ export class DeFiMocks {
               error: 'Slippage tolerance exceeded',
               code: 'SLIPPAGE_EXCEEDED',
               expected: 0.01,
-              actual: 0.05
-            }
+              actual: 0.05,
+            },
           }
         )
         .thenReturn(200, { success: true })
@@ -380,12 +380,12 @@ export class DeFiMocks {
               hash: '0xfailed',
               status: 'failed',
               error: 'Transaction reverted',
-              reason: 'UniswapV2: K'
-            }
+              reason: 'UniswapV2: K',
+            },
           }
         )
         .thenReturn(200, { $generate: 'transaction' })
-        .build()
+        .build(),
     ];
   }
 
@@ -400,7 +400,7 @@ export class DeFiMocks {
       ...this.getBacktestMocks(),
       ...this.getStrategyMocks(),
       ...this.getGasMocks(),
-      ...this.getErrorMocks()
+      ...this.getErrorMocks(),
     ];
   }
 }

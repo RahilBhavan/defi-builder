@@ -1,5 +1,5 @@
-import type { LegoBlock } from '../../types';
 import { isRetryableError, retryWithBackoff } from '../../lib/error/retry';
+import type { LegoBlock } from '../../types';
 import type { DeFiBacktestResult } from '../defiBacktestEngine';
 import type { BacktestWorkerRequest, BacktestWorkerResponse, ParameterSet } from './types';
 
@@ -162,7 +162,7 @@ export class BacktestWorkerPool {
     worker.postMessage(request);
     this.busyWorkers.add(availableWorkerIndex);
     this.activeWorkers++;
-    
+
     // Store worker index in task for later cleanup
     (task as BacktestTask & { workerIndex?: number }).workerIndex = availableWorkerIndex;
   }
@@ -268,12 +268,15 @@ export class BacktestWorkerPool {
     }
   }
 
-  private getCacheKey(parameters: ParameterSet, config: {
-    startDate: Date;
-    endDate: Date;
-    initialCapital: number;
-    rebalanceInterval: number;
-  }): string {
+  private getCacheKey(
+    parameters: ParameterSet,
+    config: {
+      startDate: Date;
+      endDate: Date;
+      initialCapital: number;
+      rebalanceInterval: number;
+    }
+  ): string {
     // Include config in cache key to avoid collisions
     return JSON.stringify({
       parameters,

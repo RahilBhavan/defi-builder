@@ -3,10 +3,10 @@
  * Helpers for Vitest and Playwright integration
  */
 
-import { MockAPIServer } from './mockServer';
-import { DeFiMocks } from './defiMocks';
-import type { MockRoute, MockScenario } from './types';
 import { logger } from '../utils/logger';
+import { DeFiMocks } from './defiMocks';
+import { MockAPIServer } from './mockServer';
+import type { MockRoute, MockScenario } from './types';
 
 /**
  * Mock server instance for tests
@@ -70,7 +70,7 @@ export const vitestMockHelpers = {
       throw new Error('Mock server not initialized. Call setup() first');
     }
     return mockServerInstance;
-  }
+  },
 };
 
 /**
@@ -154,7 +154,7 @@ class MockStubBuilder {
     }
     this.stub.matchers.push({
       type: 'query_params',
-      params
+      params,
     });
     return this;
   }
@@ -166,7 +166,7 @@ class MockStubBuilder {
     this.stub.matchers.push({
       type: 'body',
       body,
-      matchType: 'exact'
+      matchType: 'exact',
     });
     return this;
   }
@@ -179,7 +179,7 @@ class MockStubBuilder {
   public thenReturnError(status: number, error: string): MockBuilder {
     this.stub.response = {
       status,
-      body: { error }
+      body: { error },
     };
     return this.mockBuilder.addStub(this.stub as MockRoute);
   }
@@ -203,7 +203,7 @@ class MockVerifier {
     }
 
     if (bodyMatcher) {
-      return requests.some(req => bodyMatcher(req.body));
+      return requests.some((req) => bodyMatcher(req.body));
     }
 
     return true;
@@ -275,7 +275,7 @@ export const testScenarios = {
    */
   networkCongestion: (server: MockAPIServer) => {
     server.setScenario('network_congestion');
-  }
+  },
 };
 
 /**
@@ -336,7 +336,7 @@ test('should display price data', async ({ page }) => {
   await expect(page.locator('[data-testid="eth-price"]')).toBeVisible();
 });
 `;
-  }
+  },
 };
 
 /**

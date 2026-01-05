@@ -12,7 +12,6 @@ export function useStrategySync(blocks: LegoBlock[], onLoad?: (blocks: LegoBlock
     // - Auto-save to backend via tRPC
     // - Load from backend on mount
     // - Handle conflicts when multiple tabs are open
-
     // Note: onLoad is intentionally not in dependencies to avoid infinite loops
     // It should be memoized with useCallback by the caller if needed
     // eslint-disable-next-line react-hooks/exhaustive-deps

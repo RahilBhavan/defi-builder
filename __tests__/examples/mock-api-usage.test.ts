@@ -3,8 +3,8 @@
  * These tests show how to use the mock API server in your tests
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
-import { vitestMockHelpers, MockBuilder, testScenarios } from '../../backend/src/mocks';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { MockBuilder, testScenarios, vitestMockHelpers } from '../../backend/src/mocks';
 
 describe('Mock API Examples', () => {
   beforeAll(async () => {
@@ -52,7 +52,7 @@ describe('Mock API Examples', () => {
       const response = await fetch('http://localhost:3001/api/price/batch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tokens: ['ETH', 'USDC', 'DAI'] })
+        body: JSON.stringify({ tokens: ['ETH', 'USDC', 'DAI'] }),
       });
       const data = await response.json();
 
@@ -85,8 +85,8 @@ describe('Mock API Examples', () => {
         body: JSON.stringify({
           amountIn: '1000000000000000000',
           tokenIn: 'ETH',
-          tokenOut: 'USDC'
-        })
+          tokenOut: 'USDC',
+        }),
       });
       const data = await response.json();
 
@@ -105,8 +105,8 @@ describe('Mock API Examples', () => {
         body: JSON.stringify({
           from: '0x123',
           to: '0x456',
-          value: '1000000000000000000'
-        })
+          value: '1000000000000000000',
+        }),
       });
       const data = await response.json();
 
@@ -124,8 +124,8 @@ describe('Mock API Examples', () => {
         body: JSON.stringify({
           from: '0x123',
           to: '0x456',
-          data: '0x'
-        })
+          data: '0x',
+        }),
       });
       const data = await response.json();
 
@@ -146,8 +146,8 @@ describe('Mock API Examples', () => {
         body: JSON.stringify({
           strategyId: 'strategy-123',
           startDate: '2024-01-01',
-          endDate: '2024-12-31'
-        })
+          endDate: '2024-12-31',
+        }),
       });
       const data = await response.json();
 
@@ -240,12 +240,10 @@ describe('Mock API Examples', () => {
       const mockBuilder = new MockBuilder(server);
 
       // Setup custom mock
-      mockBuilder
-        .when('GET', '/api/custom/test')
-        .thenReturn(200, {
-          message: 'Custom mock response',
-          timestamp: Date.now()
-        });
+      mockBuilder.when('GET', '/api/custom/test').thenReturn(200, {
+        message: 'Custom mock response',
+        timestamp: Date.now(),
+      });
 
       const response = await fetch('http://localhost:3001/api/custom/test');
       const data = await response.json();
@@ -270,7 +268,7 @@ describe('Mock API Examples', () => {
       const response = await fetch('http://localhost:3001/api/custom/swap', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tokenIn: 'ETH', tokenOut: 'USDC' })
+        body: JSON.stringify({ tokenIn: 'ETH', tokenOut: 'USDC' }),
       });
       const data = await response.json();
 
@@ -278,28 +276,26 @@ describe('Mock API Examples', () => {
       expect(data.amountOut).toBe('2000');
 
       // Verify with body matcher
-      expect(mockBuilder.verify().wasCalledWith(
-        'POST',
-        '/api/custom/swap',
-        (body) => body.tokenIn === 'ETH'
-      )).toBe(true);
+      expect(
+        mockBuilder
+          .verify()
+          .wasCalledWith('POST', '/api/custom/swap', (body) => body.tokenIn === 'ETH')
+      ).toBe(true);
     });
 
     it('should return error for specific conditions', async () => {
       const server = vitestMockHelpers.getServer();
       const mockBuilder = new MockBuilder(server);
 
-      mockBuilder
-        .when('POST', '/api/custom/transfer')
-        .thenReturn(400, {
-          error: 'Insufficient balance',
-          code: 'INSUFFICIENT_BALANCE'
-        });
+      mockBuilder.when('POST', '/api/custom/transfer').thenReturn(400, {
+        error: 'Insufficient balance',
+        code: 'INSUFFICIENT_BALANCE',
+      });
 
       const response = await fetch('http://localhost:3001/api/custom/transfer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: '1000' })
+        body: JSON.stringify({ amount: '1000' }),
       });
 
       expect(response.status).toBe(400);
@@ -326,7 +322,7 @@ describe('Mock API Examples', () => {
       // Check ETH price request
       const ethPriceRequests = server.getRequests({
         method: 'GET',
-        path: '/api/price/ETH'
+        path: '/api/price/ETH',
       });
       expect(ethPriceRequests.length).toBe(1);
       expect(ethPriceRequests[0].method).toBe('GET');
@@ -341,7 +337,7 @@ describe('Mock API Examples', () => {
       await fetch('http://localhost:3001/api/backtest/run', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ strategyId: 'test-123' })
+        body: JSON.stringify({ strategyId: 'test-123' }),
       });
 
       // Get the last request
@@ -366,7 +362,7 @@ describe('Mock API Examples', () => {
       const response = await fetch('http://localhost:3001/api/price/batch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: 'invalid json'
+        body: 'invalid json',
       });
 
       // Server should handle this gracefully (implementation dependent)
@@ -390,7 +386,7 @@ describe('Mock API Examples', () => {
       const response = await fetch('http://localhost:3001/admin/scenario', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scenario: 'bull_market' })
+        body: JSON.stringify({ scenario: 'bull_market' }),
       });
       const data = await response.json();
 
@@ -410,7 +406,7 @@ describe('Mock API Examples', () => {
 
       // Reset
       const response = await fetch('http://localhost:3001/admin/reset', {
-        method: 'POST'
+        method: 'POST',
       });
       const data = await response.json();
 

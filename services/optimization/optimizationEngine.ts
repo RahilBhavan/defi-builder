@@ -32,7 +32,8 @@ export class OptimizationEngine {
   private readonly EARLY_STOPPING_PATIENCE = 10; // Stop if no improvement for 10 iterations
   private iterationTimes: number[] = []; // Track recent iteration times for better estimation
   private onProgress?: (progress: OptimizationProgress) => void;
-  private currentPhase: 'initializing' | 'evaluating' | 'optimizing' | 'finalizing' = 'initializing';
+  private currentPhase: 'initializing' | 'evaluating' | 'optimizing' | 'finalizing' =
+    'initializing';
   private progressUpdateInterval?: NodeJS.Timeout;
   private lastProgressUpdate = 0;
   private readonly PROGRESS_UPDATE_THROTTLE_MS = 100; // Throttle progress updates to max once per 100ms
@@ -75,10 +76,13 @@ export class OptimizationEngine {
     this.iterationTimes = [];
     this.onProgress = onProgress;
     this.currentPhase = 'initializing';
-    
-      // Send initial progress update
-      logger.info(`Starting optimization: ${config.algorithm}, maxIterations: ${config.maxIterations}`, 'OptimizationEngine');
-      this.sendProgressUpdate(config.maxIterations);
+
+    // Send initial progress update
+    logger.info(
+      `Starting optimization: ${config.algorithm}, maxIterations: ${config.maxIterations}`,
+      'OptimizationEngine'
+    );
+    this.sendProgressUpdate(config.maxIterations);
 
     try {
       if (config.algorithm === 'bayesian') {
@@ -88,13 +92,13 @@ export class OptimizationEngine {
     } finally {
       this.isRunning = false;
       this.currentPhase = 'finalizing';
-      
+
       // Clear progress update interval if it exists
       if (this.progressUpdateInterval) {
         clearInterval(this.progressUpdateInterval);
         this.progressUpdateInterval = undefined;
       }
-      
+
       this.sendProgressUpdate(config.maxIterations);
     }
   }
@@ -113,21 +117,28 @@ export class OptimizationEngine {
 
     for (const parameters of initialSamples) {
       if (!this.isRunning) break;
-      
+
       this.currentPhase = 'evaluating';
       logger.debug(`Evaluating solution ${this.currentIteration + 1}`, 'OptimizationEngine');
-      
+
       let solution: OptimizationSolution;
       try {
         // Add timeout to prevent hanging - reduced to 30 seconds for faster failure
         const evaluationPromise = this.evaluateSolution(blocks, parameters, config);
         const timeoutPromise = new Promise<OptimizationSolution>((_, reject) => {
-          setTimeout(() => reject(new Error('Solution evaluation timeout after 30 seconds')), 30000);
+          setTimeout(
+            () => reject(new Error('Solution evaluation timeout after 30 seconds')),
+            30000
+          );
         });
-        
+
         solution = await Promise.race([evaluationPromise, timeoutPromise]);
       } catch (error) {
-        logger.error(`Solution evaluation failed: ${error instanceof Error ? error.message : String(error)}`, error instanceof Error ? error : new Error(String(error)), 'OptimizationEngine');
+        logger.error(
+          `Solution evaluation failed: ${error instanceof Error ? error.message : String(error)}`,
+          error instanceof Error ? error : new Error(String(error)),
+          'OptimizationEngine'
+        );
         // Return failed solution so optimization can continue
         solution = {
           id: `solution-${this.solutions.length}-timeout`,
@@ -139,32 +150,39 @@ export class OptimizationEngine {
         };
         this.solutions.push(solution);
       }
-      
+
       logger.debug(`Solution ${this.currentIteration + 1} evaluated`, 'OptimizationEngine');
       optimizer.addObservation(parameters, solution.outOfSampleScores);
       // Always increment iteration, even if evaluation failed
       this.currentIteration++;
-      
+
       // Track iteration time for better estimation
       const iterationTime = (Date.now() - iterationStartTime) / 1000;
       this.recordIterationTime(iterationTime);
       iterationStartTime = Date.now();
-      
+
       this.currentPhase = 'optimizing';
       this.sendProgressUpdate(config.maxIterations);
     }
 
     this.currentPhase = 'optimizing';
-    logger.info(`Starting main optimization loop: ${this.currentIteration}/${config.maxIterations}`, 'OptimizationEngine');
+    logger.info(
+      `Starting main optimization loop: ${this.currentIteration}/${config.maxIterations}`,
+      'OptimizationEngine'
+    );
     while (this.currentIteration < config.maxIterations && this.isRunning) {
       const nextParameters = optimizer.suggestNext();
-      
+
       this.currentPhase = 'evaluating';
       let solution: OptimizationSolution;
       try {
         solution = await this.evaluateSolution(blocks, nextParameters, config);
       } catch (error) {
-        logger.error(`Solution evaluation failed: ${error instanceof Error ? error.message : String(error)}`, error instanceof Error ? error : new Error(String(error)), 'OptimizationEngine');
+        logger.error(
+          `Solution evaluation failed: ${error instanceof Error ? error.message : String(error)}`,
+          error instanceof Error ? error : new Error(String(error)),
+          'OptimizationEngine'
+        );
         // Return failed solution so optimization can continue
         solution = {
           id: `solution-${this.solutions.length}-timeout`,
@@ -179,12 +197,12 @@ export class OptimizationEngine {
       optimizer.addObservation(nextParameters, solution.outOfSampleScores);
       // Always increment iteration, even if evaluation failed
       this.currentIteration++;
-      
+
       // Track iteration time
       const iterationTime = (Date.now() - iterationStartTime) / 1000;
       this.recordIterationTime(iterationTime);
       iterationStartTime = Date.now();
-      
+
       // Early stopping check
       const primaryObjective = config.objectives[0] ?? 'sharpeRatio';
       const currentScore = solution.outOfSampleScores[primaryObjective] ?? 0;
@@ -194,13 +212,19 @@ export class OptimizationEngine {
       } else {
         this.iterationsWithoutImprovement++;
       }
-      
+
       this.currentPhase = 'optimizing';
       this.sendProgressUpdate(config.maxIterations);
-      
+
       // Early stopping: stop if no improvement for patience iterations
-      if (this.iterationsWithoutImprovement >= this.EARLY_STOPPING_PATIENCE && this.currentIteration > 15) {
-        logger.info(`Early stopping triggered after ${this.currentIteration} iterations (no improvement for ${this.iterationsWithoutImprovement} iterations)`, 'OptimizationEngine');
+      if (
+        this.iterationsWithoutImprovement >= this.EARLY_STOPPING_PATIENCE &&
+        this.currentIteration > 15
+      ) {
+        logger.info(
+          `Early stopping triggered after ${this.currentIteration} iterations (no improvement for ${this.iterationsWithoutImprovement} iterations)`,
+          'OptimizationEngine'
+        );
         break;
       }
     }
@@ -225,20 +249,27 @@ export class OptimizationEngine {
       this.currentPhase = 'evaluating';
       for (const parameters of population) {
         if (!this.isRunning) break;
-        
+
         logger.debug(`Evaluating solution ${this.currentIteration + 1}`, 'OptimizationEngine');
-        
+
         let solution: OptimizationSolution;
         try {
           // Add timeout to prevent hanging - reduced to 30 seconds for faster failure
           const evaluationPromise = this.evaluateSolution(blocks, parameters, config);
           const timeoutPromise = new Promise<OptimizationSolution>((_, reject) => {
-            setTimeout(() => reject(new Error('Solution evaluation timeout after 30 seconds')), 30000);
+            setTimeout(
+              () => reject(new Error('Solution evaluation timeout after 30 seconds')),
+              30000
+            );
           });
-          
+
           solution = await Promise.race([evaluationPromise, timeoutPromise]);
         } catch (error) {
-          logger.error(`Solution evaluation failed: ${error instanceof Error ? error.message : String(error)}`, error instanceof Error ? error : new Error(String(error)), 'OptimizationEngine');
+          logger.error(
+            `Solution evaluation failed: ${error instanceof Error ? error.message : String(error)}`,
+            error instanceof Error ? error : new Error(String(error)),
+            'OptimizationEngine'
+          );
           // Return failed solution so optimization can continue
           solution = {
             id: `solution-${this.solutions.length}-timeout`,
@@ -250,19 +281,19 @@ export class OptimizationEngine {
           };
           this.solutions.push(solution);
         }
-        
+
         // Always increment iteration, even if evaluation failed
         this.currentIteration++;
-        
+
         const primaryObjective = config.objectives[0] ?? 'sharpeRatio';
         const fitness = solution.outOfSampleScores[primaryObjective] || 0;
         optimizer.setFitness(parameters, fitness);
-        
+
         // Track iteration time
         const iterationTime = (Date.now() - iterationStartTime) / 1000;
         this.recordIterationTime(iterationTime);
         iterationStartTime = Date.now();
-        
+
         // Early stopping check
         if (fitness > this.bestScore) {
           this.bestScore = fitness;
@@ -270,15 +301,21 @@ export class OptimizationEngine {
         } else {
           this.iterationsWithoutImprovement++;
         }
-        
+
         // Send throttled progress update
         this.currentPhase = 'optimizing';
         this.sendProgressUpdate(config.maxIterations);
       }
-      
+
       // Early stopping: stop if no improvement for patience iterations
-      if (this.iterationsWithoutImprovement >= this.EARLY_STOPPING_PATIENCE && this.currentIteration > 20) {
-        logger.info(`Early stopping triggered after generation ${gen + 1} (no improvement for ${this.iterationsWithoutImprovement} iterations)`, 'OptimizationEngine');
+      if (
+        this.iterationsWithoutImprovement >= this.EARLY_STOPPING_PATIENCE &&
+        this.currentIteration > 20
+      ) {
+        logger.info(
+          `Early stopping triggered after generation ${gen + 1} (no improvement for ${this.iterationsWithoutImprovement} iterations)`,
+          'OptimizationEngine'
+        );
         break;
       }
 
@@ -297,13 +334,13 @@ export class OptimizationEngine {
   ): Promise<OptimizationSolution> {
     try {
       logger.debug(`Evaluating solution with ${blocks.length} blocks`, 'OptimizationEngine');
-      
+
       // Check if using paper trading data source
       const dataSource = config.dataSource || 'backtest';
       if (dataSource === 'paperTrading' && config.paperTradingSessionId) {
         return await this.evaluateSolutionWithPaperTrading(blocks, parameters, config);
       }
-      
+
       const windows = this.walkForward.generateWindows(
         config.backtestConfig.startDate,
         config.backtestConfig.endDate
@@ -354,13 +391,16 @@ export class OptimizationEngine {
             outOfSampleScores,
             result.value.testResult.metrics
           );
-          
+
           // Store the last successful out-of-sample result as representative
           // This gives us a complete equity curve for visualization
           representativeBacktest = result.value.testResult;
         } else {
           failedWindows++;
-          const errorMessage = result.reason instanceof Error ? result.reason.message : 'Unknown error in backtest window';
+          const errorMessage =
+            result.reason instanceof Error
+              ? result.reason.message
+              : 'Unknown error in backtest window';
 
           // Log error but continue with other windows
           logger.warn(`Backtest window failed: ${errorMessage}`, 'OptimizationEngine');
@@ -463,7 +503,9 @@ export class OptimizationEngine {
       }
 
       if (session.status !== 'running' && session.status !== 'stopped') {
-        throw new Error(`Paper trading session ${config.paperTradingSessionId} is not in a valid state`);
+        throw new Error(
+          `Paper trading session ${config.paperTradingSessionId} is not in a valid state`
+        );
       }
 
       // Use paper trading results directly
@@ -474,9 +516,10 @@ export class OptimizationEngine {
         sharpeRatio: paperTradingResult.metrics.sharpeRatio,
         totalReturn: paperTradingResult.metrics.totalReturn,
         maxDrawdown: paperTradingResult.metrics.maxDrawdown,
-        winRate: paperTradingResult.metrics.totalTrades > 0
-          ? paperTradingResult.metrics.winTrades / paperTradingResult.metrics.totalTrades
-          : 0,
+        winRate:
+          paperTradingResult.metrics.totalTrades > 0
+            ? paperTradingResult.metrics.winTrades / paperTradingResult.metrics.totalTrades
+            : 0,
         gasCosts: paperTradingResult.metrics.totalGasSpent,
         protocolFees: paperTradingResult.metrics.totalFeesSpent,
       };
@@ -499,7 +542,9 @@ export class OptimizationEngine {
       return solution;
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error evaluating solution with paper trading';
+        error instanceof Error
+          ? error.message
+          : 'Unknown error evaluating solution with paper trading';
 
       logger.error(
         `Error evaluating solution with paper trading: ${errorMessage}`,
@@ -560,11 +605,11 @@ export class OptimizationEngine {
     const bestSolution = paretoFrontier.length > 0 ? paretoFrontier[0] : undefined;
     const elapsed = (Date.now() - this.startTime) / 1000;
     const iterationsRemaining = maxIterations - this.currentIteration;
-    
+
     // Use smoothed average of recent iterations for better time estimation
     const avgTimePerIteration = this.getAverageIterationTime();
     const estimatedTimeRemaining = Math.max(0, iterationsRemaining * avgTimePerIteration);
-    
+
     const cacheStats = this.workerPool.getCacheStats();
 
     return {
@@ -592,7 +637,7 @@ export class OptimizationEngine {
       return; // Skip if too soon
     }
     this.lastProgressUpdate = now;
-    
+
     if (this.onProgress) {
       this.onProgress(this.getProgress(maxIterations));
     }
@@ -622,11 +667,15 @@ export class OptimizationEngine {
     // Weight recent iterations more heavily
     const recentWeight = 0.7;
     const olderWeight = 0.3;
-    const recentAvg = this.iterationTimes.slice(-3).reduce((a, b) => a + b, 0) / Math.min(3, this.iterationTimes.length);
-    const olderAvg = this.iterationTimes.length > 3 
-      ? this.iterationTimes.slice(0, -3).reduce((a, b) => a + b, 0) / (this.iterationTimes.length - 3)
-      : recentAvg;
-    
+    const recentAvg =
+      this.iterationTimes.slice(-3).reduce((a, b) => a + b, 0) /
+      Math.min(3, this.iterationTimes.length);
+    const olderAvg =
+      this.iterationTimes.length > 3
+        ? this.iterationTimes.slice(0, -3).reduce((a, b) => a + b, 0) /
+          (this.iterationTimes.length - 3)
+        : recentAvg;
+
     return recentAvg * recentWeight + olderAvg * olderWeight;
   }
 

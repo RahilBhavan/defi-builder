@@ -236,4 +236,3 @@ export function formatSepoliaTxUrl(txHash: string): string {
 export function formatSepoliaAddressUrl(address: Address): string {
   return getSepoliaExplorerUrl('address', address);
 }
-

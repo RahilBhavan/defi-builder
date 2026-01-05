@@ -2,8 +2,8 @@
  * Tests for retry utility with exponential backoff
  */
 
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import { retryWithBackoff, isRetryableError, RetryError } from '../retry';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { RetryError, isRetryableError, retryWithBackoff } from '../retry';
 
 describe('retryWithBackoff', () => {
   beforeEach(() => {
@@ -116,4 +116,3 @@ describe('isRetryableError', () => {
     expect(isRetryableError(error)).toBe(false);
   });
 });
-

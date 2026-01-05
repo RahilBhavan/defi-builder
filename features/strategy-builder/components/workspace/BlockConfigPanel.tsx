@@ -4,12 +4,12 @@ import type React from 'react';
 import { useEffect, useState } from 'react';
 import { Button } from '../../../../components/ui/Button';
 import { PROTOCOL_COLORS } from '../../../../constants';
-import type { BlockParams, LegoBlock } from '../../../../types';
 import {
   validateJsonObject,
   validateNumberRange,
   validateStringLength,
 } from '../../../../lib/validation';
+import type { BlockParams, LegoBlock } from '../../../../types';
 
 interface BlockConfigPanelProps {
   isOpen: boolean;

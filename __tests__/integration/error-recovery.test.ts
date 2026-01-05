@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { saveStrategy, getStrategies, deleteStrategy } from '../../services/strategyStorage';
+import { deleteStrategy, getStrategies, saveStrategy } from '../../services/strategyStorage';
 import { validateStrategy } from '../../services/strategyValidator';
 import { BlockCategory, Protocol } from '../../types';
 import type { LegoBlock, Strategy } from '../../types';
@@ -60,14 +60,14 @@ describe('Error Recovery Scenarios', () => {
       // Mock localStorage to throw quota exceeded error
       const originalSetItem = localStorage.setItem;
       let callCount = 0;
-      
-      localStorage.setItem = vi.fn(() => {
+
+      localStorage.setItem = vi.fn((key: string, value: string) => {
         callCount++;
         if (callCount === 1) {
           throw new DOMException('QuotaExceededError', 'QuotaExceededError');
         }
         // Second call succeeds (recovery)
-        originalSetItem.call(localStorage, ...arguments);
+        originalSetItem.call(localStorage, key, value);
       });
 
       // Should throw error but not crash
@@ -82,7 +82,7 @@ describe('Error Recovery Scenarios', () => {
     it('should recover from corrupted localStorage data', () => {
       // Set invalid JSON
       localStorage.setItem('defi-builder-strategies', 'invalid json {');
-      
+
       // Should return empty array instead of throwing
       const strategies = getStrategies();
       expect(Array.isArray(strategies)).toBe(true);
@@ -91,7 +91,7 @@ describe('Error Recovery Scenarios', () => {
 
     it('should recover from missing localStorage key', () => {
       localStorage.removeItem('defi-builder-strategies');
-      
+
       // Should return empty array
       const strategies = getStrategies();
       expect(Array.isArray(strategies)).toBe(true);
@@ -100,7 +100,7 @@ describe('Error Recovery Scenarios', () => {
 
     it('should handle null localStorage value', () => {
       localStorage.setItem('defi-builder-strategies', 'null');
-      
+
       const strategies = getStrategies();
       expect(Array.isArray(strategies)).toBe(true);
     });
@@ -263,4 +263,3 @@ describe('Error Recovery Scenarios', () => {
     });
   });
 });
-

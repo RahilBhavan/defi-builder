@@ -27,7 +27,7 @@ export class RequestTracker {
       return [...this.requests];
     }
 
-    return this.requests.filter(req => {
+    return this.requests.filter((req) => {
       if (filter.method && req.method !== filter.method) {
         return false;
       }
@@ -92,17 +92,13 @@ export class RequestTracker {
     }
 
     if (bodyMatcher) {
-      return requests.some(req => bodyMatcher(req.body));
+      return requests.some((req) => bodyMatcher(req.body));
     }
 
     return true;
   }
 
-  public verifyRequestCount(
-    method: string,
-    path: string,
-    expectedCount: number
-  ): boolean {
+  public verifyRequestCount(method: string, path: string, expectedCount: number): boolean {
     const count = this.getCount({ method, path });
     return count === expectedCount;
   }
@@ -119,7 +115,7 @@ export class RequestTracker {
       byMethod: {} as Record<string, number>,
       byPath: {} as Record<string, number>,
       byStatus: {} as Record<string, number>,
-      averageLatency: 0
+      averageLatency: 0,
     };
 
     for (const req of this.requests) {

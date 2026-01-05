@@ -2,7 +2,7 @@
  * Unit tests for Paper Trading Storage
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { paperTradingStorage } from '../paperTradingStorage';
 import type { PaperTradingSession } from '../types';
 
@@ -169,4 +169,3 @@ describe('PaperTradingStorage', () => {
     });
   });
 });
-

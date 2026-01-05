@@ -7,8 +7,8 @@ import { motion } from 'framer-motion';
 import { MessageSquare, Send, Star } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
-import { trpc } from '../../lib/api/trpc';
 import { useToast } from '../../hooks/useToast';
+import { trpc } from '../../lib/api/trpc';
 import { Button } from '../ui/Button';
 import { Skeleton } from '../ui/Skeleton';
 
@@ -21,17 +21,18 @@ interface ReviewsSectionProps {
 // biome-ignore lint/suspicious/noExplicitAny: tRPC router type inference issue
 const typedTrpc = trpc as any;
 
-export const ReviewsSection: React.FC<ReviewsSectionProps> = ({
-  strategyId,
-  onReviewAdded,
-}) => {
+export const ReviewsSection: React.FC<ReviewsSectionProps> = ({ strategyId, onReviewAdded }) => {
   const { success: showSuccess, error: showError } = useToast();
   const [reviewContent, setReviewContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(false);
 
   // Get strategy with reviews
-  const { data: strategy, isLoading, refetch } = typedTrpc.marketplace.getStrategy.useQuery(
+  const {
+    data: strategy,
+    isLoading,
+    refetch,
+  } = typedTrpc.marketplace.getStrategy.useQuery(
     { id: strategyId },
     {
       enabled: !!strategyId,
@@ -69,9 +70,7 @@ export const ReviewsSection: React.FC<ReviewsSectionProps> = ({
       refetch();
       onReviewAdded?.();
     } catch (error) {
-      showError(
-        error instanceof Error ? error.message : 'Failed to add review'
-      );
+      showError(error instanceof Error ? error.message : 'Failed to add review');
     } finally {
       setIsSubmitting(false);
     }
@@ -95,11 +94,7 @@ export const ReviewsSection: React.FC<ReviewsSectionProps> = ({
           {hasMoreReviews && `+${(strategy as any)._count.reviews - reviews.length}`})
         </h3>
         {!showForm && (
-          <Button
-            variant="secondary"
-            className="text-xs"
-            onClick={() => setShowForm(true)}
-          >
+          <Button variant="secondary" className="text-xs" onClick={() => setShowForm(true)}>
             Write Review
           </Button>
         )}
@@ -171,10 +166,7 @@ export const ReviewsSection: React.FC<ReviewsSectionProps> = ({
       ) : (
         <div className="space-y-4">
           {reviews.map((review: any) => (
-            <div
-              key={review.id}
-              className="border-b border-gray-200 pb-4 last:border-0 last:pb-0"
-            >
+            <div key={review.id} className="border-b border-gray-200 pb-4 last:border-0 last:pb-0">
               <div className="flex items-start gap-3 mb-2">
                 <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center text-xs font-mono font-bold flex-shrink-0">
                   {review.user.username?.[0]?.toUpperCase() ||
@@ -183,8 +175,7 @@ export const ReviewsSection: React.FC<ReviewsSectionProps> = ({
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="font-bold text-sm">
-                      {review.user.username ||
-                        `${review.user.walletAddress.slice(0, 6)}...`}
+                      {review.user.username || `${review.user.walletAddress.slice(0, 6)}...`}
                     </span>
                     <span className="text-xs text-gray-400">
                       {new Date(review.createdAt).toLocaleDateString()}
@@ -199,8 +190,7 @@ export const ReviewsSection: React.FC<ReviewsSectionProps> = ({
           {hasMoreReviews && (
             <div className="text-center pt-4">
               <Button variant="secondary" className="text-xs">
-                Load More Reviews (
-                {(strategy as any)._count.reviews - reviews.length} remaining)
+                Load More Reviews ({(strategy as any)._count.reviews - reviews.length} remaining)
               </Button>
             </div>
           )}
@@ -209,4 +199,3 @@ export const ReviewsSection: React.FC<ReviewsSectionProps> = ({
     </div>
   );
 };
-

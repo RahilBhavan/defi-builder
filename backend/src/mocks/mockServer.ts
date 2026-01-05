@@ -3,15 +3,15 @@
  * Enables development and testing without real blockchain/API dependencies
  */
 
-import type { Request, Response, NextFunction } from 'express';
-import express from 'express';
 import cors from 'cors';
-import type { MockRoute, MockScenario, MockState, MockResponse } from './types';
-import { ScenarioManager } from './scenarioManager';
-import { StubbingEngine } from './stubbingEngine';
+import type { NextFunction, Request, Response } from 'express';
+import express from 'express';
+import { logger } from '../utils/logger';
 import { MockDataGenerator } from './dataGenerator';
 import { RequestTracker } from './requestTracker';
-import { logger } from '../utils/logger';
+import { ScenarioManager } from './scenarioManager';
+import { StubbingEngine } from './stubbingEngine';
+import type { MockResponse, MockRoute, MockScenario, MockState } from './types';
 
 export class MockAPIServer {
   private app: express.Application;
@@ -36,10 +36,12 @@ export class MockAPIServer {
 
   private setupMiddleware(): void {
     // CORS
-    this.app.use(cors({
-      origin: '*',
-      credentials: true
-    }));
+    this.app.use(
+      cors({
+        origin: '*',
+        credentials: true,
+      })
+    );
 
     // JSON parsing
     this.app.use(express.json());
@@ -59,7 +61,7 @@ export class MockAPIServer {
         headers: req.headers as Record<string, string>,
         body: req.body,
         query: req.query as Record<string, string>,
-        timestamp: new Date()
+        timestamp: new Date(),
       });
       next();
     });
@@ -68,7 +70,7 @@ export class MockAPIServer {
     this.app.use(async (req: Request, res: Response, next: NextFunction) => {
       const latency = this.calculateLatency(req.path);
       if (latency > 0) {
-        await new Promise(resolve => setTimeout(resolve, latency));
+        await new Promise((resolve) => setTimeout(resolve, latency));
       }
       next();
     });
@@ -108,7 +110,7 @@ export class MockAPIServer {
           path: req.path,
           headers: req.headers as Record<string, string>,
           body: req.body,
-          query: req.query as Record<string, string>
+          query: req.query as Record<string, string>,
         });
 
         if (!stub) {
@@ -116,7 +118,7 @@ export class MockAPIServer {
           return res.status(404).json({
             error: 'No mock found for this endpoint',
             method: req.method,
-            path: req.path
+            path: req.path,
           });
         }
 
@@ -145,16 +147,13 @@ export class MockAPIServer {
         logger.error('Mock server error:', error);
         res.status(500).json({
           error: 'Mock server error',
-          message: error instanceof Error ? error.message : 'Unknown error'
+          message: error instanceof Error ? error.message : 'Unknown error',
         });
       }
     });
   }
 
-  private async processMockResponse(
-    stub: MockRoute,
-    req: Request
-  ): Promise<MockResponse> {
+  private async processMockResponse(stub: MockRoute, req: Request): Promise<MockResponse> {
     // Check for conditional responses
     if (stub.conditions) {
       for (const condition of stub.conditions) {
@@ -166,10 +165,7 @@ export class MockAPIServer {
 
     // Check for sequence responses
     if (stub.sequence) {
-      const response = this.scenarioManager.getSequenceResponse(
-        stub.sequence.name,
-        req
-      );
+      const response = this.scenarioManager.getSequenceResponse(stub.sequence.name, req);
       if (response) {
         return this.generateResponse(response, req);
       }
@@ -227,7 +223,7 @@ export class MockAPIServer {
     const response: MockResponse = {
       status: responseTemplate.status || 200,
       headers: responseTemplate.headers || {},
-      body: this.processResponseBody(responseTemplate.body, req)
+      body: this.processResponseBody(responseTemplate.body, req),
     };
 
     // Apply transformations
@@ -280,7 +276,7 @@ export class MockAPIServer {
           if (Math.random() < transform.params.rate) {
             result = {
               status: transform.params.status || 500,
-              body: transform.params.body || { error: 'Simulated error' }
+              body: transform.params.body || { error: 'Simulated error' },
             };
           }
           break;
@@ -303,7 +299,7 @@ export class MockAPIServer {
       page,
       pageSize,
       total: data.length,
-      totalPages: Math.ceil(data.length / pageSize)
+      totalPages: Math.ceil(data.length / pageSize),
     };
   }
 
@@ -330,7 +326,7 @@ export class MockAPIServer {
       res.json({
         status: 'ok',
         scenario: this.scenarioManager.getCurrentScenario(),
-        requestCount: this.requestTracker.getCount()
+        requestCount: this.requestTracker.getCount(),
       });
     });
 

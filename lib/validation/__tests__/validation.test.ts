@@ -4,10 +4,10 @@
 
 import { describe, expect, it } from 'vitest';
 import {
+  validateEnum,
+  validateJsonObject,
   validateNumberRange,
   validateStringLength,
-  validateJsonObject,
-  validateEnum,
 } from '../index';
 
 describe('validateNumberRange', () => {
@@ -76,4 +76,3 @@ describe('validateEnum', () => {
     expect(validateEnum('', ['value1', 'value2'])).toBeTruthy(); // Error message
   });
 });
-

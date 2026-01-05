@@ -26,7 +26,11 @@ if (REDIS_URL) {
     // Only log errors if Redis was explicitly configured
     // This prevents spam when Redis is not available
     if (REDIS_URL) {
-      logger.debug('Redis error (optional service)', err instanceof Error ? err : new Error(String(err)), 'Redis');
+      logger.debug(
+        'Redis error (optional service)',
+        err instanceof Error ? err : new Error(String(err)),
+        'Redis'
+      );
     }
   });
 } else {

@@ -31,9 +31,7 @@ describe('Optimization Engine', () => {
     };
 
     // Should not throw, but may return empty results
-    await expect(
-      optimizationEngine.optimize(blocks, config)
-    ).resolves.toBeDefined();
+    await expect(optimizationEngine.optimize(blocks, config)).resolves.toBeDefined();
   });
 
   it('should handle basic optimization config', async () => {
@@ -117,4 +115,3 @@ describe('Optimization Engine', () => {
     expect(progressUpdates.length).toBeGreaterThan(0);
   });
 });
-

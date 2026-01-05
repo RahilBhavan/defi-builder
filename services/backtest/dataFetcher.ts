@@ -82,14 +82,14 @@ export async function fetchHistoricalPrices(
       error instanceof Error ? error : new Error(String(error)),
       'DataFetcher'
     );
-    
+
     // If we have cached data (even if expired), use it as fallback
     const cached = priceCache.get(cacheKey);
     if (cached) {
       logger.warn(`Using expired cache for ${token} due to API error`, 'DataFetcher');
       return cached.data;
     }
-    
+
     // Last resort: generate synthetic price data based on token
     logger.warn(`Generating fallback price data for ${token}`, 'DataFetcher');
     return generateFallbackPriceData(startDate, endDate, interval, token);
@@ -117,14 +117,14 @@ function generateFallbackPriceData(
     UNI: 10,
     LINK: 15,
   };
-  
+
   const basePrice = defaultPrices[token.toUpperCase()] || 1000;
   const prices: PriceDataPoint[] = [];
-  
+
   // Generate price points at the requested interval
   const step = interval === 'hourly' ? 60 * 60 * 1000 : 24 * 60 * 60 * 1000;
   let current = new Date(startDate);
-  
+
   while (current <= endDate) {
     // Add small random variation to make it realistic
     const variation = 0.95 + Math.random() * 0.1; // ±5% variation
@@ -132,13 +132,12 @@ function generateFallbackPriceData(
       timestamp: current.getTime(),
       price: basePrice * variation,
     });
-    
+
     current = new Date(current.getTime() + step);
   }
-  
+
   return prices;
 }
-
 
 /**
  * Get price at a specific timestamp (interpolate if needed)

@@ -41,15 +41,16 @@ describe('Modal', () => {
 
   it('calls onClose when overlay is clicked and closeOnOverlayClick is true', async () => {
     const user = userEvent.setup();
-    render(
+    const { container } = render(
       <Modal isOpen={true} onClose={mockOnClose} title="Test Modal" closeOnOverlayClick={true}>
         <p>Modal content</p>
       </Modal>
     );
 
-    const overlay = screen.getByRole('dialog').parentElement;
+    // Find the overlay (the backdrop element with aria-hidden="true")
+    const overlay = container.querySelector('[aria-hidden="true"]');
     if (overlay) {
-      await user.click(overlay);
+      await user.click(overlay as HTMLElement);
       expect(mockOnClose).toHaveBeenCalledTimes(1);
     }
   });
@@ -75,16 +76,20 @@ describe('Modal', () => {
         Content
       </Modal>
     );
-    let dialog = screen.getByRole('dialog');
-    expect(dialog.className).toContain('max-w-md');
+    // The size class is on the motion.div inside the dialog, not the dialog itself
+    const dialog = screen.getByRole('dialog');
+    const modalContent =
+      dialog.querySelector('.max-w-md') || dialog.querySelector('[class*="max-w-md"]');
+    expect(modalContent).toBeTruthy();
 
     rerender(
       <Modal isOpen={true} onClose={mockOnClose} title="Test" size="lg">
         Content
       </Modal>
     );
-    dialog = screen.getByRole('dialog');
-    expect(dialog.className).toContain('max-w-4xl');
+    const modalContentLg =
+      dialog.querySelector('.max-w-4xl') || dialog.querySelector('[class*="max-w-4xl"]');
+    expect(modalContentLg).toBeTruthy();
   });
 
   it('hides close button when showCloseButton is false', () => {

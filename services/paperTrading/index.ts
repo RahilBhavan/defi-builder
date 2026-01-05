@@ -13,4 +13,3 @@ export type {
   PaperTradingStatusUpdate,
   StoredPaperTradingData,
 } from './types';
-

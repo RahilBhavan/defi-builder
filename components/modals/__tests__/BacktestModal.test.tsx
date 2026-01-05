@@ -1,8 +1,14 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type React from 'react';
 import { describe, expect, it, vi } from 'vitest';
+import { ToastProvider } from '../../../hooks/useToast';
 import type { DeFiBacktestResult } from '../../../services/defiBacktestEngine';
 import { BacktestModal } from '../BacktestModal';
+
+const renderWithToast = (ui: React.ReactElement) => {
+  return render(<ToastProvider>{ui}</ToastProvider>);
+};
 
 describe('BacktestModal', () => {
   const mockOnClose = vi.fn();
@@ -29,39 +35,44 @@ describe('BacktestModal', () => {
   };
 
   it('does not render when isOpen is false', () => {
-    render(<BacktestModal isOpen={false} onClose={mockOnClose} result={mockResult} />);
+    renderWithToast(<BacktestModal isOpen={false} onClose={mockOnClose} result={mockResult} />);
     expect(screen.queryByText(/backtest results/i)).not.toBeInTheDocument();
   });
 
   it('renders when isOpen is true', () => {
-    render(<BacktestModal isOpen={true} onClose={mockOnClose} result={mockResult} />);
+    renderWithToast(<BacktestModal isOpen={true} onClose={mockOnClose} result={mockResult} />);
     expect(screen.getByText(/backtest results/i)).toBeInTheDocument();
   });
 
   it('displays metrics when result is provided', () => {
-    render(<BacktestModal isOpen={true} onClose={mockOnClose} result={mockResult} />);
+    renderWithToast(<BacktestModal isOpen={true} onClose={mockOnClose} result={mockResult} />);
     expect(screen.getByText(/sharpe ratio/i)).toBeInTheDocument();
     expect(screen.getByText(/total return/i)).toBeInTheDocument();
   });
 
   it('displays empty state when result is null', () => {
-    render(<BacktestModal isOpen={true} onClose={mockOnClose} result={null} />);
-    expect(screen.getByText(/no backtest results/i)).toBeInTheDocument();
+    renderWithToast(<BacktestModal isOpen={true} onClose={mockOnClose} result={null} />);
+    expect(screen.getByText(/running backtest/i)).toBeInTheDocument();
   });
 
   it('switches tabs when tab is clicked', async () => {
     const user = userEvent.setup();
-    render(<BacktestModal isOpen={true} onClose={mockOnClose} result={mockResult} />);
+    renderWithToast(<BacktestModal isOpen={true} onClose={mockOnClose} result={mockResult} />);
 
-    const tradesTab = screen.getByRole('button', { name: /trades/i });
+    const tradesTab = screen.getByRole('tab', { name: /trades/i });
     await user.click(tradesTab);
 
-    expect(screen.getByText(/trade history/i)).toBeInTheDocument();
+    // Wait for the trades panel to appear by checking for the "Trade History" heading
+    await screen.findByText(/trade history/i, {}, { timeout: 1000 });
+
+    // Check that the trades panel exists with the correct ID
+    const tradesPanel = document.getElementById('trades-panel');
+    expect(tradesPanel).toBeInTheDocument();
   });
 
   it('calls onClose when close button is clicked', async () => {
     const user = userEvent.setup();
-    render(<BacktestModal isOpen={true} onClose={mockOnClose} result={mockResult} />);
+    renderWithToast(<BacktestModal isOpen={true} onClose={mockOnClose} result={mockResult} />);
 
     const closeButton = screen.getByRole('button', { name: /close/i });
     await user.click(closeButton);

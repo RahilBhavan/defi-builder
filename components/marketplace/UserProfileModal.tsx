@@ -88,12 +88,8 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                     <h3 className="text-xl font-bold font-mono mb-1">
                       {profile.username || `${profile.walletAddress.slice(0, 6)}...`}
                     </h3>
-                    <p className="text-sm text-gray-500 font-mono mb-4">
-                      {profile.walletAddress}
-                    </p>
-                    {profile.bio && (
-                      <p className="text-sm text-gray-600 mb-4">{profile.bio}</p>
-                    )}
+                    <p className="text-sm text-gray-500 font-mono mb-4">{profile.walletAddress}</p>
+                    {profile.bio && <p className="text-sm text-gray-600 mb-4">{profile.bio}</p>}
 
                     {/* Stats */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -189,4 +185,3 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
     </div>
   );
 };
-

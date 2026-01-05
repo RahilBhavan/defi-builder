@@ -7,14 +7,14 @@ import { X } from 'lucide-react';
 import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import { useToast } from '../../hooks/useToast';
+import { getUserFriendlyErrorMessage } from '../../lib/error/handler';
 import { logger } from '../../lib/monitoring/logger';
 import {
-  paperTradingEngine,
   type PaperTradingConfig,
   type PaperTradingSession,
+  paperTradingEngine,
 } from '../../services/paperTrading';
 import type { LegoBlock } from '../../types';
-import { getUserFriendlyErrorMessage } from '../../lib/error/handler';
 import { Button } from '../ui/Button';
 import { BacktestModal } from './BacktestModal';
 
@@ -140,37 +140,60 @@ export const PaperTradingModal: React.FC<PaperTradingModalProps> = ({
               // View existing session
               <div className="space-y-4">
                 <div>
-                  <h3 className="text-sm font-bold uppercase font-mono text-ink mb-2">Session Details</h3>
+                  <h3 className="text-sm font-bold uppercase font-mono text-ink mb-2">
+                    Session Details
+                  </h3>
                   <div className="border border-gray-300 p-4 space-y-2">
                     <div className="flex justify-between">
                       <span className="text-sm text-gray-600">Status:</span>
                       <span className="text-sm font-mono font-bold">
-                        {session.status === 'running' && <span className="text-green-600">Running</span>}
-                        {session.status === 'paused' && <span className="text-yellow-600">Paused</span>}
-                        {session.status === 'stopped' && <span className="text-gray-600">Stopped</span>}
+                        {session.status === 'running' && (
+                          <span className="text-green-600">Running</span>
+                        )}
+                        {session.status === 'paused' && (
+                          <span className="text-yellow-600">Paused</span>
+                        )}
+                        {session.status === 'stopped' && (
+                          <span className="text-gray-600">Stopped</span>
+                        )}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-gray-600">Initial Capital:</span>
                       <span className="text-sm font-mono font-bold">
-                        ${session.config.initialCapital.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        $
+                        {session.config.initialCapital.toLocaleString('en-US', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-gray-600">Current Equity:</span>
                       <span className="text-sm font-mono font-bold">
-                        ${(session.results.equityCurve[session.results.equityCurve.length - 1]?.equity || session.config.initialCapital).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        $
+                        {(
+                          session.results.equityCurve[session.results.equityCurve.length - 1]
+                            ?.equity || session.config.initialCapital
+                        ).toLocaleString('en-US', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-gray-600">Total Return:</span>
-                      <span className={`text-sm font-mono font-bold ${session.results.metrics.totalReturn >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      <span
+                        className={`text-sm font-mono font-bold ${session.results.metrics.totalReturn >= 0 ? 'text-green-600' : 'text-red-600'}`}
+                      >
                         {(session.results.metrics.totalReturn * 100).toFixed(2)}%
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-gray-600">Total Trades:</span>
-                      <span className="text-sm font-mono font-bold">{session.results.metrics.totalTrades}</span>
+                      <span className="text-sm font-mono font-bold">
+                        {session.results.metrics.totalTrades}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -182,7 +205,11 @@ export const PaperTradingModal: React.FC<PaperTradingModalProps> = ({
                     </Button>
                   )}
                   {session.status === 'running' && (
-                    <Button onClick={() => paperTradingEngine.pauseSession(session.id)} fullWidth variant="secondary">
+                    <Button
+                      onClick={() => paperTradingEngine.pauseSession(session.id)}
+                      fullWidth
+                      variant="secondary"
+                    >
                       Pause Session
                     </Button>
                   )}
@@ -245,13 +272,18 @@ export const PaperTradingModal: React.FC<PaperTradingModalProps> = ({
 
                 <div className="border border-gray-300 p-4 bg-gray-50">
                   <p className="text-xs text-gray-600">
-                    <strong>Note:</strong> Paper trading will execute your strategy automatically at the selected
-                    interval using real-time prices. You can pause or stop the session at any time.
+                    <strong>Note:</strong> Paper trading will execute your strategy automatically at
+                    the selected interval using real-time prices. You can pause or stop the session
+                    at any time.
                   </p>
                 </div>
 
                 <div className="flex gap-2">
-                  <Button onClick={handleCreateSession} fullWidth disabled={isCreating || blocks.length === 0}>
+                  <Button
+                    onClick={handleCreateSession}
+                    fullWidth
+                    disabled={isCreating || blocks.length === 0}
+                  >
                     {isCreating ? 'Creating...' : 'Create Session'}
                   </Button>
                   <Button onClick={onClose} fullWidth variant="secondary">
@@ -275,4 +307,3 @@ export const PaperTradingModal: React.FC<PaperTradingModalProps> = ({
     </>
   );
 };
-

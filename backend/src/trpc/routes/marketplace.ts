@@ -22,10 +22,7 @@ async function calculateTrendingScore(strategy: {
   const recencyFactor = Math.max(0, 1 - daysSinceCreation / 30); // Decay over 30 days
 
   // Weighted score
-  const score =
-    strategy.viewCount * 0.3 +
-    strategy.likeCount * 0.4 +
-    strategy.forkCount * 0.3;
+  const score = strategy.viewCount * 0.3 + strategy.likeCount * 0.4 + strategy.forkCount * 0.3;
 
   // Apply recency factor
   return score * (1 + recencyFactor * 0.5);
@@ -128,7 +125,7 @@ export const marketplaceRouter = router({
         );
 
         // Sort based on sortBy
-        let sortedStrategies = [...strategiesWithMetadata];
+        const sortedStrategies = [...strategiesWithMetadata];
         switch (sortBy) {
           case 'newest':
             sortedStrategies.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());

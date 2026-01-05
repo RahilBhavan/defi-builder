@@ -7,13 +7,13 @@ import { Pause, Play, Square, TrendingUp, X } from 'lucide-react';
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useToast } from '../../hooks/useToast';
+import { getUserFriendlyErrorMessage } from '../../lib/error/handler';
 import { logger } from '../../lib/monitoring/logger';
 import {
-  paperTradingEngine,
   type PaperTradingSession,
   type PaperTradingStatusUpdate,
+  paperTradingEngine,
 } from '../../services/paperTrading';
-import { getUserFriendlyErrorMessage } from '../../lib/error/handler';
 import { BacktestVisualization } from '../optimization/BacktestVisualization';
 import { Button } from '../ui/Button';
 
@@ -33,13 +33,15 @@ export const PaperTradingPanel: React.FC<PaperTradingPanelProps> = ({
   const { error: showError, success: showSuccess } = useToast();
   const [sessions, setSessions] = useState<PaperTradingSession[]>([]);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
-  const [statusUpdates, setStatusUpdates] = useState<Map<string, PaperTradingStatusUpdate>>(new Map());
+  const [statusUpdates, setStatusUpdates] = useState<Map<string, PaperTradingStatusUpdate>>(
+    new Map()
+  );
 
   // Load sessions
   const loadSessions = useCallback(() => {
     const allSessions = paperTradingEngine.getAllSessions();
     setSessions(allSessions);
-    
+
     // Set first session as selected if none selected
     if (!selectedSessionId && allSessions.length > 0) {
       setSelectedSessionId(allSessions[0]?.id || null);
@@ -77,7 +79,8 @@ export const PaperTradingPanel: React.FC<PaperTradingPanelProps> = ({
     return sessions.find((s) => s.id === selectedSessionId);
   }, [sessions, selectedSessionId]);
 
-  const statusUpdate = selectedSessionId ? statusUpdates.get(selectedSessionId) : undefined;
+  // Status update available for future use
+  // const statusUpdate = selectedSessionId ? statusUpdates.get(selectedSessionId) : undefined;
 
   const handleStart = useCallback(
     (sessionId: string) => {
@@ -146,7 +149,7 @@ export const PaperTradingPanel: React.FC<PaperTradingPanelProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <div className="bg-white w-full max-w-6xl h-[90vh] flex flex-col border border-gray-300">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-300">
@@ -179,8 +182,14 @@ export const PaperTradingPanel: React.FC<PaperTradingPanelProps> = ({
                 <div className="divide-y divide-gray-200">
                   {sessions.map((session) => {
                     const update = statusUpdates.get(session.id);
-                    const currentEquity = update?.equity || session.results.equityCurve[session.results.equityCurve.length - 1]?.equity || session.config.initialCapital;
-                    const returnPercent = ((currentEquity - session.config.initialCapital) / session.config.initialCapital) * 100;
+                    const currentEquity =
+                      update?.equity ||
+                      session.results.equityCurve[session.results.equityCurve.length - 1]?.equity ||
+                      session.config.initialCapital;
+                    const returnPercent =
+                      ((currentEquity - session.config.initialCapital) /
+                        session.config.initialCapital) *
+                      100;
                     const isSelected = session.id === selectedSessionId;
 
                     return (
@@ -197,9 +206,15 @@ export const PaperTradingPanel: React.FC<PaperTradingPanelProps> = ({
                               {session.config.strategyName || `Session ${session.id.slice(-8)}`}
                             </h3>
                             <p className="text-xs text-gray-500 mt-1">
-                              {session.status === 'running' && <span className="text-green-600">● Running</span>}
-                              {session.status === 'paused' && <span className="text-yellow-600">● Paused</span>}
-                              {session.status === 'stopped' && <span className="text-gray-600">● Stopped</span>}
+                              {session.status === 'running' && (
+                                <span className="text-green-600">● Running</span>
+                              )}
+                              {session.status === 'paused' && (
+                                <span className="text-yellow-600">● Paused</span>
+                              )}
+                              {session.status === 'stopped' && (
+                                <span className="text-gray-600">● Stopped</span>
+                              )}
                             </p>
                           </div>
                         </div>
@@ -208,13 +223,20 @@ export const PaperTradingPanel: React.FC<PaperTradingPanelProps> = ({
                           <div className="flex justify-between text-xs">
                             <span className="text-gray-500">Equity:</span>
                             <span className="font-mono font-bold">
-                              ${currentEquity.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              $
+                              {currentEquity.toLocaleString('en-US', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })}
                             </span>
                           </div>
                           <div className="flex justify-between text-xs">
                             <span className="text-gray-500">Return:</span>
-                            <span className={`font-mono font-bold ${returnPercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                              {returnPercent >= 0 ? '+' : ''}{returnPercent.toFixed(2)}%
+                            <span
+                              className={`font-mono font-bold ${returnPercent >= 0 ? 'text-green-600' : 'text-red-600'}`}
+                            >
+                              {returnPercent >= 0 ? '+' : ''}
+                              {returnPercent.toFixed(2)}%
                             </span>
                           </div>
                         </div>
@@ -294,7 +316,8 @@ export const PaperTradingPanel: React.FC<PaperTradingPanelProps> = ({
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-lg font-bold font-mono text-ink">
-                        {selectedSession.config.strategyName || `Session ${selectedSession.id.slice(-8)}`}
+                        {selectedSession.config.strategyName ||
+                          `Session ${selectedSession.id.slice(-8)}`}
                       </h3>
                       <p className="text-xs text-gray-500 mt-1">
                         Started: {selectedSession.startTime.toLocaleString()}
@@ -308,25 +331,33 @@ export const PaperTradingPanel: React.FC<PaperTradingPanelProps> = ({
                   {/* Metrics */}
                   <div className="grid grid-cols-4 gap-4 mt-4">
                     <div className="border border-gray-300 p-3 bg-white">
-                      <div className="text-xs text-gray-500 uppercase font-bold mb-1">Total Return</div>
+                      <div className="text-xs text-gray-500 uppercase font-bold mb-1">
+                        Total Return
+                      </div>
                       <div className="text-xl font-mono font-bold text-ink">
                         {(selectedSession.results.metrics.totalReturn * 100).toFixed(2)}%
                       </div>
                     </div>
                     <div className="border border-gray-300 p-3 bg-white">
-                      <div className="text-xs text-gray-500 uppercase font-bold mb-1">Sharpe Ratio</div>
+                      <div className="text-xs text-gray-500 uppercase font-bold mb-1">
+                        Sharpe Ratio
+                      </div>
                       <div className="text-xl font-mono font-bold text-ink">
                         {selectedSession.results.metrics.sharpeRatio.toFixed(2)}
                       </div>
                     </div>
                     <div className="border border-gray-300 p-3 bg-white">
-                      <div className="text-xs text-gray-500 uppercase font-bold mb-1">Max Drawdown</div>
+                      <div className="text-xs text-gray-500 uppercase font-bold mb-1">
+                        Max Drawdown
+                      </div>
                       <div className="text-xl font-mono font-bold text-ink">
                         {(selectedSession.results.metrics.maxDrawdown * 100).toFixed(2)}%
                       </div>
                     </div>
                     <div className="border border-gray-300 p-3 bg-white">
-                      <div className="text-xs text-gray-500 uppercase font-bold mb-1">Total Trades</div>
+                      <div className="text-xs text-gray-500 uppercase font-bold mb-1">
+                        Total Trades
+                      </div>
                       <div className="text-xl font-mono font-bold text-ink">
                         {selectedSession.results.metrics.totalTrades}
                       </div>
@@ -353,6 +384,8 @@ export const PaperTradingPanel: React.FC<PaperTradingPanelProps> = ({
                               totalReturn: selectedSession.results.metrics.totalReturn,
                               maxDrawdown: selectedSession.results.metrics.maxDrawdown,
                             },
+                            degradation: 0,
+                            isParetoOptimal: true,
                             backtestResult: selectedSession.results,
                           },
                         ]}
@@ -365,7 +398,9 @@ export const PaperTradingPanel: React.FC<PaperTradingPanelProps> = ({
                       <div className="text-center">
                         <TrendingUp size={48} className="mx-auto mb-4 opacity-50" />
                         <p className="text-sm font-mono uppercase">No data yet</p>
-                        <p className="text-xs text-gray-500 mt-2">Start the session to begin collecting data</p>
+                        <p className="text-xs text-gray-500 mt-2">
+                          Start the session to begin collecting data
+                        </p>
                       </div>
                     </div>
                   )}
@@ -376,7 +411,9 @@ export const PaperTradingPanel: React.FC<PaperTradingPanelProps> = ({
                 <div className="text-center">
                   <TrendingUp size={48} className="mx-auto mb-4 opacity-50" />
                   <p className="text-sm font-mono uppercase">Select a session</p>
-                  <p className="text-xs text-gray-500 mt-2">Choose a session from the list to view details</p>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Choose a session from the list to view details
+                  </p>
                 </div>
               </div>
             )}
@@ -386,4 +423,3 @@ export const PaperTradingPanel: React.FC<PaperTradingPanelProps> = ({
     </div>
   );
 };
-

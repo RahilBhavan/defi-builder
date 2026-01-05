@@ -1,3 +1,4 @@
+import { createServer } from 'http';
 import { createExpressMiddleware } from '@trpc/server/adapters/express';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
@@ -6,6 +7,7 @@ import express from 'express';
 import prisma from './db/client';
 import { startSecretRotationJob } from './jobs/secretRotation';
 import { rateLimiters } from './middleware/rateLimiter';
+import { webSocketService } from './services/websocket';
 import { createContext } from './trpc/context';
 import { appRouter } from './trpc/router';
 import { validateEnv } from './utils/envValidation';
@@ -43,6 +45,7 @@ try {
 }
 
 const app = express();
+const server = createServer(app);
 const PORT = process.env.PORT || 3001;
 
 // Configure CORS to allow credentials (cookies)
@@ -153,9 +156,13 @@ app.use(
   })
 );
 
-app.listen(PORT, () => {
+// Initialize WebSocket server
+webSocketService.initialize(server);
+
+server.listen(PORT, () => {
   logger.info(`Backend server running on http://localhost:${PORT}`, 'Server');
   logger.info(`tRPC endpoint: http://localhost:${PORT}/trpc`, 'Server');
+  logger.info(`WebSocket endpoint: ws://localhost:${PORT}/ws`, 'Server');
 
   // Start secret rotation job (if Doppler is configured)
   if (process.env.DOPPLER_TOKEN) {

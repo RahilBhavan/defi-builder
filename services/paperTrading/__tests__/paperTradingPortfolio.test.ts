@@ -2,7 +2,7 @@
  * Unit tests for Paper Trading Portfolio Manager
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { PaperTradingPortfolioManager } from '../paperTradingPortfolio';
 
 describe('PaperTradingPortfolioManager', () => {
@@ -36,11 +36,11 @@ describe('PaperTradingPortfolioManager', () => {
 
     it('should handle invalid equity values gracefully', () => {
       const prices = new Map<string, number>([['USDC', 1.0]]);
-      
+
       // This should not throw
       portfolio.updateEquity(prices);
       const equityCurve = portfolio.getEquityCurve();
-      
+
       expect(equityCurve.length).toBeGreaterThanOrEqual(1);
     });
   });
@@ -66,7 +66,7 @@ describe('PaperTradingPortfolioManager', () => {
 
     it('should limit to 1000 points', () => {
       const prices = new Map<string, number>([['USDC', 1.0]]);
-      
+
       // Add more than 1000 points
       for (let i = 0; i < 1500; i++) {
         portfolio.updateEquity(prices);
@@ -94,4 +94,3 @@ describe('PaperTradingPortfolioManager', () => {
     });
   });
 });
-

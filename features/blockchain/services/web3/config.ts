@@ -8,9 +8,9 @@ import { http, createConfig, fallback } from 'wagmi';
 import { arbitrum, mainnet, optimism, polygon, sepolia } from 'wagmi/chains';
 import { injected, metaMask } from 'wagmi/connectors';
 import {
-  SEPOLIA_RPC_ENDPOINTS,
   SEPOLIA_CHAIN_ID,
   SEPOLIA_CONTRACTS,
+  SEPOLIA_RPC_ENDPOINTS,
   SEPOLIA_TOKENS,
   getSepoliaRpcUrl,
 } from '../sepolia';

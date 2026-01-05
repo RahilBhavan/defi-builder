@@ -3,8 +3,8 @@
  */
 
 import { describe, expect, it, vi } from 'vitest';
-import { blocksToCanvasElements, canvasNodesToBlocks } from '../canvas';
 import type { LegoBlock } from '../../../types';
+import { blocksToCanvasElements, canvasNodesToBlocks } from '../canvas';
 
 describe('blocksToCanvasElements', () => {
   const mockBlocks: LegoBlock[] = [
@@ -136,4 +136,3 @@ describe('canvasNodesToBlocks', () => {
     expect(blocks[1].id).toBe('block1');
   });
 });
-

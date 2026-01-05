@@ -3,10 +3,10 @@
  * Syncs strategies to backend for cloud storage and sharing
  */
 
-import type { Strategy } from '../types';
-import { logger } from '../lib/monitoring/logger';
-import { isRetryableError, retryWithBackoff } from '../lib/error/retry';
 import { trpc } from '../lib/api/trpc';
+import { isRetryableError, retryWithBackoff } from '../lib/error/retry';
+import { logger } from '../lib/monitoring/logger';
+import type { Strategy } from '../types';
 
 /**
  * Convert blocks to nodeGraph format for backend storage

@@ -4,9 +4,9 @@
  * Run this to start the mock server independently: bun run backend/src/mocks/startMockServer.ts
  */
 
-import { MockAPIServer } from './mockServer';
-import { DeFiMocks } from './defiMocks';
 import { logger } from '../utils/logger';
+import { DeFiMocks } from './defiMocks';
+import { MockAPIServer } from './mockServer';
 
 const PORT = Number(process.env.MOCK_PORT) || 3001;
 const SCENARIO = process.env.MOCK_SCENARIO || 'default';
@@ -44,7 +44,8 @@ async function startMockServer() {
   // Start server
   await server.start();
 
-  logger.info(`
+  logger.info(
+    `
 ╔════════════════════════════════════════════════════════════╗
 ║                                                            ║
 ║        DeFi Builder Mock API Server Running!               ║
@@ -71,12 +72,13 @@ async function startMockServer() {
 ║      -d '{"scenario":"bull_market"}'                       ║
 ║                                                            ║
 ║  Available scenarios:                                      ║
-${scenarios.map(s => `║    - ${s.name.padEnd(51)}║`).join('\n')}
+${scenarios.map((s) => `║    - ${s.name.padEnd(51)}║`).join('\n')}
 ║                                                            ║
 ║  Press Ctrl+C to stop                                      ║
 ║                                                            ║
 ╚════════════════════════════════════════════════════════════╝
-  `.trim());
+  `.trim()
+  );
 
   // Graceful shutdown
   process.on('SIGINT', async () => {
@@ -93,7 +95,7 @@ ${scenarios.map(s => `║    - ${s.name.padEnd(51)}║`).join('\n')}
 }
 
 // Start the server
-startMockServer().catch(error => {
+startMockServer().catch((error) => {
   logger.error('Failed to start mock server:', error);
   process.exit(1);
 });

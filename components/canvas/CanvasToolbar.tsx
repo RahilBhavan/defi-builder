@@ -1,7 +1,7 @@
 import type React from 'react';
-import { ValidationStatus } from '../workspace/ValidationStatus';
-import { SecondaryMenu } from '../workspace/SecondaryMenu';
 import type { ValidationResult } from '../../services/strategyValidator';
+import { SecondaryMenu } from '../workspace/SecondaryMenu';
+import { ValidationStatus } from '../workspace/ValidationStatus';
 
 interface CanvasToolbarProps {
   onSave: () => void;
@@ -62,8 +62,6 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
         onExport={onExport}
         onImport={onImport}
       />
-
     </div>
   );
 };
-

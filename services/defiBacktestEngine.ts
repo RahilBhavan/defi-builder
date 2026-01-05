@@ -228,7 +228,7 @@ export async function runDeFiBacktest(config: BacktestConfig): Promise<DeFiBackt
 
     // Calculate current equity
     const equity = portfolio.calculateEquity(currentPrices);
-    
+
     // Validate equity value before adding
     if (isNaN(equity) || !isFinite(equity) || equity < 0) {
       logger.warn(
@@ -236,7 +236,8 @@ export async function runDeFiBacktest(config: BacktestConfig): Promise<DeFiBackt
         'BacktestEngine'
       );
       // Use previous equity or initial capital as fallback
-      const previousEquity = equityCurve.length > 0 ? equityCurve[equityCurve.length - 1] : initialCapital;
+      const previousEquity =
+        equityCurve.length > 0 ? equityCurve[equityCurve.length - 1] : initialCapital;
       equityCurve.push(previousEquity);
       equityCurveData.push({
         date: currentDate.toISOString(),
@@ -269,7 +270,11 @@ export async function runDeFiBacktest(config: BacktestConfig): Promise<DeFiBackt
 
   // Validate equity curve data before returning
   const validatedEquityCurve = equityCurveData.filter(
-    (point) => point.date && !isNaN(new Date(point.date).getTime()) && point.equity !== undefined && isFinite(point.equity)
+    (point) =>
+      point.date &&
+      !isNaN(new Date(point.date).getTime()) &&
+      point.equity !== undefined &&
+      isFinite(point.equity)
   );
 
   if (validatedEquityCurve.length === 0) {

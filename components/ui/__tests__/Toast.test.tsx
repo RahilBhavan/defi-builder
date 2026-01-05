@@ -29,30 +29,31 @@ describe('ToastComponent', () => {
   });
 
   it('renders success toast with correct styling', () => {
-    render(<ToastComponent toast={mockToast} onDismiss={mockOnDismiss} />);
-    const toast = screen.getByText('Test message').closest('div');
+    const { container } = render(<ToastComponent toast={mockToast} onDismiss={mockOnDismiss} />);
+    // Find the motion.div (outermost element) that contains the border classes
+    const toast = container.querySelector('.border-success-green') || container.firstElementChild;
     expect(toast?.className).toContain('border-success-green');
   });
 
   it('renders error toast with correct styling', () => {
     const errorToast: Toast = { ...mockToast, type: 'error' };
-    render(<ToastComponent toast={errorToast} onDismiss={mockOnDismiss} />);
-    const toast = screen.getByText('Test message').closest('div');
+    const { container } = render(<ToastComponent toast={errorToast} onDismiss={mockOnDismiss} />);
+    const toast = container.querySelector('.border-alert-red') || container.firstElementChild;
     expect(toast?.className).toContain('border-alert-red');
   });
 
   it('renders warning toast with correct styling', () => {
     const warningToast: Toast = { ...mockToast, type: 'warning' };
-    render(<ToastComponent toast={warningToast} onDismiss={mockOnDismiss} />);
-    const toast = screen.getByText('Test message').closest('div');
+    const { container } = render(<ToastComponent toast={warningToast} onDismiss={mockOnDismiss} />);
+    const toast = container.querySelector('.border-orange') || container.firstElementChild;
     expect(toast?.className).toContain('border-orange');
   });
 
   it('renders info toast with correct styling', () => {
     const infoToast: Toast = { ...mockToast, type: 'info' };
-    render(<ToastComponent toast={infoToast} onDismiss={mockOnDismiss} />);
-    const toast = screen.getByText('Test message').closest('div');
-    // Info toast may use different border class - check for info-related classes
-    expect(toast?.className).toMatch(/border-(blue|info)/);
+    const { container } = render(<ToastComponent toast={infoToast} onDismiss={mockOnDismiss} />);
+    const toast = container.querySelector('.border-blue-500') || container.firstElementChild;
+    // Info toast uses border-blue-500
+    expect(toast?.className).toContain('border-blue-500');
   });
 });

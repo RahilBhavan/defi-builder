@@ -18,10 +18,10 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api\/coingecko/, ''),
           configure: (proxy, _options) => {
-            proxy.on('error', (err, _req, res) => {
+            proxy.on('error', (err, _req, _res) => {
               console.log('proxy error', err);
             });
-            proxy.on('proxyReq', (proxyReq, req, _res) => {
+            proxy.on('proxyReq', (_proxyReq, req, _res) => {
               console.log('Proxying request:', req.method, req.url);
             });
           },
@@ -32,7 +32,7 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api\/binance/, ''),
           configure: (proxy, _options) => {
-            proxy.on('error', (err, _req, res) => {
+            proxy.on('error', (err, _req, _res) => {
               console.log('Binance proxy error', err);
             });
           },

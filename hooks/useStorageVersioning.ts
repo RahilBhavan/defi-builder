@@ -4,6 +4,8 @@
  */
 
 import { useState } from 'react';
+import { logger } from '../lib/monitoring/logger';
+import { safeJsonParse } from '../lib/storage/json';
 import { migrateData } from '../services/storage/migrations';
 import {
   CURRENT_VERSION,
@@ -12,8 +14,6 @@ import {
   updateVersionMetadata,
   wrapWithVersion,
 } from '../services/storage/versioning';
-import { safeJsonParse } from '../lib/storage/json';
-import { logger } from '../lib/monitoring/logger';
 
 /**
  * Options for versioned storage

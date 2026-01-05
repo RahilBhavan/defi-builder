@@ -1,5 +1,5 @@
-import type { BlockNode, FlowEdge, BlockNodeData } from '../canvas/types';
 import type { LegoBlock } from '../../types';
+import type { BlockNode, BlockNodeData, FlowEdge } from '../canvas/types';
 
 const NODE_WIDTH = 280;
 const HORIZONTAL_SPACING = 100;
@@ -40,11 +40,11 @@ export function blocksToCanvasElements(
   }));
 
   const edges: FlowEdge[] = [];
-  
+
   for (let i = 0; i < blocks.length - 1; i++) {
     const block = blocks[i];
     const targetBlock = blocks[i + 1];
-    
+
     if (block && targetBlock) {
       edges.push({
         id: `edge-${block.id}-${targetBlock.id}`,
@@ -77,4 +77,3 @@ export function canvasNodesToBlocks(nodes: BlockNode[]): LegoBlock[] {
 export function spineBlocksToReactFlow(blocks: LegoBlock[]) {
   return blocksToCanvasElements(blocks);
 }
-

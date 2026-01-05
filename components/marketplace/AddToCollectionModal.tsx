@@ -7,8 +7,8 @@ import { motion } from 'framer-motion';
 import { FolderPlus, Plus, X } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useState } from 'react';
-import { trpc } from '../../lib/api/trpc';
 import { useToast } from '../../hooks/useToast';
+import { trpc } from '../../lib/api/trpc';
 import { Button } from '../ui/Button';
 import { CreateCollectionModal } from './CreateCollectionModal';
 
@@ -34,7 +34,11 @@ export const AddToCollectionModal: React.FC<AddToCollectionModalProps> = ({
   const [selectedCollections, setSelectedCollections] = useState<Set<string>>(new Set());
 
   // Get user's collections
-  const { data: collections, isLoading, refetch } = typedTrpc.marketplace.getCollections.useQuery(
+  const {
+    data: collections,
+    isLoading,
+    refetch,
+  } = typedTrpc.marketplace.getCollections.useQuery(
     { isPublic: undefined }, // Get all user's collections (public and private)
     {
       enabled: isOpen,
@@ -80,9 +84,7 @@ export const AddToCollectionModal: React.FC<AddToCollectionModalProps> = ({
       onSuccess?.();
       onClose();
     } catch (error) {
-      showError(
-        error instanceof Error ? error.message : 'Failed to add to collection'
-      );
+      showError(error instanceof Error ? error.message : 'Failed to add to collection');
     }
   };
 
@@ -226,4 +228,3 @@ export const AddToCollectionModal: React.FC<AddToCollectionModalProps> = ({
     </>
   );
 };
-

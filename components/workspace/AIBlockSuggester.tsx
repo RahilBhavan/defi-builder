@@ -15,14 +15,14 @@ import {
   X,
 } from 'lucide-react';
 import type React from 'react';
-import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AVAILABLE_BLOCKS, PROTOCOL_COLORS } from '../../constants';
 import { useDebounce } from '../../hooks/useDebounce';
 import { useToast } from '../../hooks/useToast';
+import { trpc } from '../../lib/api/trpc';
 import { suggestNextBlocks } from '../../services/geminiService';
 import type { LegoBlock } from '../../types';
 import { Protocol } from '../../types';
-import { trpc } from '../../lib/api/trpc';
 
 interface AIBlockSuggesterProps {
   isOpen: boolean;
@@ -166,9 +166,7 @@ function BlockCard({ block, isAISuggested, onAdd, onDragStart, onDragEnd }: Bloc
           <p className="text-xs font-bold text-ink truncate uppercase tracking-wide">
             {block.label}
           </p>
-          <p className="text-[10px] text-gray-400 truncate mt-0.5 font-mono">
-            {block.description}
-          </p>
+          <p className="text-[10px] text-gray-400 truncate mt-0.5 font-mono">{block.description}</p>
         </div>
       </div>
     </motion.button>
@@ -301,13 +299,13 @@ export const AIBlockSuggester: React.FC<AIBlockSuggesterProps> = ({
     const grouped: Record<string, LegoBlock[]> = {};
     const order = ['ENTRY', 'PROTOCOL', 'EXIT', 'RISK'];
     order.forEach((cat) => (grouped[cat] = []));
-    
+
     filteredBlocks.forEach((block) => {
       const category = block.category || 'OTHER';
       if (!grouped[category]) grouped[category] = [];
       grouped[category].push(block);
     });
-    
+
     return grouped;
   }, [filteredBlocks]);
 
@@ -319,11 +317,14 @@ export const AIBlockSuggester: React.FC<AIBlockSuggesterProps> = ({
     OTHER: 'Other',
   };
 
-  const handleAddBlock = useCallback((template: LegoBlock) => {
-    onAddBlock(template);
-    setSearchQuery('');
-    if (window.innerWidth < 1024) onClose();
-  }, [onAddBlock, onClose]);
+  const handleAddBlock = useCallback(
+    (template: LegoBlock) => {
+      onAddBlock(template);
+      setSearchQuery('');
+      if (window.innerWidth < 1024) onClose();
+    },
+    [onAddBlock, onClose]
+  );
 
   const handleDragStart = useCallback((e: React.DragEvent, block: LegoBlock) => {
     e.dataTransfer.effectAllowed = 'copy';
@@ -331,7 +332,7 @@ export const AIBlockSuggester: React.FC<AIBlockSuggesterProps> = ({
     e.dataTransfer.setData('text/plain', block.id);
   }, []);
 
-  const handleDragEnd = useCallback((e: React.DragEvent) => {
+  const handleDragEnd = useCallback((_e: React.DragEvent) => {
     // Reset any drag states
   }, []);
 
@@ -367,7 +368,10 @@ export const AIBlockSuggester: React.FC<AIBlockSuggesterProps> = ({
                 <div className="p-1.5 bg-orange/10 rounded">
                   <Sparkles size={14} className="text-orange" />
                 </div>
-                <h2 id="palette-title" className="text-sm font-bold text-ink uppercase tracking-wide">
+                <h2
+                  id="palette-title"
+                  className="text-sm font-bold text-ink uppercase tracking-wide"
+                >
                   Block Palette
                 </h2>
               </div>
@@ -392,41 +396,47 @@ export const AIBlockSuggester: React.FC<AIBlockSuggesterProps> = ({
                   Suggested Next
                 </h3>
                 {isLoadingAI && <Loader2 size={10} className="animate-spin text-orange ml-auto" />}
-                {aiError && !isLoadingAI && <AlertCircle size={10} className="text-gray-400 ml-auto" />}
+                {aiError && !isLoadingAI && (
+                  <AlertCircle size={10} className="text-gray-400 ml-auto" />
+                )}
               </div>
 
               <div className="space-y-2 max-h-48 overflow-y-auto">
-                {isLoadingAI ? (
-                  [...Array(3)].map((_, i) => (
-                    <div key={i} className="p-3 bg-white border border-gray-200 rounded-lg animate-pulse">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-gray-100 rounded" />
-                        <div className="flex-1 space-y-1.5">
-                          <div className="h-3 bg-gray-100 rounded w-3/4" />
-                          <div className="h-2 bg-gray-100 rounded w-1/2" />
+                {isLoadingAI
+                  ? [...Array(3)].map((_, i) => (
+                      <div
+                        key={i}
+                        className="p-3 bg-white border border-gray-200 rounded-lg animate-pulse"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-gray-100 rounded" />
+                          <div className="flex-1 space-y-1.5">
+                            <div className="h-3 bg-gray-100 rounded w-3/4" />
+                            <div className="h-2 bg-gray-100 rounded w-1/2" />
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))
-                ) : (
-                  suggestedBlocks.map((block) => (
-                    <BlockCard
-                      key={block.id}
-                      block={block}
-                      isAISuggested={aiSuggestions.includes(block)}
-                      onAdd={handleAddBlock}
-                      onDragStart={handleDragStart}
-                      onDragEnd={handleDragEnd}
-                    />
-                  ))
-                )}
+                    ))
+                  : suggestedBlocks.map((block) => (
+                      <BlockCard
+                        key={block.id}
+                        block={block}
+                        isAISuggested={aiSuggestions.includes(block)}
+                        onAdd={handleAddBlock}
+                        onDragStart={handleDragStart}
+                        onDragEnd={handleDragEnd}
+                      />
+                    ))}
               </div>
             </section>
 
             {/* Search */}
             <div className="p-4 border-b border-gray-200">
               <div className="relative">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <Search
+                  size={14}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                />
                 <input
                   ref={searchInputRef}
                   type="text"
@@ -457,6 +467,8 @@ export const AIBlockSuggester: React.FC<AIBlockSuggesterProps> = ({
                 if (blocks.length === 0) return null;
                 const colors = CATEGORY_COLORS[category] || CATEGORY_COLORS.OTHER;
                 const isExpanded = expandedCategory === category;
+
+                if (!colors) return null;
 
                 return (
                   <div key={category} className="border-b border-gray-100 last:border-b-0">

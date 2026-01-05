@@ -8,19 +8,21 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  walletAddress String    @unique
+  id            String         @id @default(cuid())
+  walletAddress String         @unique
   email         String?
   username      String?
   bio           String?
   avatarUrl     String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
   strategies    Strategy[]
   ratings       Rating[]
   reviews       Review[]
   forks         StrategyFork[]
   collections   Collection[]
+  alerts        Alert[]
+  dashboards    Dashboard[]
 
   @@index([walletAddress])
   @@index([username])
@@ -34,7 +36,7 @@ model Strategy {
   nodeGraph   String   @default("{}") // Store ReactFlow node graph as JSON string
   isPublic    Boolean  @default(false)
   isFeatured  Boolean  @default(false)
-  category    String?  // e.g., "yield-farming", "arbitrage", "liquidity"
+  category    String? // e.g., "yield-farming", "arbitrage", "liquidity"
   tags        String   @default("[]") // JSON array of tags
   viewCount   Int      @default(0)
   forkCount   Int      @default(0)
@@ -42,12 +44,12 @@ model Strategy {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  ratings     Rating[]
-  reviews     Review[]
-  originalForks StrategyFork[] @relation("OriginalStrategy")
-  forkedFrom   StrategyFork[]  @relation("ForkedStrategy")
-  collections  CollectionStrategy[]
+  user          User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ratings       Rating[]
+  reviews       Review[]
+  originalForks StrategyFork[]       @relation("OriginalStrategy")
+  forkedFrom    StrategyFork[]       @relation("ForkedStrategy")
+  collections   CollectionStrategy[]
 
   @@index([userId])
   @@index([isPublic])
@@ -60,12 +62,12 @@ model Rating {
   id         String   @id @default(cuid())
   strategyId String
   userId     String
-  rating     Int      // 1-5 stars
+  rating     Int // 1-5 stars
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  strategy   Strategy @relation(fields: [strategyId], references: [id], onDelete: Cascade)
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  strategy Strategy @relation(fields: [strategyId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([strategyId, userId])
   @@index([strategyId])
@@ -80,23 +82,23 @@ model Review {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  strategy   Strategy @relation(fields: [strategyId], references: [id], onDelete: Cascade)
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  strategy Strategy @relation(fields: [strategyId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([strategyId])
   @@index([userId])
 }
 
 model StrategyFork {
-  id          String   @id @default(cuid())
-  originalId  String
-  forkedId     String
-  userId      String
-  createdAt   DateTime @default(now())
+  id         String   @id @default(cuid())
+  originalId String
+  forkedId   String
+  userId     String
+  createdAt  DateTime @default(now())
 
-  original    Strategy @relation("OriginalStrategy", fields: [originalId], references: [id], onDelete: Cascade)
-  forked      Strategy @relation("ForkedStrategy", fields: [forkedId], references: [id], onDelete: Cascade)
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  original Strategy @relation("OriginalStrategy", fields: [originalId], references: [id], onDelete: Cascade)
+  forked   Strategy @relation("ForkedStrategy", fields: [forkedId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([originalId])
   @@index([forkedId])
@@ -112,22 +114,22 @@ model Collection {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  strategies  CollectionStrategy[]
+  user       User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  strategies CollectionStrategy[]
 
   @@index([userId])
   @@index([isPublic])
 }
 
 model CollectionStrategy {
-  id           String     @id @default(cuid())
+  id           String   @id @default(cuid())
   collectionId String
   strategyId   String
-  order        Int        @default(0)
-  createdAt    DateTime   @default(now())
+  order        Int      @default(0)
+  createdAt    DateTime @default(now())
 
-  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
-  strategy     Strategy   @relation(fields: [strategyId], references: [id], onDelete: Cascade)
+  collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  strategy   Strategy   @relation(fields: [strategyId], references: [id], onDelete: Cascade)
 
   @@unique([collectionId, strategyId])
   @@index([collectionId])
@@ -135,26 +137,26 @@ model CollectionStrategy {
 }
 
 model BacktestResult {
-  id          String   @id @default(cuid())
-  strategyId  String
-  parameters  String   @default("{}") // Backtest configuration as JSON string
-  results     String   @default("{}") // Performance metrics as JSON string
-  createdAt   DateTime @default(now())
+  id         String   @id @default(cuid())
+  strategyId String
+  parameters String   @default("{}") // Backtest configuration as JSON string
+  results    String   @default("{}") // Performance metrics as JSON string
+  createdAt  DateTime @default(now())
 
   @@index([strategyId])
 }
 
 model AuditLog {
-  id          String   @id @default(cuid())
-  eventType   String   // AuditEventType enum value
-  userId      String?
+  id            String   @id @default(cuid())
+  eventType     String // AuditEventType enum value
+  userId        String?
   walletAddress String?
-  ipAddress   String?
-  userAgent   String?
-  metadata    String   @default("{}") // JSON string
-  success     Boolean
-  errorMessage String?
-  timestamp   DateTime @default(now())
+  ipAddress     String?
+  userAgent     String?
+  metadata      String   @default("{}") // JSON string
+  success       Boolean
+  errorMessage  String?
+  timestamp     DateTime @default(now())
 
   @@index([eventType])
   @@index([userId])
@@ -162,3 +164,39 @@ model AuditLog {
   @@index([timestamp])
 }
 
+model Alert {
+  id              String    @id @default(cuid())
+  userId          String
+  name            String
+  type            String // 'price', 'position', 'strategy', 'time'
+  condition       String    @default("{}") // JSON: { operator, value, field, token? }
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  triggeredAt     DateTime?
+  triggerCount    Int       @default(0)
+  lastTriggeredAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isActive])
+  @@index([type])
+  @@index([isActive, type])
+}
+
+model Dashboard {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  layout    String   @default("{}") // JSON: widget positions and sizes
+  widgets   String   @default("[]") // JSON: widget configurations
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, isDefault])
+}

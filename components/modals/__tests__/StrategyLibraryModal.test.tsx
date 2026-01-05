@@ -1,9 +1,9 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { StrategyLibraryModal } from '../StrategyLibraryModal';
-import * as strategyStorage from '../../../services/strategyStorage';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithProviders } from '../../../__tests__/utils/test-utils';
+import * as strategyStorage from '../../../services/strategyStorage';
+import { StrategyLibraryModal } from '../StrategyLibraryModal';
 
 // Mock dependencies
 vi.mock('../../../services/strategyStorage');
@@ -34,7 +34,7 @@ describe('StrategyLibraryModal', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     (strategyStorage.getStrategies as ReturnType<typeof vi.fn>).mockReturnValue([
       {
         id: 'strategy-1',
@@ -54,17 +54,13 @@ describe('StrategyLibraryModal', () => {
   });
 
   it('renders when isOpen is true', () => {
-    renderWithProviders(
-      <StrategyLibraryModal isOpen={true} onClose={mockOnClose} />
-    );
+    renderWithProviders(<StrategyLibraryModal isOpen={true} onClose={mockOnClose} />);
     expect(screen.getByText(/strategy library/i)).toBeInTheDocument();
   });
 
   it('displays saved strategies', async () => {
-    renderWithProviders(
-      <StrategyLibraryModal isOpen={true} onClose={mockOnClose} />
-    );
-    
+    renderWithProviders(<StrategyLibraryModal isOpen={true} onClose={mockOnClose} />);
+
     await waitFor(() => {
       expect(screen.getByText(/test strategy/i)).toBeInTheDocument();
     });
@@ -72,18 +68,16 @@ describe('StrategyLibraryModal', () => {
 
   it('switches between templates and saved view', async () => {
     const user = userEvent.setup();
-    renderWithProviders(
-      <StrategyLibraryModal isOpen={true} onClose={mockOnClose} />
-    );
-    
+    renderWithProviders(<StrategyLibraryModal isOpen={true} onClose={mockOnClose} />);
+
     await waitFor(() => {
       const templatesTab = screen.getByRole('button', { name: /templates/i });
       expect(templatesTab).toBeInTheDocument();
     });
-    
+
     const templatesTab = screen.getByRole('button', { name: /templates/i });
     await user.click(templatesTab);
-    
+
     await waitFor(() => {
       expect(screen.getByText(/dca/i) || screen.getByText(/yield/i)).toBeInTheDocument();
     });
@@ -91,39 +85,33 @@ describe('StrategyLibraryModal', () => {
 
   it('calls onClose when close button is clicked', async () => {
     const user = userEvent.setup();
-    renderWithProviders(
-      <StrategyLibraryModal isOpen={true} onClose={mockOnClose} />
-    );
-    
+    renderWithProviders(<StrategyLibraryModal isOpen={true} onClose={mockOnClose} />);
+
     await waitFor(() => {
       const closeButton = screen.getByRole('button', { name: /close/i });
       expect(closeButton).toBeInTheDocument();
     });
-    
+
     const closeButton = screen.getByRole('button', { name: /close/i });
     await user.click(closeButton);
-    
+
     expect(mockOnClose).toHaveBeenCalledTimes(1);
   });
 
   it('opens save dialog when save button is clicked', async () => {
     const user = userEvent.setup();
     renderWithProviders(
-      <StrategyLibraryModal 
-        isOpen={true} 
-        onClose={mockOnClose}
-        currentBlocks={mockBlocks}
-      />
+      <StrategyLibraryModal isOpen={true} onClose={mockOnClose} currentBlocks={mockBlocks} />
     );
-    
+
     await waitFor(() => {
       const saveButton = screen.getByRole('button', { name: /save/i });
       expect(saveButton).toBeInTheDocument();
     });
-    
+
     const saveButton = screen.getByRole('button', { name: /save/i });
     await user.click(saveButton);
-    
+
     await waitFor(() => {
       expect(screen.getByPlaceholderText(/enter strategy name/i)).toBeInTheDocument();
     });
@@ -132,38 +120,36 @@ describe('StrategyLibraryModal', () => {
   it('loads strategy when load button is clicked', async () => {
     const user = userEvent.setup();
     renderWithProviders(
-      <StrategyLibraryModal 
-        isOpen={true} 
+      <StrategyLibraryModal
+        isOpen={true}
         onClose={mockOnClose}
         onLoadStrategy={mockOnLoadStrategy}
       />
     );
-    
+
     await waitFor(() => {
       const loadButton = screen.getByRole('button', { name: /load/i });
       expect(loadButton).toBeInTheDocument();
     });
-    
+
     const loadButton = screen.getByRole('button', { name: /load/i });
     await user.click(loadButton);
-    
+
     expect(mockOnLoadStrategy).toHaveBeenCalled();
   });
 
   it('filters strategies by search query', async () => {
     const user = userEvent.setup();
-    renderWithProviders(
-      <StrategyLibraryModal isOpen={true} onClose={mockOnClose} />
-    );
-    
+    renderWithProviders(<StrategyLibraryModal isOpen={true} onClose={mockOnClose} />);
+
     await waitFor(() => {
       const searchInput = screen.getByPlaceholderText(/search/i);
       expect(searchInput).toBeInTheDocument();
     });
-    
+
     const searchInput = screen.getByPlaceholderText(/search/i);
     await user.type(searchInput, 'test');
-    
+
     await waitFor(() => {
       expect(screen.getByText(/test strategy/i)).toBeInTheDocument();
     });
@@ -171,21 +157,18 @@ describe('StrategyLibraryModal', () => {
 
   it('shows empty state when no strategies match search', async () => {
     const user = userEvent.setup();
-    renderWithProviders(
-      <StrategyLibraryModal isOpen={true} onClose={mockOnClose} />
-    );
-    
+    renderWithProviders(<StrategyLibraryModal isOpen={true} onClose={mockOnClose} />);
+
     await waitFor(() => {
       const searchInput = screen.getByPlaceholderText(/search/i);
       expect(searchInput).toBeInTheDocument();
     });
-    
+
     const searchInput = screen.getByPlaceholderText(/search/i);
     await user.type(searchInput, 'nonexistent');
-    
+
     await waitFor(() => {
       expect(screen.getByText(/no strategies found/i)).toBeInTheDocument();
     });
   });
 });
-

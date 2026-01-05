@@ -12,7 +12,7 @@ export {
   vitestMockHelpers,
   playwrightMockHelpers,
   MockBuilder,
-  testScenarios
+  testScenarios,
 } from './testingIntegration';
 
 export type {
@@ -27,5 +27,5 @@ export type {
   PoolData,
   BacktestData,
   TransactionData,
-  DataGeneratorSchema
+  DataGeneratorSchema,
 } from './types';

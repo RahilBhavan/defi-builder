@@ -6,8 +6,8 @@
 import { Globe, Lock, Tag, X } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
-import { trpc } from '../../lib/api/trpc';
 import { useToast } from '../../hooks/useToast';
+import { trpc } from '../../lib/api/trpc';
 import { Button } from '../ui/Button';
 
 interface StrategyVisibilityDialogProps {
@@ -78,11 +78,7 @@ export const StrategyVisibilityDialog: React.FC<StrategyVisibilityDialogProps> =
       onSuccess?.();
       onClose();
     } catch (error) {
-      showError(
-        error instanceof Error
-          ? error.message
-          : 'Failed to update strategy visibility'
-      );
+      showError(error instanceof Error ? error.message : 'Failed to update strategy visibility');
     } finally {
       setIsSubmitting(false);
     }
@@ -105,9 +101,7 @@ export const StrategyVisibilityDialog: React.FC<StrategyVisibilityDialogProps> =
       <div className="bg-canvas border-2 border-ink shadow-2xl relative w-full max-w-md">
         {/* Header */}
         <div className="h-14 flex items-center justify-between px-6 border-b border-gray-300 bg-white">
-          <h2 className="text-lg font-bold font-mono uppercase">
-            Strategy Visibility
-          </h2>
+          <h2 className="text-lg font-bold font-mono uppercase">Strategy Visibility</h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 text-ink transition-colors"
@@ -121,17 +115,13 @@ export const StrategyVisibilityDialog: React.FC<StrategyVisibilityDialogProps> =
         <div className="p-6 space-y-6">
           {/* Visibility Toggle */}
           <div>
-            <label className="block text-sm font-mono font-bold mb-3">
-              Visibility
-            </label>
+            <label className="block text-sm font-mono font-bold mb-3">Visibility</label>
             <div className="space-y-3">
               <button
                 type="button"
                 onClick={() => setIsPublic(true)}
                 className={`w-full p-4 border-2 rounded-lg flex items-center gap-3 transition-all ${
-                  isPublic
-                    ? 'border-orange bg-orange/10'
-                    : 'border-gray-300 hover:border-gray-400'
+                  isPublic ? 'border-orange bg-orange/10' : 'border-gray-300 hover:border-gray-400'
                 }`}
               >
                 <Globe size={20} className={isPublic ? 'text-orange' : 'text-gray-400'} />
@@ -150,17 +140,13 @@ export const StrategyVisibilityDialog: React.FC<StrategyVisibilityDialogProps> =
                 type="button"
                 onClick={() => setIsPublic(false)}
                 className={`w-full p-4 border-2 rounded-lg flex items-center gap-3 transition-all ${
-                  !isPublic
-                    ? 'border-orange bg-orange/10'
-                    : 'border-gray-300 hover:border-gray-400'
+                  !isPublic ? 'border-orange bg-orange/10' : 'border-gray-300 hover:border-gray-400'
                 }`}
               >
                 <Lock size={20} className={!isPublic ? 'text-orange' : 'text-gray-400'} />
                 <div className="flex-1 text-left">
                   <div className="font-mono font-bold">Private</div>
-                  <div className="text-xs text-gray-600">
-                    Only visible to you
-                  </div>
+                  <div className="text-xs text-gray-600">Only visible to you</div>
                 </div>
                 {!isPublic && (
                   <div className="w-4 h-4 rounded-full bg-orange border-2 border-orange" />
@@ -205,9 +191,7 @@ export const StrategyVisibilityDialog: React.FC<StrategyVisibilityDialogProps> =
                 placeholder="e.g., uniswap, ethereum, defi"
                 className="w-full px-4 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-orange font-mono text-sm"
               />
-              <div className="text-xs text-gray-500 mt-1">
-                Help others discover your strategy
-              </div>
+              <div className="text-xs text-gray-500 mt-1">Help others discover your strategy</div>
             </div>
           )}
 
@@ -234,4 +218,3 @@ export const StrategyVisibilityDialog: React.FC<StrategyVisibilityDialogProps> =
     </div>
   );
 };
-
