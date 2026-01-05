@@ -1,8 +1,18 @@
 # DeFi Builder API Documentation
 
+**Last Updated**: 2025-01-04
+
 ## Overview
 
 DeFi Builder uses **tRPC** for type-safe API communication between frontend and backend. All API endpoints are fully typed and validated using Zod schemas.
+
+### Key Features
+
+- **Type Safety**: End-to-end type safety from backend to frontend
+- **Automatic Validation**: Request/response validation with Zod
+- **Developer Experience**: Auto-completion and type checking in IDE
+- **Error Handling**: Structured error responses
+- **Real-time Updates**: WebSocket support for live data
 
 ## Base URL
 

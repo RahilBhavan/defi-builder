@@ -1,8 +1,18 @@
 # DeFi Builder Architecture
 
+**Last Updated**: 2025-01-04
+
 ## System Overview
 
 DeFi Builder is a full-stack application for building, testing, and executing DeFi strategies. The architecture follows a modern, type-safe approach with clear separation of concerns.
+
+### Key Principles
+
+- **Type Safety**: End-to-end type safety with TypeScript and tRPC
+- **Modularity**: Feature-based organization with shared utilities
+- **Performance**: Code splitting, lazy loading, and optimized bundles
+- **Scalability**: Horizontal scaling support with stateless backend
+- **Security**: Server-side API key management, JWT authentication
 
 ## High-Level Architecture
 
