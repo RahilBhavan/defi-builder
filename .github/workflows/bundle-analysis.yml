@@ -25,7 +25,7 @@ jobs:
         run: ANALYZE=true npm run build:analyze
       
       - name: Upload bundle analysis
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: bundle-stats
           path: dist/stats.html
